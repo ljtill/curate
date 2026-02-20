@@ -20,6 +20,7 @@
 
 - **Language**: Python (primary), other languages as needed
 - **Orchestration**: [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
+- **LLM Provider**: [Microsoft Foundry](https://foundry.microsoft.com/)
 - **Hosting**: Microsoft Azure
   - **Azure Container Apps** — editorial service (FastAPI)
   - **Azure Cosmos DB** (NoSQL API) — data persistence, change feed as event source
@@ -39,6 +40,8 @@ Links are submitted through the Editorial Dashboard (Links view). Submitting a l
 ### 2. Agent Pipeline
 
 Event-driven and continuously iterating. Agents react to changes — new links, editor feedback — and refine the current edition. The pipeline is triggered via the Cosmos DB change feed, consumed by a dedicated change feed processor running within the Container App.
+
+**Orchestration layer:** An explicit orchestrator handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic.
 
 **Agent stages:**
 
@@ -77,11 +80,22 @@ Agent-generated static pages served via Azure Static Web Apps. The publish agent
 
 ## Data Model
 
-Cosmos DB (NoSQL API), leveraging the change feed as the event backbone for agent triggering.
+Cosmos DB (NoSQL API), leveraging the change feed as the event backbone for agent triggering. Each document type lives in its own container for clean separation.
+
+### Containers & Partition Keys
+
+| Container      | Partition Key   | Rationale                                                        |
+|----------------|-----------------|------------------------------------------------------------------|
+| `links`        | `/edition_id`   | Links are queried per edition; co-locates related links          |
+| `editions`     | `/id`           | Each edition is accessed individually; single-document partition |
+| `feedback`     | `/edition_id`   | Feedback is queried per edition alongside content review         |
+| `agent_runs`   | `/trigger_id`   | Runs are queried by the document that triggered them             |
 
 ### Document Types
 
 #### Links
+
+Container: `links` · Partition key: `/edition_id`
 
 Submitted URLs with metadata, agent processing status, and extracted content.
 
@@ -93,17 +107,19 @@ Submitted URLs with metadata, agent processing status, and extracted content.
 | `status`           | Processing status: `submitted` → `fetching` → `reviewed` → `drafted` |
 | `content`          | Extracted/parsed content (populated by Fetch agent)      |
 | `review`           | Agent review output — relevance, insights, category      |
-| `edition_id`       | Associated edition                                       |
+| `edition_id`       | Associated edition (partition key)                       |
 | `submitted_at`     | Submission timestamp                                     |
 | `updated_at`       | Last update timestamp                                    |
 
 #### Editions
 
+Container: `editions` · Partition key: `/id`
+
 Flexible content structure defined by agents, lifecycle status, and associated links.
 
 | Field              | Description                                              |
 |--------------------|----------------------------------------------------------|
-| `id`               | Unique identifier                                        |
+| `id`               | Unique identifier (partition key)                        |
 | `status`           | Lifecycle status: `created` → `drafting` → `in_review` → `published` |
 | `content`          | Agent-generated edition content (flexible structure)     |
 | `link_ids`         | Associated link document IDs                             |
@@ -113,12 +129,14 @@ Flexible content structure defined by agents, lifecycle status, and associated l
 
 #### Feedback
 
+Container: `feedback` · Partition key: `/edition_id`
+
 Structured per-section editor comments, linked to editions.
 
 | Field              | Description                                              |
 |--------------------|----------------------------------------------------------|
 | `id`               | Unique identifier                                        |
-| `edition_id`       | Associated edition                                       |
+| `edition_id`       | Associated edition (partition key)                       |
 | `section`          | Target section identifier                                |
 | `comment`          | Editor feedback text                                     |
 | `resolved`         | Whether the feedback has been addressed by agents        |
@@ -126,13 +144,15 @@ Structured per-section editor comments, linked to editions.
 
 #### Agent Runs
 
+Container: `agent_runs` · Partition key: `/trigger_id`
+
 Execution logs, decisions, and state per pipeline stage.
 
 | Field              | Description                                              |
 |--------------------|----------------------------------------------------------|
 | `id`               | Unique identifier                                        |
 | `stage`            | Pipeline stage (`fetch`, `review`, `draft`, `edit`, `publish`) |
-| `trigger_id`       | ID of the document that triggered the run                |
+| `trigger_id`       | ID of the document that triggered the run (partition key)|
 | `status`           | Run status (`running`, `completed`, `failed`)            |
 | `input`            | Input data/context for the agent                         |
 | `output`           | Agent output/decisions                                   |
@@ -148,6 +168,10 @@ Resolved decisions that shape the implementation:
 | Decision                        | Resolution                                                                                         |
 |---------------------------------|----------------------------------------------------------------------------------------------------|
 | **Change feed consumer**        | Dedicated change feed processor within the Container App (fewer services, simpler deployment).      |
+| **Agent flow control**          | Explicit orchestration layer handles stage transitions, routing, and error/retry logic.              |
+| **Cosmos DB container layout**  | Multiple containers (one per document type) for clean separation.                                    |
+| **Cosmos DB partitioning**      | `links` and `feedback` by `edition_id`, `editions` by `id`, `agent_runs` by `trigger_id`.           |
+| **LLM provider**                | Microsoft Foundry.                                                                                   |
 | **Feedback granularity**        | Per-section — matches the natural editorial workflow.                                               |
 | **HTML template management**    | Version controlled in the repository — simpler and auditable.                                       |
 | **Static site deployment**      | Publish agent uploads to Azure Storage Account; Azure Static Web Apps pulls from storage (decoupled). |
