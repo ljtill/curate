@@ -111,6 +111,16 @@ class PipelineOrchestrator:
             logger.debug("No action needed for link %s with status %s", link_id, status)
             return
 
+        # Skip stale/replayed events — the link has already advanced past this status
+        if link.status != status:
+            logger.debug(
+                "Link %s already at status %s, skipping stale event (feed status: %s)",
+                link_id,
+                link.status,
+                status,
+            )
+            return
+
         run = await self._create_run(stage, link_id, {"status": status})
         try:
             usage = await self._execute_link_stage(stage, link)
