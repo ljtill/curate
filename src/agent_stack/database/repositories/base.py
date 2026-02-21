@@ -39,7 +39,9 @@ class BaseRepository[T: DocumentBase]:
         """Replace an existing document, updating the timestamp."""
         item.updated_at = datetime.now(UTC)
         body = item.model_dump(mode="json", exclude_none=True)
-        await self._container.replace_item(item=item.id, body=body, partition_key=partition_key)
+        # The SDK extracts the partition key from the document body automatically;
+        # passing it as a kwarg leaks it through the HTTP pipeline to aiohttp.
+        await self._container.replace_item(item=item.id, body=body)
         return item
 
     async def soft_delete(self, item: T, partition_key: str) -> T:

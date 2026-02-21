@@ -80,7 +80,7 @@ async def test_update_sets_updated_at(repo, mock_container):
     result = await repo.update(link, "ed-1")
     assert result.updated_at >= original_updated
     call_kwargs = mock_container.replace_item.call_args[1]
-    assert call_kwargs["partition_key"] == "ed-1"
+    assert "partition_key" not in call_kwargs
 
 
 @pytest.mark.asyncio
