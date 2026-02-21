@@ -64,6 +64,17 @@ async def publish_edition(request: Request, edition_id: str):
     return RedirectResponse(f"/editions/{edition_id}", status_code=303)
 
 
+@router.post("/{edition_id}/delete")
+async def delete_edition(request: Request, edition_id: str):
+    """Soft-delete an edition and redirect to the editions list."""
+    cosmos = request.app.state.cosmos
+    repo = EditionRepository(cosmos.database)
+    edition = await repo.get(edition_id, edition_id)
+    if edition:
+        await repo.soft_delete(edition, edition_id)
+    return RedirectResponse("/editions/", status_code=303)
+
+
 @router.get("/{edition_id}/title/edit", response_class=HTMLResponse)
 async def edit_title_form(request: Request, edition_id: str):
     """Return the inline title edit form partial."""

@@ -11,6 +11,9 @@
             <button type="submit" class="btn">Publish</button>
         </form>
         {% endif %}
+        <form method="post" action="/editions/{{ edition.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this edition?');">
+            <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
     </div>
 </div>
 

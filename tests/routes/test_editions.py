@@ -8,6 +8,7 @@ from agent_stack.models.edition import Edition
 from agent_stack.routes.editions import (
     cancel_title_edit,
     create_edition,
+    delete_edition,
     edit_title_form,
     update_title,
 )
@@ -164,3 +165,38 @@ async def test_cancel_title_edit_renders_display_partial():
             "partials/edition_title.html",
             {"request": request, "edition": edition, "editing": False},
         )
+
+
+@pytest.mark.asyncio
+async def test_delete_edition_soft_deletes():
+    """POST delete soft-deletes the edition and redirects."""
+    request = _make_request()
+    edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
+
+    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+        repo = AsyncMock()
+        MockRepo.return_value = repo
+        repo.get.return_value = edition
+        repo.soft_delete.return_value = edition
+
+        response = await delete_edition(request, edition_id="ed-1")
+
+        repo.get.assert_called_once_with("ed-1", "ed-1")
+        repo.soft_delete.assert_called_once_with(edition, "ed-1")
+        assert response.status_code == 303
+
+
+@pytest.mark.asyncio
+async def test_delete_edition_not_found():
+    """POST delete on missing edition still redirects without error."""
+    request = _make_request()
+
+    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+        repo = AsyncMock()
+        MockRepo.return_value = repo
+        repo.get.return_value = None
+
+        response = await delete_edition(request, edition_id="missing")
+
+        repo.soft_delete.assert_not_called()
+        assert response.status_code == 303
