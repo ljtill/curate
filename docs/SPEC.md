@@ -20,7 +20,7 @@
 
 ## Constraints & Tech Stack
 
-- **Language**: Python (primary), other languages as needed
+- **Language**: Python 3.13 (managed with [uv](https://docs.astral.sh/uv/))
 - **Orchestration**: [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) `1.0.0rc1` ([PyPI](https://pypi.org/project/agent-framework/))
 - **LLM Provider**: [Microsoft Foundry](https://foundry.microsoft.com/)
 - **Hosting**: Microsoft Azure
@@ -37,7 +37,7 @@
 
 - **Package layout**: `src/agent_stack/` — standard `src/` layout for an application package.
 - **Process model**: Single process — the FastAPI application runs the Cosmos DB change feed processor as a background task within the same process via FastAPI's lifespan events.
-- **Local development**: Azure Cosmos DB emulator via Docker for offline development.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible) via Docker for offline development.
 
 ---
 
@@ -155,18 +155,33 @@ Submitted URLs with metadata, agent processing status, and extracted content.
 
 Container: `editions` · Partition key: `/id`
 
-Hybrid content schema — the `content` field has minimal required fields (e.g., title, sections array) that agents must populate, while allowing agents to add arbitrary additional content for editorial flexibility.
+Structured content schema — the `content` field follows a defined structure that agents must populate:
 
 | Field              | Description                                              |
 |--------------------|----------------------------------------------------------|
 | `id`               | Unique identifier (partition key)                        |
 | `status`           | Lifecycle status: `created` → `drafting` → `in_review` → `published` |
-| `content`          | Agent-generated edition content (hybrid schema — see above) |
+| `content`          | Agent-generated edition content (structured schema — see below) |
 | `link_ids`         | Associated link document IDs                             |
 | `published_at`     | Publish timestamp (when applicable)                      |
 | `created_at`       | Creation timestamp                                       |
 | `updated_at`       | Last update timestamp                                    |
 | `deleted_at`       | Soft-delete timestamp (absent if active)                 |
+
+**Edition Content Schema:**
+
+The `content` dict follows this structure (see `prompts/draft.md` for the full specification):
+
+| Field              | Type             | Description                                           |
+|--------------------|------------------|-------------------------------------------------------|
+| `title`            | string           | Issue headline                                        |
+| `subtitle`         | string           | One-sentence summary                                  |
+| `issue_number`     | integer          | Sequential issue number                               |
+| `editors_note`     | string           | Opening paragraph setting context                     |
+| `signals`          | array of objects | 3–5 news items (headline, body, url, domain, company, tags) |
+| `deep_dive`        | object           | Featured analysis (title, paragraphs[], optional callout) |
+| `toolkit`          | array of objects | 1–3 actionable tools (name, description, url, domain) |
+| `one_more_thing`   | string           | Closing thought or question                           |
 
 #### Feedback
 
@@ -208,7 +223,7 @@ Execution logs, decisions, and state per pipeline stage.
 
 - **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Cosmos DB, Container Apps, Storage Account, Static Web Apps, App Configuration). Separate parameter files for dev and prod environments.
 - **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build container image, deploy infrastructure, deploy application).
-- **Local development**: Azure Cosmos DB emulator via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
 
 ---
 
