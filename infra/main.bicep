@@ -51,6 +51,7 @@ module appConfig 'modules/app-configuration.bicep' = {
     cosmosEndpoint: cosmosDb.outputs.endpoint
     cosmosDatabase: cosmosDb.outputs.databaseName
     storageConnectionString: storage.outputs.connectionString
+    appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }
 
@@ -74,6 +75,9 @@ module containerApps 'modules/container-apps.bicep' = {
     acrLoginServer: acr.outputs.loginServer
     imageTag: imageTag
     appConfigEndpoint: appConfig.outputs.endpoint
+    logAnalyticsCustomerId: logAnalytics.outputs.customerId
+    logAnalyticsSharedKey: logAnalytics.outputs.sharedKey
+    appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }
 
@@ -83,6 +87,25 @@ module staticWebApp 'modules/static-web-apps.bicep' = {
   params: {
     name: '${baseName}-${environment}-swa'
     location: location
+  }
+}
+
+// Log Analytics
+module logAnalytics 'modules/log-analytics.bicep' = {
+  name: 'log-analytics'
+  params: {
+    name: '${baseName}-${environment}-law'
+    location: location
+  }
+}
+
+// Application Insights
+module appInsights 'modules/app-insights.bicep' = {
+  name: 'app-insights'
+  params: {
+    name: '${baseName}-${environment}-appi'
+    location: location
+    workspaceId: logAnalytics.outputs.id
   }
 }
 

@@ -45,6 +45,11 @@ class EntraConfig:
 
 
 @dataclass(frozen=True)
+class MonitorConfig:
+    connection_string: str = field(default_factory=lambda: _env("APPLICATIONINSIGHTS_CONNECTION_STRING"))
+
+
+@dataclass(frozen=True)
 class AppConfig:
     env: str = field(default_factory=lambda: _env("APP_ENV", "development"))
     secret_key: str = field(default_factory=lambda: _env("APP_SECRET_KEY"))
@@ -61,6 +66,7 @@ class Settings:
     openai: OpenAIConfig = field(default_factory=OpenAIConfig)
     storage: StorageConfig = field(default_factory=StorageConfig)
     entra: EntraConfig = field(default_factory=EntraConfig)
+    monitor: MonitorConfig = field(default_factory=MonitorConfig)
     app: AppConfig = field(default_factory=AppConfig)
 
 

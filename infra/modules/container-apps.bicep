@@ -16,15 +16,33 @@ param imageTag string
 @description('App Configuration endpoint')
 param appConfigEndpoint string
 
-resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+@description('Log Analytics workspace customer ID')
+param logAnalyticsCustomerId string
+
+@description('Log Analytics workspace shared key')
+@secure()
+param logAnalyticsSharedKey string
+
+@description('Application Insights connection string')
+@secure()
+param appInsightsConnectionString string
+
+resource environment 'Microsoft.App/managedEnvironments@2025-07-01' = {
   name: '${name}-env'
   location: location
   properties: {
     zoneRedundant: false
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsCustomerId
+        sharedKey: logAnalyticsSharedKey
+      }
+    }
   }
 }
 
-resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
+resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
   name: name
   location: location
   identity: {
@@ -65,6 +83,10 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'APP_ENV'
               value: 'production'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: appInsightsConnectionString
             }
           ]
         }

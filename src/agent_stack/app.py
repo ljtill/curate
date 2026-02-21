@@ -30,6 +30,13 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 async def lifespan(app: FastAPI):
     """Manage application lifecycle — initialize DB, start change feed."""
     settings = load_settings()
+
+    if settings.monitor.connection_string:
+        from azure.monitor.opentelemetry import configure_azure_monitor
+
+        configure_azure_monitor(connection_string=settings.monitor.connection_string)
+        logger.info("Azure Monitor OpenTelemetry configured")
+
     cosmos = CosmosClient(settings.cosmos)
     await cosmos.initialize()
     app.state.cosmos = cosmos

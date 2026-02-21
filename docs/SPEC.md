@@ -29,6 +29,7 @@
   - **Azure Storage Account** — generated newsletter static assets
   - **Azure Static Web Apps** — public newsletter site
   - **Azure App Configuration** — runtime configuration
+  - **Azure Application Insights** — application monitoring and telemetry (backed by Log Analytics workspace)
 - **Auth**: Microsoft Entra ID for the editorial dashboard
 
 ---
@@ -221,7 +222,7 @@ Execution logs, decisions, and state per pipeline stage.
 
 ## Infrastructure & DevOps
 
-- **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Cosmos DB, Container Apps, Storage Account, Static Web Apps, App Configuration). Separate parameter files for dev and prod environments.
+- **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Cosmos DB, Container Apps, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics). Separate parameter files for dev and prod environments.
 - **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build container image, deploy infrastructure, deploy application).
 - **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
 

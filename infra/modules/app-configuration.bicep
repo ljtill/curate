@@ -17,6 +17,10 @@ param cosmosDatabase string
 @secure()
 param storageConnectionString string
 
+@description('Application Insights connection string')
+@secure()
+param appInsightsConnectionString string
+
 resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
   name: name
   location: location
@@ -57,6 +61,14 @@ resource storageConnectionKv 'Microsoft.AppConfiguration/configurationStores/key
   name: 'AZURE_STORAGE_CONNECTION_STRING'
   properties: {
     value: storageConnectionString
+  }
+}
+
+resource appInsightsConnectionKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
+  parent: appConfig
+  name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+  properties: {
+    value: appInsightsConnectionString
   }
 }
 
