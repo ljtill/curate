@@ -136,6 +136,7 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), file_handler])
     logging.getLogger("azure").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     app = create_app()
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
