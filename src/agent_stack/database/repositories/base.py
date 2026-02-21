@@ -39,7 +39,7 @@ class BaseRepository[T: DocumentBase]:
         """Replace an existing document, updating the timestamp."""
         item.updated_at = datetime.now(UTC)
         body = item.model_dump(mode="json", exclude_none=True)
-        await self._container.replace_item(item=item.id, body=body)
+        await self._container.replace_item(item=item.id, body=body, partition_key=partition_key)
         return item
 
     async def soft_delete(self, item: T, partition_key: str) -> T:
