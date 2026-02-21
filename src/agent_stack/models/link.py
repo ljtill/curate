@@ -14,6 +14,7 @@ class LinkStatus(StrEnum):
     FETCHING = "fetching"
     REVIEWED = "reviewed"
     DRAFTED = "drafted"
+    FAILED = "failed"
 
 
 class Link(DocumentBase):

@@ -43,10 +43,23 @@ class FetchAgent:
     @tool
     async def _fetch_url(url: Annotated[str, "The URL to fetch content from"]) -> str:
         """Fetch the raw HTML content of a URL."""
-        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as http:
-            response = await http.get(url)
-            response.raise_for_status()
-            return response.text
+        try:
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as http:
+                response = await http.get(url)
+                response.raise_for_status()
+                return response.text
+        except (
+            httpx.ConnectError,
+            httpx.ConnectTimeout,
+            httpx.ReadTimeout,
+            httpx.WriteTimeout,
+            httpx.PoolTimeout,
+        ) as exc:
+            return json.dumps({"error": f"URL is unreachable: {exc}", "unreachable": True})
+        except httpx.HTTPStatusError as exc:
+            return json.dumps({"error": f"HTTP {exc.response.status_code}: {exc}", "unreachable": True})
+        except httpx.HTTPError as exc:
+            return json.dumps({"error": f"Failed to fetch URL: {exc}", "unreachable": True})
 
     @tool
     async def _save_fetched_content(

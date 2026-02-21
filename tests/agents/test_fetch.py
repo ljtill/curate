@@ -3,6 +3,7 @@
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from agent_stack.agents.fetch import FetchAgent
@@ -43,3 +44,37 @@ async def test_save_fetched_content_link_not_found(fetch_agent, links_repo):
 
     assert "error" in result
     links_repo.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fetch_url_returns_error_on_connect_error():
+    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
+        mock_client = AsyncMock()
+        mock_client.get.side_effect = httpx.ConnectError("Connection refused")
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        MockClient.return_value = mock_client
+
+        result = json.loads(await FetchAgent._fetch_url.func("http://unreachable.invalid"))
+
+        assert result["unreachable"] is True
+        assert "error" in result
+
+
+@pytest.mark.asyncio
+async def test_fetch_url_returns_error_on_http_status_error():
+    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Not Found", request=MagicMock(), response=MagicMock(status_code=404)
+        )
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        MockClient.return_value = mock_client
+
+        result = json.loads(await FetchAgent._fetch_url.func("https://example.com/missing"))
+
+        assert result["unreachable"] is True
+        assert "404" in result["error"]

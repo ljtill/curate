@@ -90,6 +90,13 @@ class PipelineOrchestrator:
             await self._agent_runs_repo.update(run, link_id)
             await self._publish_run_complete(run)
 
+        # Mark link as failed if the fetch stage didn't advance it
+        if stage == AgentStage.FETCH:
+            updated_link = await self._links_repo.get(link_id, edition_id)
+            if updated_link and updated_link.status == LinkStatus.SUBMITTED:
+                updated_link.status = LinkStatus.FAILED
+                await self._links_repo.update(updated_link, edition_id)
+
         # Publish link-update so the links table refreshes in-place
         updated_link = await self._links_repo.get(link_id, edition_id)
         if updated_link:

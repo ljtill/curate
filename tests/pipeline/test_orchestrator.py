@@ -27,3 +27,7 @@ class TestDetermineStage:
     def test_unknown_status_routes_to_none(self):
         stage = PipelineOrchestrator._determine_stage_for_link(None, "unknown")
         assert stage is None
+
+    def test_failed_routes_to_none(self):
+        stage = PipelineOrchestrator._determine_stage_for_link(None, LinkStatus.FAILED)
+        assert stage is None

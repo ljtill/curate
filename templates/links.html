@@ -29,7 +29,13 @@
             <tr id="link-{{ link.id }}">
                 <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent);">{{ link.url | truncate(50) }}</a></td>
                 <td>{{ link.title or '—' }}</td>
-                <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+                <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span>
+                    {% if link.status == 'failed' %}
+                    <form method="post" action="/links/{{ link.id }}/retry" style="display: inline; margin-left: 0.25rem;">
+                        <button type="submit" class="btn" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Retry</button>
+                    </form>
+                    {% endif %}
+                </td>
                 <td>
                     {% set runs = link_runs.get(link.id, []) %}
                     {% if runs %}
