@@ -42,6 +42,11 @@
                         <button type="submit" class="btn" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Retry</button>
                     </form>
                     {% endif %}
+                    <form method="post" action="/links/{{ link.id }}/delete" style="display: inline; margin-left: 0.25rem;"
+                          onsubmit="return confirm('Delete this link? If it has been drafted, the edition content will be regenerated.');">
+                        <input type="hidden" name="edition_id" value="{{ edition.id }}">
+                        <button type="submit" class="btn btn-danger" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Delete</button>
+                    </form>
                 </td>
                 <td>
                     {% set runs = link_runs.get(link.id, []) %}

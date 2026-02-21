@@ -101,5 +101,42 @@ async def retry_link(request: Request, link_id: str) -> RedirectResponse:
     return RedirectResponse("/links/", status_code=303)
 
 
+@router.post("/{link_id}/delete")
+async def delete_link(
+    request: Request,
+    link_id: str,
+    edition_id: Annotated[str, Form(...)],
+) -> RedirectResponse:
+    """Soft-delete a link and regenerate edition content if it was drafted."""
+    cosmos = request.app.state.cosmos
+    editions_repo = _get_editions_repo(cosmos)
+    links_repo = LinkRepository(cosmos.database)
+
+    edition = await editions_repo.get(edition_id, edition_id)
+    if not edition or edition.status == EditionStatus.PUBLISHED:
+        return RedirectResponse("/links/", status_code=303)
+
+    link = await links_repo.get(link_id, edition_id)
+    if not link:
+        return RedirectResponse(f"/links/?edition_id={edition_id}", status_code=303)
+
+    await links_repo.soft_delete(link, edition_id)
+
+    # Regenerate edition content if this link was already drafted into it
+    if link_id in edition.link_ids:
+        edition.link_ids.remove(link_id)
+        edition.content = {}
+        await editions_repo.update(edition, edition_id)
+
+        # Reset remaining drafted links to REVIEWED so the change feed
+        # re-triggers the Draft agent for each, rebuilding edition content.
+        remaining = await links_repo.get_by_status(edition_id, LinkStatus.DRAFTED)
+        for remaining_link in remaining:
+            remaining_link.status = LinkStatus.REVIEWED
+            await links_repo.update(remaining_link, edition_id)
+
+    return RedirectResponse(f"/links/?edition_id={edition_id}", status_code=303)
+
+
 def _get_editions_repo(cosmos: CosmosClient) -> EditionRepository:
     return EditionRepository(cosmos.database)
