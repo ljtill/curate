@@ -50,6 +50,10 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "unit: fast isolated unit tests",
+    "integration: tests that exercise multiple components together",
+]
 
 [tool.coverage.run]
 source = ["agent_stack"]
@@ -57,6 +61,7 @@ source = ["agent_stack"]
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+fail_under = 80
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.",
