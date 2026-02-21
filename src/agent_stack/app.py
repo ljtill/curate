@@ -135,6 +135,7 @@ def main() -> None:
     file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
 
     logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), file_handler])
+    logging.getLogger("azure").setLevel(logging.WARNING)
 
     app = create_app()
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
