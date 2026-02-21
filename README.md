@@ -1,6 +1,6 @@
 # The Agent Stack
 
-An event-driven, agent-powered editorial pipeline for "The Agent Stack", a newsletter about Agentic Engineering. See [`docs/SPEC.md`](docs/SPEC.md) for the full project specification — architecture, data model, component design, and tech stack.
+An event-driven, agent-powered editorial pipeline for "The Agent Stack", a newsletter about Agentic Engineering. See [`docs/SPEC.md`](docs/SPEC.md) for the full project specification — architecture, data model, component design, and tech stack. For visual architecture diagrams, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Project Structure
 
