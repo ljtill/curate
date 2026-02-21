@@ -41,6 +41,7 @@ Single active edition model — all submitted links feed into the current draft.
 - **Dependencies**: Only use well-known, widely-adopted packages. When in doubt, ask before adding a dependency. Always use the latest stable version available on PyPI when adding or updating packages — check https://pypi.org/pypi/{package}/json for current versions.
 - **Bicep**: Always use the latest available API versions for all Azure resource definitions. Check the Azure Resource Manager template reference for current API versions before creating or updating Bicep modules.
 - **Source control**: Commit at the end of major changes using imperative mood subject lines (e.g., "Add …", "Update …", "Remove …") with an optional prose paragraph body describing the why or key details
+- **Documentation**: Always review `README.md` at the end of major changes and keep it up-to-date with the current state of the project
 
 ## Key Conventions
 
