@@ -11,8 +11,15 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from agent_stack.agents.llm import create_chat_client
 from agent_stack.config import load_settings
 from agent_stack.database.client import CosmosClient
+from agent_stack.database.repositories.agent_runs import AgentRunRepository
+from agent_stack.database.repositories.editions import EditionRepository
+from agent_stack.database.repositories.feedback import FeedbackRepository
+from agent_stack.database.repositories.links import LinkRepository
+from agent_stack.pipeline.change_feed import ChangeFeedProcessor
+from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 from agent_stack.routes.agent_runs import router as agent_runs_router
 from agent_stack.routes.auth import router as auth_router
 from agent_stack.routes.dashboard import router as dashboard_router
@@ -43,10 +50,23 @@ async def lifespan(app: FastAPI):
     app.state.cosmos = cosmos
     app.state.settings = settings
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+    # Start the agent pipeline
+    chat_client = create_chat_client(settings.openai)
+    orchestrator = PipelineOrchestrator(
+        client=chat_client,
+        links_repo=LinkRepository(cosmos.database),
+        editions_repo=EditionRepository(cosmos.database),
+        feedback_repo=FeedbackRepository(cosmos.database),
+        agent_runs_repo=AgentRunRepository(cosmos.database),
+    )
+    processor = ChangeFeedProcessor(cosmos.database, orchestrator)
+    await processor.start()
     logger.info("Application started")
 
     yield
 
+    await processor.stop()
     await cosmos.close()
     logger.info("Application shutdown")
 
