@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Agents{% endblock %}
+{% block content %}
+<h1>Agents</h1>
+<p style="color: var(--text-muted); margin-bottom: 1.5rem;">Pipeline topology and agent configuration. Read-only view of the orchestrator workflow.</p>
+
+<!-- Pipeline Flow Diagram -->
+<div class="card" style="overflow-x: auto;">
+    <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Pipeline Workflow</h2>
+    <div class="pipeline-flow">
+        <div class="pipeline-node pipeline-node-orchestrator">
+            <div class="pipeline-node-icon">⚡</div>
+            <div class="pipeline-node-label">Orchestrator</div>
+            <div class="pipeline-node-sub">Event Router</div>
+        </div>
+        {% for agent in agents %}
+        <div class="pipeline-connector">
+            <div class="pipeline-connector-line"></div>
+            <div class="pipeline-connector-arrow">›</div>
+        </div>
+        <div class="pipeline-node {% if agent.is_running %}pipeline-node-active{% endif %}" id="pipeline-node-{{ agent.name }}">
+            <div class="pipeline-node-status">
+                {% if agent.is_running %}
+                <span class="agent-indicator-dot agent-indicator-dot-running" title="Running"></span>
+                {% elif agent.last_run and agent.last_run.status == 'completed' %}
+                <span class="agent-indicator-dot agent-indicator-dot-completed" title="Last run completed"></span>
+                {% elif agent.last_run and agent.last_run.status == 'failed' %}
+                <span class="agent-indicator-dot agent-indicator-dot-failed" title="Last run failed"></span>
+                {% else %}
+                <span class="agent-indicator-dot" style="background: var(--border);" title="Idle"></span>
+                {% endif %}
+            </div>
+            <div class="pipeline-node-icon stage-{{ agent.name }}">
+                {% if agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
+            </div>
+            <div class="pipeline-node-label">{{ agent.name | capitalize }}</div>
+            <div class="pipeline-node-sub">{{ agent.tools | length }} tool{{ 's' if agent.tools | length != 1 else '' }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- SSE listeners for live status updates -->
+<div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-start" hx-swap="none"></div>
+<div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-complete" hx-swap="none"></div>
+
+<!-- Agent Detail Cards -->
+{% for agent in agents %}
+<div class="card" id="agent-card-{{ agent.name }}" style="margin-top: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+        <span class="stage-{{ agent.name }}" style="font-size: 1.25rem; font-weight: 700;">
+            {% if agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
+        </span>
+        <div>
+            <h2 style="font-size: 1.1rem; margin: 0;">{{ agent.name | capitalize }} Agent</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">{{ agent.description }}</p>
+        </div>
+        <div style="margin-left: auto;">
+            {% if agent.is_running %}
+            <span class="badge badge-running"><span class="spinner">⟳</span> Running</span>
+            {% elif agent.last_run %}
+            <span class="badge badge-{{ agent.last_run.status }}">{{ agent.last_run.status }}</span>
+            {% else %}
+            <span class="badge" style="background: var(--border); color: var(--text-muted);">Idle</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        <!-- Tools -->
+        <div>
+            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Tools ({{ agent.tools | length }})</h3>
+            {% if agent.tools %}
+            <ul style="list-style: none; font-size: 0.85rem;">
+                {% for tool in agent.tools %}
+                <li style="padding: 0.35rem 0; border-bottom: 1px solid var(--border);">
+                    <code style="color: var(--accent); font-size: 0.8rem;">{{ tool.name }}</code>
+                    {% if tool.description %}
+                    <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.1rem;">{{ tool.description }}</div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color: var(--text-muted); font-size: 0.85rem;">No tools registered.</p>
+            {% endif %}
+        </div>
+
+        <!-- Configuration -->
+        <div>
+            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">LLM Options</h3>
+            {% if agent.options %}
+            <table style="width: 100%; font-size: 0.85rem;">
+                {% for key, value in agent.options.items() %}
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">{{ key }}</td>
+                    <td style="padding: 0.25rem 0;"><code>{{ value }}</code></td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% else %}
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Default options.</p>
+            {% endif %}
+
+            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-top: 1rem; margin-bottom: 0.5rem;">Middleware</h3>
+            {% if agent.middleware %}
+            <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                {% for mw in agent.middleware %}
+                <span class="badge" style="background: var(--border); color: var(--text); font-size: 0.7rem; text-transform: none;">{{ mw }}</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color: var(--text-muted); font-size: 0.85rem;">No middleware.</p>
+            {% endif %}
+        </div>
+
+        <!-- Last Run -->
+        <div>
+            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Last Run</h3>
+            {% if agent.last_run %}
+            <table style="width: 100%; font-size: 0.85rem;">
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Status</td>
+                    <td style="padding: 0.25rem 0;"><span class="badge badge-{{ agent.last_run.status }}">{{ agent.last_run.status }}</span></td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Started</td>
+                    <td style="padding: 0.25rem 0;">{{ agent.last_run.started_at.strftime('%Y-%m-%d %H:%M:%S') if agent.last_run.started_at else '—' }}</td>
+                </tr>
+                {% if agent.last_run.completed_at and agent.last_run.started_at %}
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Duration</td>
+                    <td style="padding: 0.25rem 0;">{{ ((agent.last_run.completed_at - agent.last_run.started_at).total_seconds()) | round(1) }}s</td>
+                </tr>
+                {% endif %}
+                {% if agent.last_run.usage %}
+                <tr>
+                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Tokens</td>
+                    <td style="padding: 0.25rem 0;">{{ agent.last_run.usage.get('total_tokens', '—') }} total</td>
+                </tr>
+                {% endif %}
+            </table>
+            {% else %}
+            <p style="color: var(--text-muted); font-size: 0.85rem;">No runs yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Instructions Preview -->
+    {% if agent.instructions and agent.instructions.full %}
+    <details style="margin-top: 1rem;">
+        <summary class="activity-output-toggle" style="font-size: 0.8rem;">System Prompt</summary>
+        <div class="activity-output" style="margin-top: 0.5rem; white-space: pre-wrap;">{{ agent.instructions.full }}</div>
+    </details>
+    {% endif %}
+</div>
+{% endfor %}
+
+<style>
+    .pipeline-flow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        padding: 1rem 0;
+        min-width: fit-content;
+    }
+    .pipeline-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 1rem 1.25rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        min-width: 100px;
+        position: relative;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .pipeline-node-active {
+        border-color: #60a5fa;
+        box-shadow: 0 0 12px rgba(96, 165, 250, 0.2);
+    }
+    .pipeline-node-orchestrator {
+        border-color: var(--accent);
+        background: rgba(99, 102, 241, 0.08);
+    }
+    .pipeline-node-icon {
+        font-size: 1.25rem;
+    }
+    .pipeline-node-label {
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .pipeline-node-sub {
+        color: var(--text-muted);
+        font-size: 0.7rem;
+    }
+    .pipeline-node-status {
+        position: absolute;
+        top: 0.4rem;
+        right: 0.4rem;
+    }
+    .pipeline-connector {
+        display: flex;
+        align-items: center;
+        gap: 0;
+    }
+    .pipeline-connector-line {
+        width: 24px;
+        height: 2px;
+        background: var(--border);
+    }
+    .pipeline-connector-arrow {
+        color: var(--text-muted);
+        font-size: 1rem;
+        line-height: 1;
+        margin-left: -4px;
+    }
+</style>
+
+<script>
+    // Live status updates for the pipeline diagram and agent cards
+    document.addEventListener('htmx:sseMessage', function(event) {
+        var eventType = event.detail.type;
+        var data;
+        try { data = JSON.parse(event.detail.data); } catch(e) { return; }
+
+        if (eventType === 'agent-run-start') {
+            var node = document.getElementById('pipeline-node-' + data.stage);
+            if (node) {
+                node.classList.add('pipeline-node-active');
+                var dot = node.querySelector('.agent-indicator-dot');
+                if (dot) { dot.className = 'agent-indicator-dot agent-indicator-dot-running'; }
+            }
+            var card = document.getElementById('agent-card-' + data.stage);
+            if (card) {
+                var badge = card.querySelector('.badge');
+                if (badge) {
+                    badge.className = 'badge badge-running';
+                    badge.innerHTML = '<span class="spinner">⟳</span> Running';
+                }
+            }
+        }
+
+        if (eventType === 'agent-run-complete') {
+            var node = document.getElementById('pipeline-node-' + data.stage);
+            if (node) {
+                node.classList.remove('pipeline-node-active');
+                var dot = node.querySelector('.agent-indicator-dot');
+                if (dot) {
+                    dot.className = 'agent-indicator-dot agent-indicator-dot-' + data.status;
+                }
+            }
+            var card = document.getElementById('agent-card-' + data.stage);
+            if (card) {
+                var badge = card.querySelector('.badge');
+                if (badge) {
+                    badge.className = 'badge badge-' + data.status;
+                    badge.textContent = data.status;
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

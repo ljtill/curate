@@ -21,6 +21,7 @@ from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.pipeline.change_feed import ChangeFeedProcessor
 from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 from agent_stack.routes.agent_runs import router as agent_runs_router
+from agent_stack.routes.agents import router as agents_router
 from agent_stack.routes.auth import router as auth_router
 from agent_stack.routes.dashboard import router as dashboard_router
 from agent_stack.routes.editions import router as editions_router
@@ -120,6 +121,7 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router)
     app.include_router(events_router)
     app.include_router(agent_runs_router)
+    app.include_router(agents_router)
     app.include_router(status_router)
 
     return app
