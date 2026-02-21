@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack.models.edition import Edition, EditionStatus
+from agent_stack.models.edition import Edition
 from agent_stack.routes.editions import (
     cancel_title_edit,
     create_edition,
@@ -242,33 +242,27 @@ async def test_edition_detail_renders_template() -> None:
         request.app.state.templates.TemplateResponse.assert_called_once()
 
 
-async def test_publish_edition_sets_in_review() -> None:
-    """POST /editions/{id}/publish transitions the edition to IN_REVIEW."""
+async def test_publish_edition_calls_orchestrator() -> None:
+    """POST /editions/{id}/publish invokes the orchestrator and redirects."""
     request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "Ready", "sections": []})
+    orchestrator = MagicMock()
+    orchestrator.handle_publish = AsyncMock()
+    request.app.state.processor.orchestrator = orchestrator
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = edition
+    response = await publish_edition(request, edition_id="ed-1")
 
-        response = await publish_edition(request, edition_id="ed-1")
-
-        assert edition.status == EditionStatus.IN_REVIEW
-        repo.update.assert_called_once_with(edition, "ed-1")
-        assert response.status_code == _EXPECTED_REDIRECT_STATUS
+    assert response.status_code == _EXPECTED_REDIRECT_STATUS
+    # Background task was created for the orchestrator
+    assert len(request.app.state.setdefault.call_args_list) > 0
 
 
-async def test_publish_edition_not_found() -> None:
-    """POST /editions/{id}/publish on missing edition still redirects."""
+async def test_publish_edition_redirects() -> None:
+    """POST /editions/{id}/publish redirects to the edition detail page."""
     request = _make_request()
+    orchestrator = MagicMock()
+    orchestrator.handle_publish = AsyncMock()
+    request.app.state.processor.orchestrator = orchestrator
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = None
+    response = await publish_edition(request, edition_id="ed-1")
 
-        response = await publish_edition(request, edition_id="missing")
-
-        repo.update.assert_not_called()
-        assert response.status_code == _EXPECTED_REDIRECT_STATUS
+    assert response.status_code == _EXPECTED_REDIRECT_STATUS

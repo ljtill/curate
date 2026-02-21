@@ -104,6 +104,11 @@ def _extract_instructions(agent_obj: object, max_length: int = 200) -> dict[str,
 
 
 _AGENT_DESCRIPTIONS: dict[str, str] = {
+    "orchestrator": (
+        "Coordinates the editorial pipeline — routes links through "
+        "fetch, review, and draft stages; handles editor feedback "
+        "and gated publishing."
+    ),
     "fetch": "Retrieves and parses submitted link content from URLs.",
     "review": "Evaluates relevance, extracts key insights, and categorizes content.",
     "draft": "Composes or revises newsletter content from reviewed material.",
@@ -128,6 +133,7 @@ def get_agent_metadata(orchestrator: PipelineOrchestrator) -> list[dict[str, Any
     Each entry contains: name, description, tools, options, middleware, instructions.
     """
     agents: list[tuple[str, Any]] = [
+        ("orchestrator", orchestrator),
         ("fetch", getattr(orchestrator, "fetch", None)),
         ("review", getattr(orchestrator, "review", None)),
         ("draft", getattr(orchestrator, "draft", None)),

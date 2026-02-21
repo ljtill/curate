@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
@@ -10,7 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
-from agent_stack.models.edition import Edition, EditionStatus
+from agent_stack.models.edition import Edition
 
 router = APIRouter(prefix="/editions", tags=["editions"])
 
@@ -72,13 +73,10 @@ async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
 
 @router.post("/{edition_id}/publish")
 async def publish_edition(request: Request, edition_id: str) -> RedirectResponse:
-    """Trigger the publish pipeline for an edition."""
-    cosmos = request.app.state.cosmos
-    repo = EditionRepository(cosmos.database)
-    edition = await repo.get(edition_id, edition_id)
-    if edition:
-        edition.status = EditionStatus.IN_REVIEW
-        await repo.update(edition, edition_id)
+    """Trigger the publish pipeline for an edition via the orchestrator agent."""
+    orchestrator = request.app.state.processor.orchestrator
+    task = asyncio.create_task(orchestrator.handle_publish(edition_id))
+    request.app.state.setdefault("_background_tasks", []).append(task)
     return RedirectResponse(f"/editions/{edition_id}", status_code=303)
 
 

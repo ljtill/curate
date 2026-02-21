@@ -1,18 +1,26 @@
-"""Pipeline orchestrator — routes change feed events to the appropriate agent stage."""
+"""Pipeline orchestrator — an Agent that coordinates the editorial pipeline."""
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
 from datetime import UTC, datetime
 from html import escape
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
+
+from agent_framework import Agent, ChatOptions, tool
 
 from agent_stack.agents.draft import DraftAgent
 from agent_stack.agents.edit import EditAgent
 from agent_stack.agents.fetch import FetchAgent
-from agent_stack.agents.middleware import RateLimitMiddleware
+from agent_stack.agents.middleware import (
+    RateLimitMiddleware,
+    TokenTrackingMiddleware,
+    ToolLoggingMiddleware,
+)
+from agent_stack.agents.prompts import load_prompt
 from agent_stack.agents.publish import PublishAgent
 from agent_stack.agents.review import ReviewAgent
 from agent_stack.events import EventManager
@@ -80,7 +88,7 @@ def _render_link_row(link: Link, runs: list) -> str:
 
 
 class PipelineOrchestrator:
-    """Routes incoming change events to the correct agent stage."""
+    """An Agent that coordinates the editorial pipeline via sub-agent tools."""
 
     def __init__(
         self,
@@ -122,155 +130,124 @@ class PipelineOrchestrator:
             rate_limiter=rate_limiter,
         )
 
-    async def handle_link_change(self, document: dict[str, Any]) -> None:
-        """Process a link document change based on its current status."""
-        link_id = document.get("id", "")
-        edition_id = document.get("edition_id", "")
-        status = document.get("status", "")
+        # Build the orchestrator agent with sub-agents as tools + custom tools
+        self._agent = Agent(
+            client=client,
+            instructions=load_prompt("orchestrator"),
+            name="orchestrator-agent",
+            description=(
+                "Coordinates the editorial pipeline — routes links through "
+                "fetch, review, and draft stages; handles editor feedback "
+                "and gated publishing."
+            ),
+            tools=[
+                # Sub-agents via as_tool()
+                self.fetch.agent.as_tool(
+                    name="fetch",
+                    description="Fetch and extract content from a submitted URL",
+                    arg_name="task",
+                    arg_description=(
+                        "Instructions including the URL, link ID, and edition ID"
+                    ),
+                ),
+                self.review.agent.as_tool(
+                    name="review",
+                    description=(
+                        "Evaluate relevance, extract insights, categorize content"
+                    ),
+                    arg_name="task",
+                    arg_description="Instructions including the link ID and edition ID",
+                ),
+                self.draft.agent.as_tool(
+                    name="draft",
+                    description="Compose newsletter content from reviewed material",
+                    arg_name="task",
+                    arg_description="Instructions including the link ID and edition ID",
+                ),
+                self.edit.agent.as_tool(
+                    name="edit",
+                    description="Refine edition content and address editor feedback",
+                    arg_name="task",
+                    arg_description="Instructions including the edition ID",
+                ),
+                self.publish.agent.as_tool(
+                    name="publish",
+                    description="Render HTML and upload to storage",
+                    arg_name="task",
+                    arg_description="Instructions including the edition ID",
+                ),
+                # Custom tools for state inspection and run tracking
+                self.get_link_status,
+                self.get_edition_status,
+                self.record_stage_start,
+                self.record_stage_complete,
+            ],
+            default_options=ChatOptions(max_tokens=2000, temperature=0.0),
+            middleware=[
+                TokenTrackingMiddleware(),
+                rate_limiter,
+                ToolLoggingMiddleware(),
+            ],
+        )
 
+    @property
+    def agent(self) -> Agent:
+        """Return the inner Agent framework instance."""
+        return self._agent  # ty: ignore[invalid-return-type]
+
+    # -- Custom tools for state inspection and run tracking --
+
+    @tool
+    async def get_link_status(
+        self,
+        link_id: Annotated[str, "The link document ID"],
+        edition_id: Annotated[str, "The edition partition key"],
+    ) -> str:
+        """Get the current status and metadata of a link."""
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
-            logger.warning("Link %s not found, skipping", link_id)
-            return
-
-        stage = self.determine_stage_for_link(status)
-        if not stage:
-            logger.debug("No action needed for link %s with status %s", link_id, status)
-            return
-
-        # Skip stale/replayed events — the link has already advanced past this status
-        if link.status != status:
-            logger.debug(
-                "Link %s already at status %s, skipping stale event (feed status: %s)",
-                link_id,
-                link.status,
-                status,
-            )
-            return
-
-        run = await self._create_run(stage, link_id, {"status": status})
-        t0 = time.monotonic()
-        logger.info("Pipeline dispatching stage=%s trigger=%s", stage, link_id)
-        try:
-            result = await self._execute_link_stage(stage, link)
-            run.status = AgentRunStatus.COMPLETED
-            run.usage = self._normalize_usage(result.get("usage") if result else None)
-            if result:
-                run.input = {**(run.input or {}), "message": result.get("message")}
-                run.output = {"content": result.get("response")}
-        except Exception as exc:
-            logger.exception("Agent stage %s failed for link %s", stage, link_id)
-            run.status = AgentRunStatus.FAILED
-            run.output = {"error": str(exc)}
-        finally:
-            run.completed_at = datetime.now(UTC)
-            await self._agent_runs_repo.update(run, link_id)
-            await self._publish_run_complete(run)
-            elapsed_ms = (time.monotonic() - t0) * 1000
-            logger.info(
-                "Pipeline stage=%s trigger=%s completed status=%s duration_ms=%.0f",
-                stage,
-                link_id,
-                run.status,
-                elapsed_ms,
-            )
-
-        # Mark link as failed if the fetch stage didn't advance it
-        if stage == AgentStage.FETCH:
-            updated_link = await self._links_repo.get(link_id, edition_id)
-            if updated_link and updated_link.status == LinkStatus.SUBMITTED:
-                updated_link.status = LinkStatus.FAILED
-                await self._links_repo.update(updated_link, edition_id)
-
-        # Publish link-update so the links table refreshes in-place
-        updated_link = await self._links_repo.get(link_id, edition_id)
-        if updated_link:
-            runs = await self._agent_runs_repo.get_by_trigger(link_id)
-            await self._events.publish(
-                "link-update",
-                _render_link_row(updated_link, runs),
-            )
-
-    async def handle_feedback_change(self, document: dict[str, Any]) -> None:
-        """Process new feedback by triggering the edit agent."""
-        edition_id = document.get("edition_id", "")
-        feedback_id = document.get("id", "")
-
-        if document.get("resolved", False):
-            return
-
-        run = await self._create_run(
-            AgentStage.EDIT, feedback_id, {"edition_id": edition_id}
+            return json.dumps({"error": "Link not found"})
+        return json.dumps(
+            {
+                "id": link.id,
+                "url": link.url,
+                "title": link.title,
+                "status": link.status,
+                "has_content": link.content is not None,
+                "has_review": link.review is not None,
+                "edition_id": link.edition_id,
+            }
         )
-        t0 = time.monotonic()
-        logger.info(
-            "Pipeline dispatching stage=%s trigger=%s", AgentStage.EDIT, feedback_id
+
+    @tool
+    async def get_edition_status(
+        self,
+        edition_id: Annotated[str, "The edition document ID"],
+    ) -> str:
+        """Get the current status of an edition."""
+        edition = await self._editions_repo.get(edition_id, edition_id)
+        if not edition:
+            return json.dumps({"error": "Edition not found"})
+        return json.dumps(
+            {
+                "id": edition.id,
+                "status": edition.status,
+                "link_count": len(edition.link_ids),
+                "has_content": bool(edition.content),
+            }
         )
-        try:
-            result = await self.edit.run(edition_id)
-            run.status = AgentRunStatus.COMPLETED
-            run.usage = self._normalize_usage(result.get("usage") if result else None)
-            if result:
-                run.input = {**(run.input or {}), "message": result.get("message")}
-                run.output = {"content": result.get("response")}
-        except Exception as exc:
-            logger.exception("Edit agent failed for feedback %s", feedback_id)
-            run.status = AgentRunStatus.FAILED
-            run.output = {"error": str(exc)}
-        finally:
-            run.completed_at = datetime.now(UTC)
-            await self._agent_runs_repo.update(run, feedback_id)
-            await self._publish_run_complete(run)
-            elapsed_ms = (time.monotonic() - t0) * 1000
-            logger.info(
-                "Pipeline stage=%s trigger=%s completed status=%s duration_ms=%.0f",
-                AgentStage.EDIT,
-                feedback_id,
-                run.status,
-                elapsed_ms,
-            )
 
-    def determine_stage_for_link(self, status: str) -> AgentStage | None:
-        """Map link status to the next agent stage."""
-        return {
-            LinkStatus.SUBMITTED: AgentStage.FETCH,
-            LinkStatus.FETCHING: AgentStage.REVIEW,
-            LinkStatus.REVIEWED: AgentStage.DRAFT,
-        }.get(status)
-
-    async def _execute_link_stage(self, stage: AgentStage, link: Link) -> dict | None:
-        """Dispatch to the correct agent based on stage."""
-        match stage:
-            case AgentStage.FETCH:
-                return await self.fetch.run(link)
-            case AgentStage.REVIEW:
-                return await self.review.run(link)
-            case AgentStage.DRAFT:
-                return await self.draft.run(link)
-        return None
-
-    @staticmethod
-    def _normalize_usage(usage: dict | None) -> dict | None:
-        """Normalize framework usage_details to a consistent schema."""
-        if not usage:
-            return None
-        input_tokens = usage.get("input_token_count", 0) or 0
-        output_tokens = usage.get("output_token_count", 0) or 0
-        return {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": usage.get("total_token_count", 0)
-            or input_tokens + output_tokens,
-        }
-
-    async def _create_run(
-        self, stage: AgentStage, trigger_id: str, input_data: dict
-    ) -> AgentRun:
-        """Create and persist an agent run document."""
+    @tool
+    async def record_stage_start(
+        self,
+        stage: Annotated[str, "Pipeline stage: fetch, review, draft, edit, or publish"],
+        trigger_id: Annotated[str, "ID of the document that triggered this run"],
+    ) -> str:
+        """Record the start of a pipeline stage. Call before invoking a sub-agent."""
         run = AgentRun(
-            stage=stage,
+            stage=AgentStage(stage),
             trigger_id=trigger_id,
-            input=input_data,
+            input={"stage": stage},
             started_at=datetime.now(UTC),
         )
         await self._agent_runs_repo.create(run)
@@ -284,10 +261,27 @@ class PipelineOrchestrator:
                 "started_at": run.started_at.isoformat() if run.started_at else None,
             },
         )
-        return run
+        return json.dumps({"run_id": run.id, "stage": stage, "status": "running"})
 
-    async def _publish_run_complete(self, run: AgentRun) -> None:
-        """Publish an SSE event when an agent run completes or fails."""
+    @tool
+    async def record_stage_complete(
+        self,
+        run_id: Annotated[str, "The run ID returned by record_stage_start"],
+        trigger_id: Annotated[str, "ID of the document that triggered this run"],
+        status: Annotated[str, "Completion status: completed or failed"],
+        error: Annotated[str, "Error message if failed, empty if completed"] = "",
+    ) -> str:
+        """Record the completion of a pipeline stage."""
+        run = await self._agent_runs_repo.get(run_id, trigger_id)
+        if not run:
+            return json.dumps({"error": "Run not found"})
+        run.status = (
+            AgentRunStatus.COMPLETED if status == "completed" else AgentRunStatus.FAILED
+        )
+        run.completed_at = datetime.now(UTC)
+        if error:
+            run.output = {"error": error}
+        await self._agent_runs_repo.update(run, trigger_id)
         await self._events.publish(
             "agent-run-complete",
             {
@@ -302,3 +296,137 @@ class PipelineOrchestrator:
                 else None,
             },
         )
+
+        # Publish link-update for real-time UI
+        link = await self._links_repo.get(trigger_id, "")
+        if link:
+            runs = await self._agent_runs_repo.get_by_trigger(trigger_id)
+            await self._events.publish("link-update", _render_link_row(link, runs))
+
+        return json.dumps(
+            {
+                "run_id": run_id,
+                "status": status,
+                "completed": True,
+            }
+        )
+
+    # -- Event handlers --
+
+    async def handle_link_change(self, document: dict[str, Any]) -> None:
+        """Process a link document change by invoking the orchestrator agent."""
+        link_id = document.get("id", "")
+        edition_id = document.get("edition_id", "")
+        status = document.get("status", "")
+
+        link = await self._links_repo.get(link_id, edition_id)
+        if not link:
+            logger.warning("Link %s not found, skipping", link_id)
+            return
+
+        # Only process links with actionable statuses
+        if status not in (
+            LinkStatus.SUBMITTED,
+            LinkStatus.FETCHING,
+            LinkStatus.REVIEWED,
+        ):
+            logger.debug("No action needed for link %s with status %s", link_id, status)
+            return
+
+        # Skip stale/replayed events — the link has already advanced past this status
+        if link.status != status:
+            logger.debug(
+                "Link %s already at status %s, skipping stale event (feed status: %s)",
+                link_id,
+                link.status,
+                status,
+            )
+            return
+
+        logger.info("Orchestrator processing link=%s status=%s", link_id, status)
+        t0 = time.monotonic()
+        try:
+            message = (
+                f"A link needs processing through the pipeline.\n"
+                f"Link ID: {link_id}\n"
+                f"Edition ID: {edition_id}\n"
+                f"URL: {link.url}\n"
+                f"Current status: {status}"
+            )
+            await self._agent.run(message)
+        except Exception:
+            logger.exception("Orchestrator failed for link %s", link_id)
+        finally:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.info(
+                "Orchestrator completed link=%s duration_ms=%.0f",
+                link_id,
+                elapsed_ms,
+            )
+
+    async def handle_feedback_change(self, document: dict[str, Any]) -> None:
+        """Process new feedback by invoking the orchestrator agent."""
+        edition_id = document.get("edition_id", "")
+        feedback_id = document.get("id", "")
+
+        if document.get("resolved", False):
+            return
+
+        logger.info(
+            "Orchestrator processing feedback=%s edition=%s",
+            feedback_id,
+            edition_id,
+        )
+        t0 = time.monotonic()
+        try:
+            message = (
+                f"Editor feedback has been submitted and needs processing.\n"
+                f"Edition ID: {edition_id}\n"
+                f"Feedback ID: {feedback_id}\n"
+                f"Run the edit stage to address the feedback."
+            )
+            await self._agent.run(message)
+        except Exception:
+            logger.exception("Orchestrator failed for feedback %s", feedback_id)
+        finally:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.info(
+                "Orchestrator completed feedback=%s duration_ms=%.0f",
+                feedback_id,
+                elapsed_ms,
+            )
+
+    async def handle_publish(self, edition_id: str) -> None:
+        """Process a publish approval by invoking the orchestrator agent."""
+        logger.info("Orchestrator processing publish for edition=%s", edition_id)
+        t0 = time.monotonic()
+        try:
+            message = (
+                f"The editor has approved this edition for publishing.\n"
+                f"Edition ID: {edition_id}\n"
+                f"Run the publish stage to render and upload it."
+            )
+            await self._agent.run(message)
+        except Exception:
+            logger.exception("Orchestrator failed for publish edition=%s", edition_id)
+        finally:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.info(
+                "Orchestrator completed publish edition=%s duration_ms=%.0f",
+                edition_id,
+                elapsed_ms,
+            )
+
+    @staticmethod
+    def _normalize_usage(usage: dict | None) -> dict | None:
+        """Normalize framework usage_details to a consistent schema."""
+        if not usage:
+            return None
+        input_tokens = usage.get("input_token_count", 0) or 0
+        output_tokens = usage.get("output_token_count", 0) or 0
+        return {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": usage.get("total_token_count", 0)
+            or input_tokens + output_tokens,
+        }

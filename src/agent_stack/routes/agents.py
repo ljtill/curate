@@ -24,6 +24,7 @@ async def agents_page(request: Request) -> HTMLResponse:
     runs_repo = AgentRunRepository(cosmos.database)
 
     # Fetch recent runs per stage
+    stage_values = {s.value for s in AgentStage}
     stages = [
         AgentStage.FETCH,
         AgentStage.REVIEW,
@@ -42,10 +43,16 @@ async def agents_page(request: Request) -> HTMLResponse:
     # Attach run info to agent metadata
     for agent in agent_metadata:
         stage = agent["name"]
-        stage_runs = runs_by_stage.get(stage, [])
-        agent["recent_runs"] = stage_runs
-        agent["last_run"] = _run_to_dict(stage_runs[0]) if stage_runs else None
-        agent["is_running"] = stage in running_stages
+        if stage in stage_values:
+            stage_runs = runs_by_stage.get(stage, [])
+            agent["recent_runs"] = stage_runs
+            agent["last_run"] = _run_to_dict(stage_runs[0]) if stage_runs else None
+            agent["is_running"] = stage in running_stages
+        else:
+            # Orchestrator has no AgentStage — no run history
+            agent["recent_runs"] = []
+            agent["last_run"] = None
+            agent["is_running"] = False
 
     return templates.TemplateResponse(
         "agents.html",

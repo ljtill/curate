@@ -43,6 +43,9 @@ class EditAgent:
             client=client,
             instructions=load_prompt("edit"),
             name="edit-agent",
+            description=(
+                "Refines tone, structure, and coherence; processes editor feedback."
+            ),
             tools=[
                 self.get_edition_content,
                 self.get_feedback,

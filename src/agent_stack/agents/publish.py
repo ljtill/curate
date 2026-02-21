@@ -49,6 +49,10 @@ class PublishAgent:
             client=client,
             instructions=load_prompt("publish"),
             name="publish-agent",
+            description=(
+                "Renders final HTML against the newsletter "
+                "template and deploys static pages."
+            ),
             tools=[self.render_and_upload, self.mark_published],
             default_options=ChatOptions(max_tokens=500, temperature=0.0),
             middleware=middleware,

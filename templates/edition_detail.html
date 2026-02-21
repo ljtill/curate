@@ -9,7 +9,7 @@
         <span class="badge badge-{{ edition.status }}">{{ edition.status }}</span>
         {% if edition.status != 'published' %}
         <form method="post" action="/editions/{{ edition.id }}/publish" style="display: inline;">
-            <button type="submit" class="btn">Publish</button>
+            <button type="submit" class="btn">Approve &amp; Publish</button>
         </form>
         {% endif %}
         <span class="delete-inline">

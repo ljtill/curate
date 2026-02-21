@@ -42,6 +42,7 @@ class FetchAgent:
             client=client,
             instructions=load_prompt("fetch"),
             name="fetch-agent",
+            description="Retrieves and parses submitted link content from URLs.",
             tools=[self.fetch_url, self.save_fetched_content, self.mark_link_failed],
             default_options=ChatOptions(max_tokens=2000, temperature=0.0),
             middleware=middleware,

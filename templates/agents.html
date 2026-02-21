@@ -11,7 +11,7 @@
         <div class="pipeline-node pipeline-node-orchestrator">
             <div class="pipeline-node-icon">⚡</div>
             <div class="pipeline-node-label">Orchestrator</div>
-            <div class="pipeline-node-sub">Event Router</div>
+            <div class="pipeline-node-sub">Pipeline Agent</div>
         </div>
         {% for agent in agents %}
         <div class="pipeline-connector">
@@ -32,7 +32,7 @@
                 {% endif %}
             </div>
             <div class="pipeline-node-icon stage-{{ agent.name }}">
-                {% if agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
+                {% if agent.name == 'orchestrator' %}⚡{% elif agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
             </div>
             <div class="pipeline-node-label">{{ agent.name | capitalize }}</div>
             <div class="pipeline-node-sub">{{ agent.tools | length }} tool{{ 's' if agent.tools | length != 1 else '' }}</div>
@@ -51,7 +51,7 @@
     <div class="agent-card-header" onclick="toggleCardBody('{{ agent.name }}')" style="cursor: pointer;">
         <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
             <span class="stage-{{ agent.name }}" style="font-size: 1.25rem; font-weight: 700;">
-                {% if agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
+                {% if agent.name == 'orchestrator' %}⚡{% elif agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
             </span>
             <div>
                 <h2 style="font-size: 1.1rem; margin: 0;">{{ agent.name | capitalize }} Agent</h2>

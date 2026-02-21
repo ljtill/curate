@@ -1,4 +1,4 @@
-"""Chat middleware for token usage tracking and rate limiting."""
+"""Chat and function middleware for token tracking, rate limiting, and tool logging."""
 
 from __future__ import annotations
 
@@ -7,7 +7,12 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, cast
 
-from agent_framework import ChatContext, ChatMiddleware
+from agent_framework import (
+    ChatContext,
+    ChatMiddleware,
+    FunctionInvocationContext,
+    FunctionMiddleware,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -150,3 +155,25 @@ class RateLimitMiddleware(ChatMiddleware):
         cutoff = now - 60.0
         self._token_window = [(t, n) for t, n in self._token_window if t > cutoff]
         self._request_window = [t for t in self._request_window if t > cutoff]
+
+
+class ToolLoggingMiddleware(FunctionMiddleware):
+    """Logs tool invocations on the orchestrator agent."""
+
+    async def process(
+        self,
+        context: FunctionInvocationContext,
+        call_next: Callable[[], Awaitable[None]],
+    ) -> None:
+        """Log tool name and arguments before/after invocation."""
+        name = context.function.name if context.function else "unknown"
+        logger.info("Tool invocation: %s args=%s", name, context.arguments)
+        start = time.monotonic()
+        await call_next()
+        elapsed_ms = (time.monotonic() - start) * 1000
+        logger.info(
+            "Tool completed: %s duration_ms=%.0f result_length=%d",
+            name,
+            elapsed_ms,
+            len(str(context.result)) if context.result else 0,
+        )

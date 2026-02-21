@@ -44,6 +44,9 @@ class DraftAgent:
             client=client,
             instructions=load_prompt("draft"),
             name="draft-agent",
+            description=(
+                "Composes or revises newsletter content from reviewed material."
+            ),
             tools=[self.get_reviewed_link, self.get_edition_content, self.save_draft],
             default_options=ChatOptions(max_tokens=4000, temperature=0.7),
             middleware=middleware,

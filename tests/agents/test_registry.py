@@ -15,7 +15,8 @@ from agent_stack.agents.registry import (
 LONG_INSTRUCTIONS_LENGTH = 300
 PREVIEW_MAX_LENGTH = 200
 EXPECTED_PREVIEW_LENGTH = 201  # 200 chars + ellipsis character
-EXPECTED_AGENT_COUNT = 5
+EXPECTED_AGENT_COUNT = 6
+EXPECTED_PARTIAL_AGENT_COUNT = 2
 EXPECTED_TEMPERATURE = 0.7
 EXPECTED_MAX_TOKENS = 4096
 
@@ -209,5 +210,6 @@ class TestGetAgentMetadata:
 
         result = get_agent_metadata(orchestrator)
 
-        assert len(result) == 1
-        assert result[0]["name"] == "publish"
+        assert len(result) == EXPECTED_PARTIAL_AGENT_COUNT
+        assert result[0]["name"] == "orchestrator"
+        assert result[1]["name"] == "publish"
