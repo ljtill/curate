@@ -7,6 +7,9 @@ import pytest
 
 from agent_stack.pipeline.change_feed import ChangeFeedProcessor
 
+_EXPECTED_HANDLER_CALL_COUNT = 2
+_TEST_TOKEN = "new-token"  # noqa: S105
+
 
 class _FakePageIterator:
     """Simulates AsyncPageIterator returned by AsyncItemPaged.by_page()."""
@@ -69,7 +72,7 @@ async def test_process_feed_delegates_to_handler(processor: ChangeFeedProcessor)
 
     await processor.process_feed(container, None, handler)
 
-    assert handler.call_count == 2
+    assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
     handler.assert_any_call({"id": "link-1"})
     handler.assert_any_call({"id": "link-2"})
 
@@ -102,11 +105,11 @@ async def test_process_feed_no_token_on_first_call(processor: ChangeFeedProcesso
 async def test_process_feed_returns_continuation_token(processor: ChangeFeedProcessor) -> None:
     """Test that the continuation token from the page iterator is returned."""
     container = MagicMock()
-    container.query_items_change_feed = _mock_change_feed([], token="new-token")
+    container.query_items_change_feed = _mock_change_feed([], token=_TEST_TOKEN)
 
     result = await processor.process_feed(container, None, AsyncMock())
 
-    assert result == "new-token"
+    assert result == _TEST_TOKEN
 
 
 @pytest.mark.asyncio
@@ -120,8 +123,7 @@ async def test_process_feed_handles_handler_error(processor: ChangeFeedProcessor
 
     # Should not raise — errors are caught per item
     await processor.process_feed(container, None, handler)
-    assert handler.call_count == 2
-
+    assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
 
 @pytest.mark.asyncio
 async def test_start_creates_background_task(processor: ChangeFeedProcessor) -> None:

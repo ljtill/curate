@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from jinja2 import Environment, FileSystemLoader
 
 from agent_stack.models.edition import Edition, EditionStatus
 from agent_stack.storage.renderer import NEWSLETTER_TEMPLATES
@@ -63,8 +64,6 @@ def test_newsletter_templates_dir_exists() -> None:
 @pytest.mark.asyncio
 async def test_render_edition_produces_html() -> None:
     """Test that edition rendering produces valid HTML with the new design."""
-    from jinja2 import Environment, FileSystemLoader
-
     env = Environment(loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True)
     template = env.get_template("edition.html")
 
@@ -105,8 +104,6 @@ async def test_render_edition_produces_html() -> None:
 @pytest.mark.asyncio
 async def test_render_index_produces_html() -> None:
     """Test that index rendering produces valid HTML with the archive design."""
-    from jinja2 import Environment, FileSystemLoader
-
     env = Environment(loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True)
     template = env.get_template("index.html")
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import msal
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class MSALAuth:
     """Handles MSAL authorization code flow for single-tenant Entra ID."""
 
-    SCOPE = ["User.Read"]
+    SCOPE: ClassVar[list[str]] = ["User.Read"]
 
     def __init__(self, config: EntraConfig) -> None:
         """Initialize the MSAL client with Entra ID configuration."""

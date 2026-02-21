@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from agent_stack.routes.status import status
+
 
 @pytest.mark.unit
 class TestStatusRoute:
@@ -11,8 +13,6 @@ class TestStatusRoute:
 
     async def test_renders_status_page(self) -> None:
         """Verify renders status page."""
-        from agent_stack.routes.status import status
-
         request = MagicMock()
         request.app.state.cosmos = MagicMock()
         request.app.state.settings = MagicMock()
@@ -35,8 +35,6 @@ class TestStatusRoute:
 
     async def test_handles_missing_storage(self) -> None:
         """Verify handles missing storage."""
-        from agent_stack.routes.status import status
-
         request = MagicMock()
         request.app.state.cosmos = MagicMock()
         request.app.state.settings = MagicMock()

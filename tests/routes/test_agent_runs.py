@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from agent_stack.routes.agent_runs import recent_runs
+
 
 @pytest.mark.unit
 class TestRecentRunsRoute:
@@ -11,8 +13,6 @@ class TestRecentRunsRoute:
 
     async def test_returns_recent_runs(self) -> None:
         """Verify returns recent runs."""
-        from agent_stack.routes.agent_runs import recent_runs
-
         request = MagicMock()
         request.app.state.templates = MagicMock()
         request.app.state.cosmos = MagicMock()

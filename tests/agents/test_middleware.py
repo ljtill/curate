@@ -1,10 +1,16 @@
 """Tests for agent middleware — token tracking and rate limiting."""
 
+import time
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
+
+_EXPECTED_INPUT_TOKENS = 100
+_EXPECTED_OUTPUT_TOKENS = 50
+_EXPECTED_TOTAL_TOKENS = 150
+_EXPECTED_USAGE_TOKENS = 500
 
 
 @pytest.mark.unit
@@ -21,9 +27,9 @@ class TestTokenTrackingMiddleware:
         context = MagicMock()
         context.result = MagicMock()
         context.result.usage_details = {
-            "input_token_count": 100,
-            "output_token_count": 50,
-            "total_token_count": 150,
+            "input_token_count": _EXPECTED_INPUT_TOKENS,
+            "output_token_count": _EXPECTED_OUTPUT_TOKENS,
+            "total_token_count": _EXPECTED_TOTAL_TOKENS,
         }
         context.metadata = {}
 
@@ -31,9 +37,9 @@ class TestTokenTrackingMiddleware:
         await middleware.process(context, call_next)
 
         call_next.assert_awaited_once()
-        assert context.metadata["usage"]["input_tokens"] == 100
-        assert context.metadata["usage"]["output_tokens"] == 50
-        assert context.metadata["usage"]["total_tokens"] == 150
+        assert context.metadata["usage"]["input_tokens"] == _EXPECTED_INPUT_TOKENS
+        assert context.metadata["usage"]["output_tokens"] == _EXPECTED_OUTPUT_TOKENS
+        assert context.metadata["usage"]["total_tokens"] == _EXPECTED_TOTAL_TOKENS
         assert "latency_ms" in context.metadata["usage"]
 
     async def test_handles_no_usage_details(self, middleware: TokenTrackingMiddleware) -> None:
@@ -83,18 +89,16 @@ class TestRateLimitMiddleware:
         """Verify records usage after call."""
         context = MagicMock()
         context.result = MagicMock()
-        context.result.usage_details = {"total_token_count": 500}
+        context.result.usage_details = {"total_token_count": _EXPECTED_USAGE_TOKENS}
 
         await middleware.process(context, AsyncMock())
 
         assert len(middleware.token_window) == 1
         assert len(middleware.request_window) == 1
-        assert middleware.token_window[0][1] == 500
+        assert middleware.token_window[0][1] == _EXPECTED_USAGE_TOKENS
 
     async def test_prune_removes_old_entries(self, middleware: RateLimitMiddleware) -> None:
         """Verify prune removes old entries."""
-        import time
-
         old_time = time.monotonic() - 120
         middleware.token_window = [(old_time, 500)]
         middleware.request_window = [old_time]

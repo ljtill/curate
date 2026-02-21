@@ -13,8 +13,10 @@ from agent_stack.routes.editions import (
     update_title,
 )
 
+_EXPECTED_REDIRECT_STATUS = 303
 
-def _make_request(app_state: object | None = None) -> None:
+
+def _make_request(_app_state: object | None = None) -> None:
     """Create a mock request with app state."""
     request = MagicMock()
     request.app.state.cosmos.database = MagicMock()
@@ -28,9 +30,9 @@ async def test_create_edition_with_title() -> None:
     """Creating an edition with a title stores it in content."""
     request = _make_request()
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.create.return_value = None
 
         await create_edition(request, title="Weekly Roundup #1")
@@ -46,9 +48,9 @@ async def test_create_edition_with_empty_title() -> None:
     """Creating an edition without a title stores empty string."""
     request = _make_request()
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.create.return_value = None
 
         await create_edition(request, title="")
@@ -62,9 +64,9 @@ async def test_create_edition_strips_whitespace() -> None:
     """Title whitespace is stripped on creation."""
     request = _make_request()
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.create.return_value = None
 
         await create_edition(request, title="  Padded Title  ")
@@ -79,9 +81,9 @@ async def test_update_title() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Old Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.get.return_value = edition
         repo.update.return_value = edition
 
@@ -98,9 +100,9 @@ async def test_update_title_strips_whitespace() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.get.return_value = edition
         repo.update.return_value = edition
 
@@ -115,9 +117,9 @@ async def test_update_title_renders_display_partial() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.get.return_value = edition
         repo.update.return_value = edition
 
@@ -135,9 +137,9 @@ async def test_edit_title_form_renders_editing_partial() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.get.return_value = edition
 
         await edit_title_form(request, edition_id="ed-1")
@@ -154,9 +156,9 @@ async def test_cancel_title_edit_renders_display_partial() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.get.return_value = edition
 
         await cancel_title_edit(request, edition_id="ed-1")
@@ -173,9 +175,9 @@ async def test_delete_edition_soft_deletes() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.get.return_value = edition
         repo.soft_delete.return_value = edition
 
@@ -183,7 +185,7 @@ async def test_delete_edition_soft_deletes() -> None:
 
         repo.get.assert_called_once_with("ed-1", "ed-1")
         repo.soft_delete.assert_called_once_with(edition, "ed-1")
-        assert response.status_code == 303
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 @pytest.mark.asyncio
@@ -191,12 +193,12 @@ async def test_delete_edition_not_found() -> None:
     """POST delete on missing edition still redirects without error."""
     request = _make_request()
 
-    with patch("agent_stack.routes.editions.EditionRepository") as MockRepo:
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
-        MockRepo.return_value = repo
+        mock_repo_cls.return_value = repo
         repo.get.return_value = None
 
         response = await delete_edition(request, edition_id="missing")
 
         repo.soft_delete.assert_not_called()
-        assert response.status_code == 303
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS

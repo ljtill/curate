@@ -53,12 +53,12 @@ async def test_save_fetched_content_link_not_found(fetch_agent: FetchAgent, link
 @pytest.mark.asyncio
 async def test_fetch_url_returns_error_on_connect_error() -> None:
     """Verify fetch url returns error on connect error."""
-    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
+    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.ConnectError("Connection refused")
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        MockClient.return_value = mock_client
+        mock_client_cls.return_value = mock_client
 
         result = json.loads(await FetchAgent.fetch_url.func("http://unreachable.invalid"))
 
@@ -69,7 +69,7 @@ async def test_fetch_url_returns_error_on_connect_error() -> None:
 @pytest.mark.asyncio
 async def test_fetch_url_returns_error_on_http_status_error() -> None:
     """Verify fetch url returns error on http status error."""
-    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
+    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as mock_client_cls:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Not Found", request=MagicMock(), response=MagicMock(status_code=404)
@@ -78,7 +78,7 @@ async def test_fetch_url_returns_error_on_http_status_error() -> None:
         mock_client.get.return_value = mock_response
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        MockClient.return_value = mock_client
+        mock_client_cls.return_value = mock_client
 
         result = json.loads(await FetchAgent.fetch_url.func("https://example.com/missing"))
 
@@ -89,7 +89,7 @@ async def test_fetch_url_returns_error_on_http_status_error() -> None:
 @pytest.mark.asyncio
 async def test_fetch_url_sets_user_agent_header() -> None:
     """Verify fetch_url sends a User-Agent header."""
-    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
+    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as mock_client_cls:
         mock_response = MagicMock()
         mock_response.text = "<html>OK</html>"
         mock_response.raise_for_status = MagicMock()
@@ -97,11 +97,11 @@ async def test_fetch_url_sets_user_agent_header() -> None:
         mock_client.get.return_value = mock_response
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
-        MockClient.return_value = mock_client
+        mock_client_cls.return_value = mock_client
 
         await FetchAgent.fetch_url.func("https://example.com")
 
-        call_kwargs = MockClient.call_args
+        call_kwargs = mock_client_cls.call_args
         headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
         assert "User-Agent" in headers
         assert "AgentStack" in headers["User-Agent"]

@@ -7,9 +7,11 @@ from fastapi import HTTPException
 
 from agent_stack.auth.middleware import require_auth
 
+_EXPECTED_UNAUTHORIZED_STATUS = 401
+
 
 @require_auth
-async def protected_view(request: MagicMock) -> None:
+async def protected_view(_request: MagicMock) -> None:
     """Handle protected view."""
     return {"user": "authenticated"}
 
@@ -21,7 +23,7 @@ async def test_require_auth_raises_401_when_no_session() -> None:
     del request.session  # no session attribute
     with pytest.raises(HTTPException) as exc_info:
         await protected_view(request)
-    assert exc_info.value.status_code == 401
+    assert exc_info.value.status_code == _EXPECTED_UNAUTHORIZED_STATUS
 
 
 @pytest.mark.asyncio
@@ -31,7 +33,7 @@ async def test_require_auth_raises_401_when_no_user() -> None:
     request.session = {}
     with pytest.raises(HTTPException) as exc_info:
         await protected_view(request)
-    assert exc_info.value.status_code == 401
+    assert exc_info.value.status_code == _EXPECTED_UNAUTHORIZED_STATUS
 
 
 @pytest.mark.asyncio

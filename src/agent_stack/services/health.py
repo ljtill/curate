@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from agent_framework import Message
+from azure.core.exceptions import AzureError
 
 if TYPE_CHECKING:
     from agent_framework.azure import AzureOpenAIChatClient
@@ -39,7 +41,7 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
         await container.read()
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(name="Azure Cosmos DB", healthy=True, latency_ms=round(latency, 1), detail=detail)
-    except Exception as exc:
+    except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
             name="Azure Cosmos DB", healthy=False, latency_ms=round(latency, 1), error=str(exc), detail=detail
@@ -57,11 +59,9 @@ async def check_openai(client: AzureOpenAIChatClient, config: OpenAIConfig) -> S
         )
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1), detail=detail)
-    except Exception as exc:
+    except (OSError, RuntimeError, ValueError) as exc:
         latency = (time.monotonic() - start) * 1000
         raw = str(exc)
-
-        # A max_tokens / output limit error means the API is reachable — treat as healthy
         if "max_tokens" in raw or "model output limit" in raw:
             return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1), detail=detail)
 
@@ -84,8 +84,6 @@ def _clean_openai_error(raw: str) -> str:
 
     # Try to pull the nested message from the error dict
     if "'message':" in raw:
-        import re
-
         match = re.search(r"'message':\s*'([^']+)'", raw)
         if match:
             return match.group(1)
@@ -111,7 +109,7 @@ async def check_storage(storage: BlobStorageClient, config: StorageConfig) -> Se
         await container.get_container_properties()
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(name="Azure Storage", healthy=True, latency_ms=round(latency, 1), detail=detail)
-    except Exception as exc:
+    except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
             name="Azure Storage", healthy=False, latency_ms=round(latency, 1), error=str(exc), detail=detail

@@ -7,6 +7,8 @@ import pytest
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.models.edition import Edition, EditionStatus
 
+_EXPECTED_EDITION_COUNT = 2
+
 
 @pytest.mark.unit
 class TestEditionRepository:
@@ -45,7 +47,7 @@ class TestEditionRepository:
 
         result = await repo.list_all()
 
-        assert len(result) == 2
+        assert len(result) == _EXPECTED_EDITION_COUNT
         repo.query.assert_called_once()
 
     async def test_list_unpublished(self, repo: EditionRepository) -> None:

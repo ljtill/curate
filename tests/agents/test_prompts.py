@@ -2,6 +2,8 @@
 
 from agent_stack.agents.prompts import PROMPTS_DIR, load_prompt
 
+_MIN_PROMPT_LENGTH = 50
+
 
 def test_prompts_dir_exists() -> None:
     """Verify prompts dir exists."""
@@ -21,7 +23,7 @@ def test_load_all_prompts() -> None:
     for stage in stages:
         prompt = load_prompt(stage)
         assert isinstance(prompt, str)
-        assert len(prompt) > 50, f"Prompt for {stage} seems too short"
+        assert len(prompt) > _MIN_PROMPT_LENGTH, f"Prompt for {stage} seems too short"
 
 
 def test_prompt_files_exist() -> None:

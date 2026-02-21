@@ -18,6 +18,8 @@ LONG_INSTRUCTIONS_LENGTH = 300
 PREVIEW_MAX_LENGTH = 200
 EXPECTED_PREVIEW_LENGTH = 201  # 200 chars + ellipsis character
 EXPECTED_AGENT_COUNT = 5
+EXPECTED_TEMPERATURE = 0.7
+EXPECTED_MAX_TOKENS = 4096
 
 
 def _make_agent_obj(**inner_attrs: object) -> MagicMock:
@@ -96,16 +98,16 @@ class TestExtractOptions:
     def test_extracts_known_options(self) -> None:
         """Verify known options are extracted from agent defaults."""
         opts = MagicMock()
-        opts.temperature = 0.7
-        opts.max_tokens = 4096
+        opts.temperature = EXPECTED_TEMPERATURE
+        opts.max_tokens = EXPECTED_MAX_TOKENS
         opts.top_p = None
         opts.response_format = None
         agent_obj = _make_agent_obj(_default_options=opts)
 
         result = _extract_options(agent_obj)
 
-        assert result["temperature"] == 0.7
-        assert result["max_tokens"] == 4096
+        assert result["temperature"] == EXPECTED_TEMPERATURE
+        assert result["max_tokens"] == EXPECTED_MAX_TOKENS
         assert "top_p" not in result
 
     def test_returns_empty_when_no_agent(self) -> None:

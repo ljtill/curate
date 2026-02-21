@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from azure.cosmos import PartitionKey
 from azure.cosmos.aio import CosmosClient as AzureCosmosClient
@@ -21,7 +21,7 @@ class CosmosClient:
         self._client: AzureCosmosClient | None = None
         self._database: DatabaseProxy | None = None
 
-    _CONTAINERS: list[tuple[str, str]] = [
+    _CONTAINERS: ClassVar[list[tuple[str, str]]] = [
         ("editions", "/id"),
         ("links", "/edition_id"),
         ("feedback", "/edition_id"),

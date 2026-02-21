@@ -8,6 +8,8 @@ import pytest
 from agent_stack.agents.review import ReviewAgent
 from agent_stack.models.link import Link, LinkStatus
 
+_EXPECTED_RELEVANCE_SCORE = 8
+
 
 @pytest.fixture
 def links_repo() -> AsyncMock:
@@ -51,12 +53,16 @@ async def test_save_review_updates_link(review_agent: ReviewAgent, links_repo: A
     links_repo.get.return_value = link
 
     insights = json.dumps(["insight1", "insight2"])
-    result = json.loads(await review_agent.save_review("link-1", "ed-1", insights, "AI/ML", 8, "Highly relevant"))
+    result = json.loads(
+        await review_agent.save_review(
+            "link-1", "ed-1", insights, "AI/ML", _EXPECTED_RELEVANCE_SCORE, "Highly relevant"
+        )
+    )
 
     assert result["status"] == "reviewed"
     assert link.status == LinkStatus.REVIEWED
     assert link.review["category"] == "AI/ML"
-    assert link.review["relevance_score"] == 8
+    assert link.review["relevance_score"] == _EXPECTED_RELEVANCE_SCORE
     assert link.review["insights"] == ["insight1", "insight2"]
     links_repo.update.assert_called_once()
 
@@ -76,7 +82,9 @@ async def test_save_review_retries_on_failure(review_agent: ReviewAgent, links_r
     links_repo.get.return_value = link
     links_repo.update.side_effect = Exception("Cosmos DB error")
 
-    result = json.loads(await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good"))
+    result = json.loads(
+        await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", _EXPECTED_RELEVANCE_SCORE, "Good")
+    )
 
     assert "error" in result
     assert review_agent.save_failures == 1
@@ -91,14 +99,15 @@ async def test_save_review_raises_after_max_retries(review_agent: ReviewAgent, l
 
     # Exhaust retries
     for _ in range(2):
-        await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
+        await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", _EXPECTED_RELEVANCE_SCORE, "Good")
 
     with pytest.raises(RuntimeError, match="failed after 3 attempts"):
-        await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
+        await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", _EXPECTED_RELEVANCE_SCORE, "Good")
 
 
 @pytest.mark.asyncio
-async def test_save_review_resets_failures_on_run(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+@pytest.mark.usefixtures("links_repo")
+async def test_save_review_resets_failures_on_run(review_agent: ReviewAgent) -> None:
     """Verify save review resets failures on run."""
     review_agent.save_failures = 2
     mock_response = MagicMock()

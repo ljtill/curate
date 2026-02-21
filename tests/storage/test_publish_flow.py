@@ -7,6 +7,8 @@ import pytest
 from agent_stack.models.edition import Edition, EditionStatus
 from agent_stack.storage.renderer import StaticSiteRenderer
 
+_EXPECTED_UPLOAD_COUNT = 2
+
 
 @pytest.mark.unit
 class TestStaticSiteRendererPublish:
@@ -17,8 +19,7 @@ class TestStaticSiteRendererPublish:
         """Create a renderer for testing."""
         editions_repo = AsyncMock()
         storage = AsyncMock()
-        r = StaticSiteRenderer(editions_repo, storage)
-        return r
+        return StaticSiteRenderer(editions_repo, storage)
 
     async def test_publish_edition_renders_and_uploads(self, renderer: StaticSiteRenderer) -> None:
         """Verify publish edition renders and uploads."""
@@ -29,7 +30,7 @@ class TestStaticSiteRendererPublish:
         await renderer.publish_edition("ed-1")
 
         renderer.editions_repo.get.assert_called_once_with("ed-1", "ed-1")
-        assert renderer.storage.upload_html.call_count == 2
+        assert renderer.storage.upload_html.call_count == _EXPECTED_UPLOAD_COUNT
         # First call: edition page, second call: index page
         calls = renderer.storage.upload_html.call_args_list
         assert calls[0][0][0] == "editions/ed-1.html"

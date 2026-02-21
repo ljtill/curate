@@ -8,6 +8,8 @@ from agent_stack.models.edition import Edition
 from agent_stack.models.link import Link, LinkStatus
 from agent_stack.routes.links import list_links, retry_link, submit_link
 
+_EXPECTED_REDIRECT_STATUS = 303
+
 
 def _make_request() -> None:
     request = MagicMock()
@@ -26,7 +28,7 @@ async def test_list_links_with_editions() -> None:
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = [edition]
@@ -34,7 +36,7 @@ async def test_list_links_with_editions() -> None:
 
         links_repo = AsyncMock()
         links_repo.get_by_edition.return_value = links
-        MockLinksRepo.return_value = links_repo
+        mock_links_repo_cls.return_value = links_repo
 
         await list_links(request)
 
@@ -54,7 +56,7 @@ async def test_list_links_selects_edition_by_query_param() -> None:
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = [ed1, ed2]
@@ -62,7 +64,7 @@ async def test_list_links_selects_edition_by_query_param() -> None:
 
         links_repo = AsyncMock()
         links_repo.get_by_edition.return_value = []
-        MockLinksRepo.return_value = links_repo
+        mock_links_repo_cls.return_value = links_repo
 
         await list_links(request, edition_id="ed-2")
 
@@ -77,12 +79,12 @@ async def test_list_links_without_editions() -> None:
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = []
         mock_get_repo.return_value = editions_repo
-        MockLinksRepo.return_value = AsyncMock()
+        mock_links_repo_cls.return_value = AsyncMock()
 
         await list_links(request)
 
@@ -100,14 +102,14 @@ async def test_submit_link_creates_link() -> None:
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.get.return_value = edition
         mock_get_repo.return_value = editions_repo
 
         links_repo = AsyncMock()
-        MockLinksRepo.return_value = links_repo
+        mock_links_repo_cls.return_value = links_repo
 
         response = await submit_link(request, url="https://example.com", edition_id="ed-1")
 
@@ -115,7 +117,7 @@ async def test_submit_link_creates_link() -> None:
         created = links_repo.create.call_args[0][0]
         assert created.url == "https://example.com"
         assert created.edition_id == "ed-1"
-        assert response.status_code == 303
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 @pytest.mark.asyncio
@@ -125,19 +127,19 @@ async def test_submit_link_redirects_when_no_edition() -> None:
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.get.return_value = None
         mock_get_repo.return_value = editions_repo
 
         links_repo = AsyncMock()
-        MockLinksRepo.return_value = links_repo
+        mock_links_repo_cls.return_value = links_repo
 
         response = await submit_link(request, url="https://example.com", edition_id="nonexistent")
 
         links_repo.create.assert_not_called()
-        assert response.status_code == 303
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 @pytest.mark.asyncio
@@ -149,7 +151,7 @@ async def test_retry_link_resets_to_submitted() -> None:
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.get_active.return_value = edition
@@ -157,7 +159,7 @@ async def test_retry_link_resets_to_submitted() -> None:
 
         links_repo = AsyncMock()
         links_repo.get.return_value = link
-        MockLinksRepo.return_value = links_repo
+        mock_links_repo_cls.return_value = links_repo
 
         response = await retry_link(request, link_id="link-1")
 
@@ -165,7 +167,7 @@ async def test_retry_link_resets_to_submitted() -> None:
         assert link.title is None
         assert link.content is None
         links_repo.update.assert_called_once_with(link, "ed-1")
-        assert response.status_code == 303
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 @pytest.mark.asyncio
@@ -177,7 +179,7 @@ async def test_retry_link_ignores_non_failed() -> None:
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.get_active.return_value = edition
@@ -185,9 +187,9 @@ async def test_retry_link_ignores_non_failed() -> None:
 
         links_repo = AsyncMock()
         links_repo.get.return_value = link
-        MockLinksRepo.return_value = links_repo
+        mock_links_repo_cls.return_value = links_repo
 
         response = await retry_link(request, link_id="link-1")
 
         links_repo.update.assert_not_called()
-        assert response.status_code == 303
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS

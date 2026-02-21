@@ -1,12 +1,14 @@
 """Tests for AgentRunRepository custom query methods."""
 
-from datetime import UTC
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
+
+_EXPECTED_TRIGGER_COUNT = 2
 
 
 @pytest.mark.unit
@@ -49,8 +51,6 @@ class TestAgentRunRepository:
 
     async def test_get_by_triggers_merges_results(self, repo: AgentRunRepository) -> None:
         """Verify get by triggers merges results."""
-        from datetime import datetime
-
         run1 = AgentRun(
             stage=AgentStage.FETCH,
             trigger_id="link-1",
@@ -67,7 +67,7 @@ class TestAgentRunRepository:
 
         result = await repo.get_by_triggers(["link-1", "link-2"])
 
-        assert len(result) == 2
+        assert len(result) == _EXPECTED_TRIGGER_COUNT
         # Sorted by started_at descending
         assert result[0].trigger_id == "link-2"
 

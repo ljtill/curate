@@ -33,11 +33,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_DISPLAY_URL_MAX_LENGTH = 50
+
 
 def _render_link_row(link: Link, runs: list) -> str:
     """Render an HTML table row for a link (used in SSE updates)."""
     url = escape(link.url)
-    display_url = (escape(link.url[:47]) + "...") if len(link.url) > 50 else url
+    display_url = (escape(link.url[:47]) + "...") if len(link.url) > _DISPLAY_URL_MAX_LENGTH else url
     title = escape(link.title) if link.title else "—"
     status = escape(link.status)
     created = link.created_at.strftime("%Y-%m-%d %H:%M") if link.created_at else "—"

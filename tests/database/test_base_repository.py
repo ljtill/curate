@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from azure.cosmos.exceptions import CosmosHttpResponseError
 
 from agent_stack.database.repositories.base import BaseRepository
 from agent_stack.models.link import Link
@@ -61,7 +62,7 @@ async def test_get_returns_model_on_success(repo: ConcreteRepo, mock_container: 
 @pytest.mark.asyncio
 async def test_get_returns_none_on_exception(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
     """Verify get returns none on exception."""
-    mock_container.read_item.side_effect = Exception("Not found")
+    mock_container.read_item.side_effect = CosmosHttpResponseError(status_code=404, message="Not found")
     result = await repo.get("missing", "ed-1")
     assert result is None
 
@@ -126,7 +127,7 @@ async def test_query_filters_soft_deleted(repo: ConcreteRepo, mock_container: As
         },
     ]
 
-    async def mock_query_items(**kwargs: Any) -> None:
+    async def mock_query_items(**_kwargs: Any) -> None:
         for item in items:
             yield item
 

@@ -27,26 +27,26 @@ class TestBlobStorageClient:
 
     async def test_initialize_creates_service_client(self, client: BlobStorageClient) -> None:
         """Verify initialize creates service client."""
-        with patch("agent_stack.storage.blob.BlobServiceClient") as MockBSC:
+        with patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls:
             mock_service = MagicMock()
             mock_container = AsyncMock()
             mock_container.exists.return_value = True
             mock_service.get_container_client.return_value = mock_container
-            MockBSC.from_connection_string.return_value = mock_service
+            mock_bsc_cls.from_connection_string.return_value = mock_service
 
             await client.initialize()
 
-            MockBSC.from_connection_string.assert_called_once()
+            mock_bsc_cls.from_connection_string.assert_called_once()
             mock_container.exists.assert_awaited_once()
 
     async def test_initialize_creates_container_if_missing(self, client: BlobStorageClient) -> None:
         """Verify initialize creates container if missing."""
-        with patch("agent_stack.storage.blob.BlobServiceClient") as MockBSC:
+        with patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls:
             mock_service = MagicMock()
             mock_container = AsyncMock()
             mock_container.exists.return_value = False
             mock_service.get_container_client.return_value = mock_container
-            MockBSC.from_connection_string.return_value = mock_service
+            mock_bsc_cls.from_connection_string.return_value = mock_service
 
             await client.initialize()
 

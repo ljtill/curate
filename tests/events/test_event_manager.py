@@ -113,7 +113,7 @@ class TestEventManagerCreateResponse:
         manager = EventManager.get_instance()
         request = MagicMock()
 
-        with patch("agent_stack.events.EventSourceResponse") as MockSSE:
+        with patch("agent_stack.events.EventSourceResponse") as mock_sse_cls:
             result = manager.create_response(request)
-            MockSSE.assert_called_once()
-            assert result == MockSSE.return_value
+            mock_sse_cls.assert_called_once()
+            assert result == mock_sse_cls.return_value

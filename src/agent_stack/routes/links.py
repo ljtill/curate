@@ -2,25 +2,25 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
+from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.models.edition import EditionStatus
 from agent_stack.models.link import Link, LinkStatus
 
 if TYPE_CHECKING:
     from agent_stack.database.client import CosmosClient
-    from agent_stack.database.repositories.editions import EditionRepository
 
 router = APIRouter(prefix="/links", tags=["links"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def list_links(request: Request, edition_id: str | None = Query(None)) -> HTMLResponse:
+async def list_links(request: Request, edition_id: Annotated[str | None, Query()] = None) -> HTMLResponse:
     """Render the links page with edition selector and filtered links."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
@@ -60,8 +60,8 @@ async def list_links(request: Request, edition_id: str | None = Query(None)) -> 
 @router.post("/")
 async def submit_link(
     request: Request,
-    url: str = Form(...),
-    edition_id: str = Form(...),
+    url: Annotated[str, Form(...)],
+    edition_id: Annotated[str, Form(...)],
 ) -> RedirectResponse:
     """Submit a new link for the selected edition."""
     cosmos = request.app.state.cosmos
@@ -100,6 +100,4 @@ async def retry_link(request: Request, link_id: str) -> RedirectResponse:
 
 
 def _get_editions_repo(cosmos: CosmosClient) -> EditionRepository:
-    from agent_stack.database.repositories.editions import EditionRepository
-
     return EditionRepository(cosmos.database)

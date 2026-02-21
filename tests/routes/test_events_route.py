@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from agent_stack.routes.events import events
+
 
 @pytest.mark.unit
 class TestEventsRoute:
@@ -11,15 +13,13 @@ class TestEventsRoute:
 
     async def test_returns_sse_response(self) -> None:
         """Verify returns sse response."""
-        from agent_stack.routes.events import events
-
         request = MagicMock()
         mock_manager = MagicMock()
         mock_response = MagicMock()
         mock_manager.create_response.return_value = mock_response
 
-        with patch("agent_stack.routes.events.EventManager") as MockEM:
-            MockEM.get_instance.return_value = mock_manager
+        with patch("agent_stack.routes.events.EventManager") as mock_em_cls:
+            mock_em_cls.get_instance.return_value = mock_manager
 
             result = await events(request)
 

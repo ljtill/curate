@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 
@@ -15,8 +17,8 @@ router = APIRouter(tags=["feedback"])
 async def submit_feedback(
     request: Request,
     edition_id: str,
-    section: str = Form(...),
-    comment: str = Form(...),
+    section: Annotated[str, Form(...)],
+    comment: Annotated[str, Form(...)],
 ) -> RedirectResponse:
     """Submit editor feedback for a specific section of an edition."""
     cosmos = request.app.state.cosmos

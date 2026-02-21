@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
+from agent_stack.agents.llm import create_chat_client
 from agent_stack.config import OpenAIConfig
 
 
@@ -13,31 +14,27 @@ class TestCreateChatClient:
 
     def test_creates_client_with_api_key(self, openai_config: OpenAIConfig) -> None:
         """Verify creates client with api key."""
-        with patch("agent_stack.agents.llm.AzureOpenAIChatClient") as MockClient:
-            from agent_stack.agents.llm import create_chat_client
-
+        with patch("agent_stack.agents.llm.AzureOpenAIChatClient") as mock_client_cls:
             client = create_chat_client(openai_config, use_key="test-api-key")
 
-            MockClient.assert_called_once_with(
+            mock_client_cls.assert_called_once_with(
                 endpoint=openai_config.endpoint,
                 deployment_name=openai_config.deployment,
                 api_key="test-api-key",
             )
-            assert client == MockClient.return_value
+            assert client == mock_client_cls.return_value
 
     def test_creates_client_with_managed_identity(self, openai_config: OpenAIConfig) -> None:
         """Verify creates client with managed identity."""
         with (
-            patch("agent_stack.agents.llm.AzureOpenAIChatClient") as MockClient,
-            patch("agent_stack.agents.llm.DefaultAzureCredential") as MockCred,
+            patch("agent_stack.agents.llm.AzureOpenAIChatClient") as mock_client_cls,
+            patch("agent_stack.agents.llm.DefaultAzureCredential") as mock_cred_cls,
         ):
-            from agent_stack.agents.llm import create_chat_client
-
             client = create_chat_client(openai_config)
 
-            MockClient.assert_called_once_with(
+            mock_client_cls.assert_called_once_with(
                 endpoint=openai_config.endpoint,
                 deployment_name=openai_config.deployment,
-                credential=MockCred.return_value,
+                credential=mock_cred_cls.return_value,
             )
-            assert client == MockClient.return_value
+            assert client == mock_client_cls.return_value

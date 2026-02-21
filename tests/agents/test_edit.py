@@ -36,6 +36,9 @@ async def test_get_edition_content(edit_agent: EditAgent, repos: tuple[AsyncMock
     assert result["title"] == "Test"
 
 
+_EXPECTED_FEEDBACK_COUNT = 2
+
+
 @pytest.mark.asyncio
 async def test_get_feedback_returns_unresolved(edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
     """Verify get feedback returns unresolved."""
@@ -47,7 +50,7 @@ async def test_get_feedback_returns_unresolved(edit_agent: EditAgent, repos: tup
     feedback_repo.get_unresolved.return_value = items
 
     result = json.loads(await edit_agent.get_feedback("ed-1"))
-    assert len(result) == 2
+    assert len(result) == _EXPECTED_FEEDBACK_COUNT
     assert result[0]["section"] == "intro"
     assert result[1]["comment"] == "Rewrite"
 

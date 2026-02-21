@@ -121,7 +121,7 @@ async def test_check_storage_unhealthy() -> None:
 # --- Change Feed Processor ---
 
 
-def _make_processor(running: bool, task_done: bool = False, task_exc: Exception | None = None) -> None:
+def _make_processor(*, running: bool, task_done: bool = False, task_exc: Exception | None = None) -> None:
     processor = MagicMock(spec=ChangeFeedProcessor)
     processor.running = running
     if running or task_done:

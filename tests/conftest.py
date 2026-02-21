@@ -12,6 +12,8 @@ from agent_stack.models.edition import Edition, EditionStatus
 from agent_stack.models.feedback import Feedback
 from agent_stack.models.link import Link, LinkStatus
 
+_TEST_CLIENT_SECRET = "test-secret"  # noqa: S105
+
 # ---------------------------------------------------------------------------
 # Mock repository fixtures
 # ---------------------------------------------------------------------------
@@ -138,7 +140,7 @@ def entra_config() -> EntraConfig:
     return EntraConfig(
         tenant_id="test-tenant",
         client_id="test-client",
-        client_secret="test-secret",
+        client_secret=_TEST_CLIENT_SECRET,
     )
 
 

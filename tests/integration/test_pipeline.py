@@ -8,6 +8,8 @@ from agent_stack.models.agent_run import AgentRunStatus
 from agent_stack.models.link import Link, LinkStatus
 from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
+_EXPECTED_LINK_GET_COUNT = 3
+
 _MockRepos = tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]
 
 
@@ -37,9 +39,8 @@ def orchestrator(mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]) 
     ):
         mock_events = AsyncMock()
         mock_events_cls.get_instance.return_value = mock_events
-        orch = PipelineOrchestrator(client, links, editions, feedback, agent_runs)
 
-    return orch
+    return PipelineOrchestrator(client, links, editions, feedback, agent_runs)
 
 
 @pytest.mark.asyncio
@@ -61,7 +62,7 @@ async def test_handle_link_change_submitted(orchestrator: PipelineOrchestrator, 
     )
 
     links.get.assert_called_with("link-1", "ed-1")
-    assert links.get.call_count == 3  # initial fetch + fail check + SSE publish
+    assert links.get.call_count == _EXPECTED_LINK_GET_COUNT  # initial fetch + fail check + SSE publish
     agent_runs.create.assert_called_once()
     orchestrator.fetch.run.assert_called_once_with(link)
 

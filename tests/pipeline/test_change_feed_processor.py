@@ -3,8 +3,45 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from azure.core.exceptions import ServiceResponseError
 
 from agent_stack.pipeline.change_feed import ChangeFeedProcessor
+
+_TEST_CONTINUATION_TOKEN = "token-abc"  # noqa: S105
+_TEST_CONTINUATION_TOKEN_SHORT = "token"  # noqa: S105
+
+
+class _SingleItemPage:
+    """Async iterable page that yields items one at a time."""
+
+    def __init__(self, items: list[dict[str, str]]) -> None:
+        self._items = iter(items)
+
+    def __aiter__(self) -> "_SingleItemPage":
+        return self
+
+    async def __anext__(self) -> dict[str, str]:
+        try:
+            return next(self._items)
+        except StopIteration:
+            raise StopAsyncIteration from None
+
+
+class _MockPageIterator:
+    """Async iterable over pages with a continuation token."""
+
+    def __init__(self, pages: list[object], continuation_token: str = "") -> None:
+        self._pages = iter(pages)
+        self.continuation_token = continuation_token
+
+    def __aiter__(self) -> "_MockPageIterator":
+        return self
+
+    async def __anext__(self) -> object:
+        try:
+            return next(self._pages)
+        except StopIteration:
+            raise StopAsyncIteration from None
 
 
 @pytest.mark.unit
@@ -54,41 +91,9 @@ class TestChangeFeedProcessor:
 
         item = {"id": "link-1", "status": "submitted"}
 
-        class MockPage:
-            def __aiter__(self) -> None:
-                return self
-
-            async def __anext__(self) -> None:
-                raise StopAsyncIteration from None
-
-        class MockPageIterator:
-            def __init__(self, pages: list[object]) -> None:
-                self._pages = iter(pages)
-                self.continuation_token = "token-abc"
-
-            def __aiter__(self) -> None:
-                return self
-
-            async def __anext__(self) -> None:
-                try:
-                    return next(self._pages)
-                except StopIteration:
-                    raise StopAsyncIteration from None
-
-        class SingleItemPage:
-            def __init__(self, items: list[dict[str, str]]) -> None:
-                self._items = iter(items)
-
-            def __aiter__(self) -> None:
-                return self
-
-            async def __anext__(self) -> None:
-                try:
-                    return next(self._items)
-                except StopIteration:
-                    raise StopAsyncIteration from None
-
-        page_iter = MockPageIterator([SingleItemPage([item])])
+        page_iter = _MockPageIterator(
+            [_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN
+        )
 
         mock_response = MagicMock()
         mock_response.by_page.return_value = page_iter
@@ -98,7 +103,7 @@ class TestChangeFeedProcessor:
         result = await processor.process_feed(mock_container, None, handler)
 
         handler.assert_awaited_once_with(item)
-        assert result == "token-abc"
+        assert result == _TEST_CONTINUATION_TOKEN
 
     async def test_process_feed_with_continuation_token(self, processor: ChangeFeedProcessor) -> None:
         """Verify process feed with continuation token."""
@@ -131,34 +136,9 @@ class TestChangeFeedProcessor:
 
         item = {"id": "link-1"}
 
-        class SingleItemPage:
-            def __init__(self, items: list[dict[str, str]]) -> None:
-                self._items = iter(items)
-
-            def __aiter__(self) -> None:
-                return self
-
-            async def __anext__(self) -> None:
-                try:
-                    return next(self._items)
-                except StopIteration:
-                    raise StopAsyncIteration from None
-
-        class MockPageIterator:
-            def __init__(self, pages: list[object]) -> None:
-                self._pages = iter(pages)
-                self.continuation_token = "token"
-
-            def __aiter__(self) -> None:
-                return self
-
-            async def __anext__(self) -> None:
-                try:
-                    return next(self._pages)
-                except StopIteration:
-                    raise StopAsyncIteration from None
-
-        page_iter = MockPageIterator([SingleItemPage([item])])
+        page_iter = _MockPageIterator(
+            [_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN_SHORT
+        )
 
         mock_response = MagicMock()
         mock_response.by_page.return_value = page_iter
@@ -167,12 +147,10 @@ class TestChangeFeedProcessor:
         handler = AsyncMock(side_effect=Exception("handler error"))
         result = await processor.process_feed(mock_container, None, handler)
 
-        assert result == "token"
+        assert result == _TEST_CONTINUATION_TOKEN_SHORT
 
     async def test_process_feed_handles_emulator_http_error(self, processor: ChangeFeedProcessor) -> None:
         """Verify process feed handles emulator http error."""
-        from azure.core.exceptions import ServiceResponseError
-
         mock_container = MagicMock()
 
         class ErrorPageIterator:

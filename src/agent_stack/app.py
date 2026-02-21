@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import uvicorn
+from azure.core.exceptions import AzureError
+from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -40,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+_DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 
 
 @asynccontextmanager
@@ -48,8 +51,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = load_settings()
 
     if settings.monitor.connection_string:
-        from azure.monitor.opentelemetry import configure_azure_monitor
-
         configure_azure_monitor(connection_string=settings.monitor.connection_string)
         logger.info("Azure Monitor OpenTelemetry configured")
 
@@ -77,7 +78,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             render_fn = renderer.render_edition
             upload_fn = storage.upload_html
             logger.info("Blob storage configured")
-        except Exception:
+        except (AzureError, OSError, ValueError):
             logger.warning("Failed to connect to blob storage — publish uploads disabled", exc_info=True)
             if storage:
                 await storage.close()
@@ -153,7 +154,7 @@ def main() -> None:
     logging.getLogger().addFilter(_FeedRangeFilter())
 
     app = create_app()
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
+    uvicorn.run(app, host=_DEFAULT_HOST, port=8000, log_config=None)
 
 
 if __name__ == "__main__":

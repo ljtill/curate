@@ -7,6 +7,8 @@ import pytest
 from agent_stack.config import CosmosConfig
 from agent_stack.database.client import CosmosClient
 
+_EXPECTED_CONTAINER_COUNT = 4
+
 
 @pytest.mark.unit
 class TestCosmosClient:
@@ -24,24 +26,24 @@ class TestCosmosClient:
 
     async def test_initialize_creates_db_and_containers(self, client: CosmosClient) -> None:
         """Verify initialize creates db and containers."""
-        with patch("agent_stack.database.client.AzureCosmosClient") as MockAzure:
+        with patch("agent_stack.database.client.AzureCosmosClient") as mock_azure_cls:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()
             mock_azure.create_database_if_not_exists.return_value = mock_db
-            MockAzure.return_value = mock_azure
+            mock_azure_cls.return_value = mock_azure
 
             await client.initialize()
 
             mock_azure.create_database_if_not_exists.assert_called_once_with("test-db")
-            assert mock_db.create_container_if_not_exists.call_count == 4
+            assert mock_db.create_container_if_not_exists.call_count == _EXPECTED_CONTAINER_COUNT
 
     async def test_close_cleans_up(self, client: CosmosClient) -> None:
         """Verify close cleans up."""
-        with patch("agent_stack.database.client.AzureCosmosClient") as MockAzure:
+        with patch("agent_stack.database.client.AzureCosmosClient") as mock_azure_cls:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()
             mock_azure.create_database_if_not_exists.return_value = mock_db
-            MockAzure.return_value = mock_azure
+            mock_azure_cls.return_value = mock_azure
 
             await client.initialize()
             await client.close()
@@ -61,11 +63,11 @@ class TestCosmosClient:
 
     async def test_database_property_returns_after_init(self, client: CosmosClient) -> None:
         """Verify database property returns after init."""
-        with patch("agent_stack.database.client.AzureCosmosClient") as MockAzure:
+        with patch("agent_stack.database.client.AzureCosmosClient") as mock_azure_cls:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()
             mock_azure.create_database_if_not_exists.return_value = mock_db
-            MockAzure.return_value = mock_azure
+            mock_azure_cls.return_value = mock_azure
 
             await client.initialize()
 

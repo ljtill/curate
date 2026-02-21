@@ -50,23 +50,6 @@ ignore = [
     "COM812",  # conflicts with ruff formatter
     "D203",    # conflicts with D211
     "D213",    # conflicts with D212
-    # --- Phase 5: Code quality ---
-    "ARG001",  # unused-function-argument
-    "ARG002",  # unused-method-argument
-    "BLE001",  # blind-except
-    "C901",    # complex-structure
-    "FAST002", # fast-api-non-annotated-dependency
-    "FBT001",  # boolean-type-hint-positional-argument
-    "FBT002",  # boolean-default-value-positional-argument
-    "N806",    # non-lowercase-variable-in-function
-    "PERF401", # manual-list-comprehension
-    "PLC0415", # import-outside-top-level
-    "PLR2004", # magic-value-comparison
-    "RET504",  # unnecessary-assign
-    "RUF012",  # mutable-class-default
-    "S104",    # hardcoded-bind-all-interfaces
-    "S105",    # hardcoded-password-string
-    "S106",    # hardcoded-password-func-arg
     # --- Phase 6: Exception messages ---
     "EM101",   # raw-string-in-exception
     "EM102",   # f-string-in-exception
