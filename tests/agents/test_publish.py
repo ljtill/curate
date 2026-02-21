@@ -36,13 +36,13 @@ async def test_render_and_upload_calls_functions(publish_agent: PublishAgent, ed
     """Verify render and upload calls functions."""
     edition = Edition(id="ed-1", content={"title": "Test"})
     editions_repo.get.return_value = edition
-    publish_agent._render_fn.return_value = "<html>test</html>"
+    publish_agent.render_fn.return_value = "<html>test</html>"
 
-    result = json.loads(await publish_agent._render_and_upload("ed-1"))
+    result = json.loads(await publish_agent.render_and_upload("ed-1"))
 
     assert result["status"] == "uploaded"
-    publish_agent._render_fn.assert_called_once_with(edition)
-    publish_agent._upload_fn.assert_called_once_with("ed-1", "<html>test</html>")
+    publish_agent.render_fn.assert_called_once_with(edition)
+    publish_agent.upload_fn.assert_called_once_with("ed-1", "<html>test</html>")
 
 
 @pytest.mark.asyncio
@@ -53,7 +53,7 @@ async def test_render_and_upload_skips_without_functions(
     edition = Edition(id="ed-1", content={"title": "Test"})
     editions_repo.get.return_value = edition
 
-    result = json.loads(await publish_agent_no_fns._render_and_upload("ed-1"))
+    result = json.loads(await publish_agent_no_fns.render_and_upload("ed-1"))
     assert result["status"] == "skipped"
 
 
@@ -61,7 +61,7 @@ async def test_render_and_upload_skips_without_functions(
 async def test_render_and_upload_edition_not_found(publish_agent: PublishAgent, editions_repo: AsyncMock) -> None:
     """Verify render and upload edition not found."""
     editions_repo.get.return_value = None
-    result = json.loads(await publish_agent._render_and_upload("missing"))
+    result = json.loads(await publish_agent.render_and_upload("missing"))
     assert "error" in result
 
 
@@ -71,7 +71,7 @@ async def test_mark_published_updates_status(publish_agent: PublishAgent, editio
     edition = Edition(id="ed-1", content={}, status=EditionStatus.IN_REVIEW)
     editions_repo.get.return_value = edition
 
-    result = json.loads(await publish_agent._mark_published("ed-1"))
+    result = json.loads(await publish_agent.mark_published("ed-1"))
 
     assert result["status"] == "published"
     assert edition.status == EditionStatus.PUBLISHED
@@ -83,5 +83,5 @@ async def test_mark_published_updates_status(publish_agent: PublishAgent, editio
 async def test_mark_published_edition_not_found(publish_agent: PublishAgent, editions_repo: AsyncMock) -> None:
     """Verify mark published edition not found."""
     editions_repo.get.return_value = None
-    result = json.loads(await publish_agent._mark_published("missing"))
+    result = json.loads(await publish_agent.mark_published("missing"))
     assert "error" in result

@@ -17,7 +17,7 @@ async def submit_feedback(
     edition_id: str,
     section: str = Form(...),
     comment: str = Form(...),
-):
+) -> RedirectResponse:
     """Submit editor feedback for a specific section of an edition."""
     cosmos = request.app.state.cosmos
     repo = FeedbackRepository(cosmos.database)

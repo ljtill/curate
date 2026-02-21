@@ -1,6 +1,6 @@
 """Tests for the Cosmos DB client."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -37,15 +37,18 @@ class TestCosmosClient:
 
     async def test_close_cleans_up(self, client: CosmosClient) -> None:
         """Verify close cleans up."""
-        mock_azure = AsyncMock()
-        client._client = mock_azure
-        client._database = MagicMock()
+        with patch("agent_stack.database.client.AzureCosmosClient") as MockAzure:
+            mock_azure = AsyncMock()
+            mock_db = AsyncMock()
+            mock_azure.create_database_if_not_exists.return_value = mock_db
+            MockAzure.return_value = mock_azure
 
-        await client.close()
+            await client.initialize()
+            await client.close()
 
-        mock_azure.close.assert_awaited_once()
-        assert client._client is None
-        assert client._database is None
+            mock_azure.close.assert_awaited_once()
+            with pytest.raises(RuntimeError, match="not initialized"):
+                _ = client.database
 
     async def test_close_noop_when_not_initialized(self, client: CosmosClient) -> None:
         """Verify close noop when not initialized."""

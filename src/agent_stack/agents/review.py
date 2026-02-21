@@ -36,19 +36,24 @@ class ReviewAgent:
     ) -> None:
         """Initialize the review agent with LLM client and link repository."""
         self._links_repo = links_repo
-        self._save_failures = 0
+        self.save_failures = 0
         middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("review"),
             name="review-agent",
-            tools=[self._get_link_content, self._save_review],
+            tools=[self.get_link_content, self.save_review],
             default_options=ChatOptions(max_tokens=1000, temperature=0.3),
             middleware=middleware,
         )
 
+    @property
+    def agent(self) -> Agent:
+        """Return the inner Agent framework instance."""
+        return self._agent  # ty: ignore[invalid-return-type]
+
     @tool
-    async def _get_link_content(
+    async def get_link_content(
         self,
         link_id: Annotated[str, "The link document ID"],
         edition_id: Annotated[str, "The edition partition key"],
@@ -60,7 +65,7 @@ class ReviewAgent:
         return json.dumps({"title": link.title, "content": link.content, "url": link.url})
 
     @tool
-    async def _save_review(
+    async def save_review(
         self,
         link_id: Annotated[str, "The link document ID"],
         edition_id: Annotated[str, "The edition partition key"],
@@ -83,15 +88,15 @@ class ReviewAgent:
         try:
             await self._links_repo.update(link, edition_id)
         except Exception as exc:
-            self._save_failures += 1
+            self.save_failures += 1
             logger.warning(
                 "save_review failed for link %s (attempt %d/%d): %s",
                 link_id,
-                self._save_failures,
+                self.save_failures,
                 MAX_SAVE_RETRIES,
                 exc,
             )
-            if self._save_failures >= MAX_SAVE_RETRIES:
+            if self.save_failures >= MAX_SAVE_RETRIES:
                 raise RuntimeError(f"save_review failed after {MAX_SAVE_RETRIES} attempts for link {link_id}") from exc
             return json.dumps({"error": f"Failed to save review: {exc}"})
         return json.dumps({"status": "reviewed", "link_id": link_id})
@@ -100,7 +105,7 @@ class ReviewAgent:
         """Execute the review agent for a fetched link."""
         logger.info("Review agent started — link=%s", link.id)
         t0 = time.monotonic()
-        self._save_failures = 0
+        self.save_failures = 0
         message = f"Review the fetched content for this link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
         try:
             response = await self._agent.run(message)

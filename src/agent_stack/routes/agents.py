@@ -7,17 +7,17 @@ from fastapi.responses import HTMLResponse
 
 from agent_stack.agents.registry import get_agent_metadata
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
-from agent_stack.models.agent_run import AgentStage
+from agent_stack.models.agent_run import AgentRun, AgentStage
 
 router = APIRouter(tags=["agents"])
 
 
 @router.get("/agents", response_class=HTMLResponse)
-async def agents_page(request: Request):
+async def agents_page(request: Request) -> HTMLResponse:
     """Render the Agents page showing pipeline topology and agent details."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
-    orchestrator = request.app.state.processor._orchestrator
+    orchestrator = request.app.state.processor.orchestrator
 
     agent_metadata = get_agent_metadata(orchestrator)
 
@@ -51,7 +51,7 @@ async def agents_page(request: Request):
     )
 
 
-def _run_to_dict(run) -> dict:
+def _run_to_dict(run: AgentRun) -> dict:
     """Convert an AgentRun to a template-friendly dict."""
     return {
         "id": run.id,

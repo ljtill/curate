@@ -41,13 +41,18 @@ class DraftAgent:
             client=client,
             instructions=load_prompt("draft"),
             name="draft-agent",
-            tools=[self._get_reviewed_link, self._get_edition_content, self._save_draft],
+            tools=[self.get_reviewed_link, self.get_edition_content, self.save_draft],
             default_options=ChatOptions(max_tokens=4000, temperature=0.7),
             middleware=middleware,
         )
 
+    @property
+    def agent(self) -> Agent:
+        """Return the inner Agent framework instance."""
+        return self._agent  # ty: ignore[invalid-return-type]
+
     @tool
-    async def _get_reviewed_link(
+    async def get_reviewed_link(
         self,
         link_id: Annotated[str, "The link document ID"],
         edition_id: Annotated[str, "The edition partition key"],
@@ -66,7 +71,7 @@ class DraftAgent:
         )
 
     @tool
-    async def _get_edition_content(
+    async def get_edition_content(
         self,
         edition_id: Annotated[str, "The edition document ID"],
     ) -> str:
@@ -77,7 +82,7 @@ class DraftAgent:
         return json.dumps(edition.content)
 
     @tool
-    async def _save_draft(
+    async def save_draft(
         self,
         edition_id: Annotated[str, "The edition document ID"],
         link_id: Annotated[str, "The link being drafted"],

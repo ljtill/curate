@@ -14,9 +14,9 @@ if TYPE_CHECKING:
     from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
 
-def _extract_tools(agent_obj) -> list[dict[str, str]]:
+def _extract_tools(agent_obj: object) -> list[dict[str, str]]:
     """Extract tool names and descriptions from an Agent Framework agent."""
-    inner = getattr(agent_obj, "_agent", None)
+    inner = getattr(agent_obj, "agent", None)
     if inner is None:
         return []
     tools = getattr(inner, "_tools", None) or getattr(inner, "tools", None) or []
@@ -38,9 +38,9 @@ def _extract_tools(agent_obj) -> list[dict[str, str]]:
     return result
 
 
-def _extract_options(agent_obj) -> dict[str, Any]:
+def _extract_options(agent_obj: object) -> dict[str, Any]:
     """Extract default ChatOptions from an agent."""
-    inner = getattr(agent_obj, "_agent", None)
+    inner = getattr(agent_obj, "agent", None)
     if inner is None:
         return {}
     opts = getattr(inner, "_default_options", None) or getattr(inner, "default_options", None)
@@ -62,9 +62,9 @@ def _extract_options(agent_obj) -> dict[str, Any]:
     return result
 
 
-def _extract_middleware(agent_obj) -> list[str]:
+def _extract_middleware(agent_obj: object) -> list[str]:
     """Extract middleware class names from an agent."""
-    inner = getattr(agent_obj, "_agent", None)
+    inner = getattr(agent_obj, "agent", None)
     if inner is None:
         return []
     mw = getattr(inner, "_middleware", None) or getattr(inner, "middleware", None) or []
@@ -76,9 +76,9 @@ def _extract_middleware(agent_obj) -> list[str]:
     return [type(m).__name__ for m in mw]
 
 
-def _extract_instructions(agent_obj, max_length: int = 200) -> dict[str, str]:
+def _extract_instructions(agent_obj: object, max_length: int = 200) -> dict[str, str]:
     """Extract system instructions (truncated preview + full text)."""
-    inner = getattr(agent_obj, "_agent", None)
+    inner = getattr(agent_obj, "agent", None)
     if inner is None:
         return {"preview": "", "full": ""}
     instructions = getattr(inner, "_instructions", None) or getattr(inner, "instructions", None) or ""
@@ -114,11 +114,11 @@ def get_agent_metadata(orchestrator: PipelineOrchestrator) -> list[dict[str, Any
     Each entry contains: name, description, tools, options, middleware, instructions.
     """
     agents: list[tuple[str, Any]] = [
-        ("fetch", getattr(orchestrator, "_fetch", None)),
-        ("review", getattr(orchestrator, "_review", None)),
-        ("draft", getattr(orchestrator, "_draft", None)),
-        ("edit", getattr(orchestrator, "_edit", None)),
-        ("publish", getattr(orchestrator, "_publish", None)),
+        ("fetch", getattr(orchestrator, "fetch", None)),
+        ("review", getattr(orchestrator, "review", None)),
+        ("draft", getattr(orchestrator, "draft", None)),
+        ("edit", getattr(orchestrator, "edit", None)),
+        ("publish", getattr(orchestrator, "publish", None)),
     ]
 
     result = []

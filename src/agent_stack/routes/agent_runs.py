@@ -11,7 +11,7 @@ router = APIRouter(prefix="/runs", tags=["agent-runs"])
 
 
 @router.get("/recent", response_class=HTMLResponse)
-async def recent_runs(request: Request):
+async def recent_runs(request: Request) -> HTMLResponse:
     """Return recent agent runs as an HTML partial for the dashboard."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos

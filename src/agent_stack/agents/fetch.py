@@ -39,14 +39,19 @@ class FetchAgent:
             client=client,
             instructions=load_prompt("fetch"),
             name="fetch-agent",
-            tools=[self._fetch_url, self._save_fetched_content, self._mark_link_failed],
+            tools=[self.fetch_url, self.save_fetched_content, self.mark_link_failed],
             default_options=ChatOptions(max_tokens=2000, temperature=0.0),
             middleware=middleware,
         )
 
+    @property
+    def agent(self) -> Agent:
+        """Return the inner Agent framework instance."""
+        return self._agent  # ty: ignore[invalid-return-type]
+
     @staticmethod
     @tool
-    async def _fetch_url(url: Annotated[str, "The URL to fetch content from"]) -> str:
+    async def fetch_url(url: Annotated[str, "The URL to fetch content from"]) -> str:
         """Fetch the raw HTML content of a URL."""
         headers = {
             "User-Agent": "Mozilla/5.0 (compatible; AgentStack/1.0; +https://github.com/ljtill/agent-stack)",
@@ -71,7 +76,7 @@ class FetchAgent:
             return json.dumps({"error": f"Failed to fetch URL: {exc}", "unreachable": True})
 
     @tool
-    async def _save_fetched_content(
+    async def save_fetched_content(
         self,
         link_id: Annotated[str, "The link document ID"],
         edition_id: Annotated[str, "The edition partition key"],
@@ -89,7 +94,7 @@ class FetchAgent:
         return json.dumps({"status": "saved", "link_id": link_id})
 
     @tool
-    async def _mark_link_failed(
+    async def mark_link_failed(
         self,
         link_id: Annotated[str, "The link document ID"],
         edition_id: Annotated[str, "The edition partition key"],

@@ -35,8 +35,8 @@ class TestChangeFeedProcessor:
         with patch.object(processor, "_poll_loop", new_callable=AsyncMock):
             await processor.start()
 
-            assert processor._running is True
-            assert processor._task is not None
+            assert processor.running is True
+            assert processor.task is not None
 
             await processor.stop()
 
@@ -46,7 +46,7 @@ class TestChangeFeedProcessor:
             await processor.start()
             await processor.stop()
 
-            assert processor._running is False
+            assert processor.running is False
 
     async def test_process_feed_calls_handler(self, processor: ChangeFeedProcessor) -> None:
         """Verify process feed calls handler."""
@@ -95,7 +95,7 @@ class TestChangeFeedProcessor:
         mock_container.query_items_change_feed.return_value = mock_response
 
         handler = AsyncMock()
-        result = await processor._process_feed(mock_container, None, handler)
+        result = await processor.process_feed(mock_container, None, handler)
 
         handler.assert_awaited_once_with(item)
         assert result == "token-abc"
@@ -119,7 +119,7 @@ class TestChangeFeedProcessor:
         mock_response.by_page.return_value = page_iter
         mock_container.query_items_change_feed.return_value = mock_response
 
-        result = await processor._process_feed(mock_container, "prev-token", AsyncMock())
+        result = await processor.process_feed(mock_container, "prev-token", AsyncMock())
 
         call_kwargs = mock_container.query_items_change_feed.call_args[1]
         assert call_kwargs["continuation"] == "prev-token"
@@ -165,7 +165,7 @@ class TestChangeFeedProcessor:
         mock_container.query_items_change_feed.return_value = mock_response
 
         handler = AsyncMock(side_effect=Exception("handler error"))
-        result = await processor._process_feed(mock_container, None, handler)
+        result = await processor.process_feed(mock_container, None, handler)
 
         assert result == "token"
 
@@ -190,6 +190,6 @@ class TestChangeFeedProcessor:
         mock_response.by_page.return_value = page_iter
         mock_container.query_items_change_feed.return_value = mock_response
 
-        result = await processor._process_feed(mock_container, "old-token", AsyncMock())
+        result = await processor.process_feed(mock_container, "old-token", AsyncMock())
 
         assert result == "old-token"

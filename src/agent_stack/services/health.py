@@ -107,7 +107,7 @@ async def check_storage(storage: BlobStorageClient, config: StorageConfig) -> Se
     detail = f"{account} · {config.container}"
     start = time.monotonic()
     try:
-        container = storage._get_container()
+        container = storage.get_container()
         await container.get_container_properties()
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(name="Azure Storage", healthy=True, latency_ms=round(latency, 1), detail=detail)
@@ -121,11 +121,11 @@ async def check_storage(storage: BlobStorageClient, config: StorageConfig) -> Se
 def check_change_feed(processor: ChangeFeedProcessor) -> ServiceHealth:
     """Check whether the change feed background task is alive."""
     detail = "editions container"
-    if processor._running and processor._task is not None and not processor._task.done():
+    if processor.running and processor.task is not None and not processor.task.done():
         return ServiceHealth(name="Change Feed Processor", healthy=True, detail=detail)
     error = "Background task is not running"
-    if processor._task is not None and processor._task.done():
-        exc = processor._task.exception() if not processor._task.cancelled() else None
+    if processor.task is not None and processor.task.done():
+        exc = processor.task.exception() if not processor.task.cancelled() else None
         error = str(exc) if exc else "Task finished unexpectedly"
     return ServiceHealth(name="Change Feed Processor", healthy=False, error=error, detail=detail)
 

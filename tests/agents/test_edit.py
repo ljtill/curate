@@ -32,7 +32,7 @@ async def test_get_edition_content(edit_agent: EditAgent, repos: tuple[AsyncMock
     edition = Edition(id="ed-1", content={"title": "Test"})
     editions_repo.get.return_value = edition
 
-    result = json.loads(await edit_agent._get_edition_content("ed-1"))
+    result = json.loads(await edit_agent.get_edition_content("ed-1"))
     assert result["title"] == "Test"
 
 
@@ -46,7 +46,7 @@ async def test_get_feedback_returns_unresolved(edit_agent: EditAgent, repos: tup
     ]
     feedback_repo.get_unresolved.return_value = items
 
-    result = json.loads(await edit_agent._get_feedback("ed-1"))
+    result = json.loads(await edit_agent.get_feedback("ed-1"))
     assert len(result) == 2
     assert result[0]["section"] == "intro"
     assert result[1]["comment"] == "Rewrite"
@@ -60,7 +60,7 @@ async def test_save_edit_updates_content(edit_agent: EditAgent, repos: tuple[Asy
     editions_repo.get.return_value = edition
 
     content = json.dumps({"new": True})
-    result = json.loads(await edit_agent._save_edit("ed-1", content))
+    result = json.loads(await edit_agent.save_edit("ed-1", content))
 
     assert result["status"] == "edited"
     assert edition.content == {"new": True}
@@ -74,7 +74,7 @@ async def test_resolve_feedback_marks_resolved(edit_agent: EditAgent, repos: tup
     fb = Feedback(id="fb-1", edition_id="ed-1", section="intro", comment="Fix", resolved=False)
     feedback_repo.get.return_value = fb
 
-    result = json.loads(await edit_agent._resolve_feedback("fb-1", "ed-1"))
+    result = json.loads(await edit_agent.resolve_feedback("fb-1", "ed-1"))
 
     assert result["status"] == "resolved"
     assert fb.resolved is True
@@ -87,5 +87,5 @@ async def test_resolve_feedback_not_found(edit_agent: EditAgent, repos: tuple[As
     _, feedback_repo = repos
     feedback_repo.get.return_value = None
 
-    result = json.loads(await edit_agent._resolve_feedback("missing", "ed-1"))
+    result = json.loads(await edit_agent.resolve_feedback("missing", "ed-1"))
     assert "error" in result

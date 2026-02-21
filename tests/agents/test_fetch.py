@@ -30,7 +30,7 @@ async def test_save_fetched_content_updates_link(fetch_agent: FetchAgent, links_
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
     links_repo.get.return_value = link
 
-    result = json.loads(await fetch_agent._save_fetched_content("link-1", "ed-1", "My Title", "Page content"))
+    result = json.loads(await fetch_agent.save_fetched_content("link-1", "ed-1", "My Title", "Page content"))
 
     assert result["status"] == "saved"
     assert link.title == "My Title"
@@ -44,7 +44,7 @@ async def test_save_fetched_content_link_not_found(fetch_agent: FetchAgent, link
     """Verify save fetched content link not found."""
     links_repo.get.return_value = None
 
-    result = json.loads(await fetch_agent._save_fetched_content("missing", "ed-1", "Title", "Content"))
+    result = json.loads(await fetch_agent.save_fetched_content("missing", "ed-1", "Title", "Content"))
 
     assert "error" in result
     links_repo.update.assert_not_called()
@@ -60,7 +60,7 @@ async def test_fetch_url_returns_error_on_connect_error() -> None:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         MockClient.return_value = mock_client
 
-        result = json.loads(await FetchAgent._fetch_url.func("http://unreachable.invalid"))
+        result = json.loads(await FetchAgent.fetch_url.func("http://unreachable.invalid"))
 
         assert result["unreachable"] is True
         assert "error" in result
@@ -80,7 +80,7 @@ async def test_fetch_url_returns_error_on_http_status_error() -> None:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         MockClient.return_value = mock_client
 
-        result = json.loads(await FetchAgent._fetch_url.func("https://example.com/missing"))
+        result = json.loads(await FetchAgent.fetch_url.func("https://example.com/missing"))
 
         assert result["unreachable"] is True
         assert "404" in result["error"]
@@ -99,7 +99,7 @@ async def test_fetch_url_sets_user_agent_header() -> None:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         MockClient.return_value = mock_client
 
-        await FetchAgent._fetch_url.func("https://example.com")
+        await FetchAgent.fetch_url.func("https://example.com")
 
         call_kwargs = MockClient.call_args
         headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
@@ -113,7 +113,7 @@ async def test_mark_link_failed_updates_status(fetch_agent: FetchAgent, links_re
     link = Link(id="link-1", url="https://unreachable.invalid", edition_id="ed-1")
     links_repo.get.return_value = link
 
-    result = json.loads(await fetch_agent._mark_link_failed("link-1", "ed-1", "URL is unreachable"))
+    result = json.loads(await fetch_agent.mark_link_failed("link-1", "ed-1", "URL is unreachable"))
 
     assert result["status"] == "failed"
     assert result["link_id"] == "link-1"
@@ -127,7 +127,7 @@ async def test_mark_link_failed_link_not_found(fetch_agent: FetchAgent, links_re
     """Verify mark link failed link not found."""
     links_repo.get.return_value = None
 
-    result = json.loads(await fetch_agent._mark_link_failed("missing", "ed-1", "unreachable"))
+    result = json.loads(await fetch_agent.mark_link_failed("missing", "ed-1", "unreachable"))
 
     assert "error" in result
     links_repo.update.assert_not_called()

@@ -20,29 +20,29 @@ logger = logging.getLogger(__name__)
 class EventManager:
     """Manages SSE connections and broadcasts events to all connected clients."""
 
-    _instance: EventManager | None = None
+    instance: EventManager | None = None
 
     def __init__(self) -> None:
         """Initialize the event manager with an empty subscriber list."""
-        self._queues: list[asyncio.Queue] = []
+        self.queues: list[asyncio.Queue] = []
 
     @classmethod
     def get_instance(cls) -> EventManager:
         """Return the singleton EventManager instance, creating it if needed."""
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
+        if cls.instance is None:
+            cls.instance = cls()
+        return cls.instance
 
     async def publish(self, event_type: str, data: dict[str, Any] | str) -> None:
         """Broadcast an event to all connected SSE clients."""
         message = {"event": event_type, "data": json.dumps(data) if isinstance(data, dict) else data}
-        for queue in self._queues:
+        for queue in self.queues:
             await queue.put(message)
 
-    async def _event_generator(self, request: Request) -> AsyncGenerator[dict[str, str]]:
+    async def event_generator(self, request: Request) -> AsyncGenerator[dict[str, str]]:
         """Generate SSE events for a single client connection."""
         queue: asyncio.Queue = asyncio.Queue()
-        self._queues.append(queue)
+        self.queues.append(queue)
         try:
             while True:
                 if await request.is_disconnected():
@@ -53,8 +53,8 @@ class EventManager:
                 except TimeoutError:
                     yield {"event": "ping", "data": ""}
         finally:
-            self._queues.remove(queue)
+            self.queues.remove(queue)
 
     def create_response(self, request: Request) -> EventSourceResponse:
         """Create an SSE response for a client."""
-        return EventSourceResponse(self._event_generator(request))
+        return EventSourceResponse(self.event_generator(request))

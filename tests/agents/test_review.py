@@ -29,7 +29,7 @@ async def test_get_link_content_returns_json(review_agent: ReviewAgent, links_re
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1", title="Title", content="Body text")
     links_repo.get.return_value = link
 
-    result = json.loads(await review_agent._get_link_content("link-1", "ed-1"))
+    result = json.loads(await review_agent.get_link_content("link-1", "ed-1"))
 
     assert result["title"] == "Title"
     assert result["content"] == "Body text"
@@ -40,7 +40,7 @@ async def test_get_link_content_returns_json(review_agent: ReviewAgent, links_re
 async def test_get_link_content_not_found(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
     """Verify get link content not found."""
     links_repo.get.return_value = None
-    result = json.loads(await review_agent._get_link_content("missing", "ed-1"))
+    result = json.loads(await review_agent.get_link_content("missing", "ed-1"))
     assert "error" in result
 
 
@@ -51,7 +51,7 @@ async def test_save_review_updates_link(review_agent: ReviewAgent, links_repo: A
     links_repo.get.return_value = link
 
     insights = json.dumps(["insight1", "insight2"])
-    result = json.loads(await review_agent._save_review("link-1", "ed-1", insights, "AI/ML", 8, "Highly relevant"))
+    result = json.loads(await review_agent.save_review("link-1", "ed-1", insights, "AI/ML", 8, "Highly relevant"))
 
     assert result["status"] == "reviewed"
     assert link.status == LinkStatus.REVIEWED
@@ -65,7 +65,7 @@ async def test_save_review_updates_link(review_agent: ReviewAgent, links_repo: A
 async def test_save_review_link_not_found(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
     """Verify save review link not found."""
     links_repo.get.return_value = None
-    result = json.loads(await review_agent._save_review("missing", "ed-1", "[]", "cat", 5, "justification"))
+    result = json.loads(await review_agent.save_review("missing", "ed-1", "[]", "cat", 5, "justification"))
     assert "error" in result
 
 
@@ -76,10 +76,10 @@ async def test_save_review_retries_on_failure(review_agent: ReviewAgent, links_r
     links_repo.get.return_value = link
     links_repo.update.side_effect = Exception("Cosmos DB error")
 
-    result = json.loads(await review_agent._save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good"))
+    result = json.loads(await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good"))
 
     assert "error" in result
-    assert review_agent._save_failures == 1
+    assert review_agent.save_failures == 1
 
 
 @pytest.mark.asyncio
@@ -91,19 +91,19 @@ async def test_save_review_raises_after_max_retries(review_agent: ReviewAgent, l
 
     # Exhaust retries
     for _ in range(2):
-        await review_agent._save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
+        await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
 
     with pytest.raises(RuntimeError, match="failed after 3 attempts"):
-        await review_agent._save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
+        await review_agent.save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
 
 
 @pytest.mark.asyncio
 async def test_save_review_resets_failures_on_run(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
     """Verify save review resets failures on run."""
-    review_agent._save_failures = 2
+    review_agent.save_failures = 2
     mock_response = MagicMock()
     mock_response.usage_details = None
     mock_response.text = "done"
-    review_agent._agent.run = AsyncMock(return_value=mock_response)
+    review_agent.agent.run = AsyncMock(return_value=mock_response)
     await review_agent.run(Link(id="link-1", url="https://example.com", edition_id="ed-1"))
-    assert review_agent._save_failures == 0
+    assert review_agent.save_failures == 0

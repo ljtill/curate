@@ -26,7 +26,7 @@ def _make_agent_obj(**inner_attrs: object) -> MagicMock:
     for key, value in inner_attrs.items():
         setattr(inner, key, value)
     obj = MagicMock()
-    obj._agent = inner
+    obj.agent = inner
     return obj
 
 
@@ -80,7 +80,7 @@ class TestExtractTools:
             name = "fetch_url"
             description = "Fetch the raw HTML content of a URL."
 
-        agent_obj._agent.default_options = {"tools": [FunctionTool()]}
+        agent_obj.agent.default_options = {"tools": [FunctionTool()]}
 
         tools = _extract_tools(agent_obj)
 
@@ -179,7 +179,7 @@ class TestGetAgentMetadata:
         """Verify metadata is returned for all registered agents."""
         orchestrator = MagicMock()
         # Set up minimal agents
-        for attr in ("_fetch", "_review", "_draft", "_edit", "_publish"):
+        for attr in ("fetch", "review", "draft", "edit", "publish"):
             agent = _make_agent_obj(
                 _tools=[],
                 _default_options=None,
@@ -199,10 +199,10 @@ class TestGetAgentMetadata:
     def test_skips_none_agents(self) -> None:
         """Verify None agents are excluded from metadata."""
         orchestrator = MagicMock()
-        orchestrator._fetch = None
-        orchestrator._review = None
-        orchestrator._draft = None
-        orchestrator._edit = None
+        orchestrator.fetch = None
+        orchestrator.review = None
+        orchestrator.draft = None
+        orchestrator.edit = None
         agent = _make_agent_obj(
             _tools=[],
             _default_options=None,
@@ -210,7 +210,7 @@ class TestGetAgentMetadata:
             _middleware=[],
             _instructions="",
         )
-        orchestrator._publish = agent
+        orchestrator.publish = agent
 
         result = get_agent_metadata(orchestrator)
 

@@ -39,7 +39,7 @@ async def test_get_reviewed_link_returns_data(draft_agent: DraftAgent, repos: tu
     )
     links_repo.get.return_value = link
 
-    result = json.loads(await draft_agent._get_reviewed_link("link-1", "ed-1"))
+    result = json.loads(await draft_agent.get_reviewed_link("link-1", "ed-1"))
     assert result["title"] == "Title"
     assert result["review"] == {"insights": ["a"]}
 
@@ -51,7 +51,7 @@ async def test_get_edition_content(draft_agent: DraftAgent, repos: tuple[AsyncMo
     edition = Edition(id="ed-1", content={"title": "Newsletter"})
     editions_repo.get.return_value = edition
 
-    result = json.loads(await draft_agent._get_edition_content("ed-1"))
+    result = json.loads(await draft_agent.get_edition_content("ed-1"))
     assert result["title"] == "Newsletter"
 
 
@@ -65,7 +65,7 @@ async def test_save_draft_updates_edition_and_link(draft_agent: DraftAgent, repo
     links_repo.get.return_value = link
 
     content = json.dumps({"title": "Updated"})
-    result = json.loads(await draft_agent._save_draft("ed-1", "link-1", content))
+    result = json.loads(await draft_agent.save_draft("ed-1", "link-1", content))
 
     assert result["status"] == "drafted"
     assert "link-1" in edition.link_ids
@@ -82,7 +82,7 @@ async def test_save_draft_deduplicates_link_ids(draft_agent: DraftAgent, repos: 
     editions_repo.get.return_value = edition
     links_repo.get.return_value = Link(id="link-1", url="https://example.com", edition_id="ed-1")
 
-    await draft_agent._save_draft("ed-1", "link-1", json.dumps({}))
+    await draft_agent.save_draft("ed-1", "link-1", json.dumps({}))
 
     # link-1 should not be duplicated
     assert edition.link_ids.count("link-1") == 1

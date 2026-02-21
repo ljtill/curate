@@ -23,8 +23,8 @@ class StaticSiteRenderer:
 
     def __init__(self, editions_repo: EditionRepository, storage: BlobStorageClient) -> None:
         """Initialize the renderer with edition repository and storage client."""
-        self._editions_repo = editions_repo
-        self._storage = storage
+        self.editions_repo = editions_repo
+        self.storage = storage
         self._env = Environment(loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True)
 
     async def render_edition(self, edition: Edition) -> str:
@@ -39,18 +39,18 @@ class StaticSiteRenderer:
 
     async def publish_edition(self, edition_id: str) -> None:
         """Render and upload an edition and update the index page."""
-        edition = await self._editions_repo.get(edition_id, edition_id)
+        edition = await self.editions_repo.get(edition_id, edition_id)
         if not edition:
             logger.error("Edition %s not found", edition_id)
             return
 
         # Render and upload the edition page
         edition_html = await self.render_edition(edition)
-        await self._storage.upload_html(f"editions/{edition_id}.html", edition_html)
+        await self.storage.upload_html(f"editions/{edition_id}.html", edition_html)
 
         # Render and upload the updated index page
-        published = await self._editions_repo.list_published()
+        published = await self.editions_repo.list_published()
         index_html = await self.render_index(published)
-        await self._storage.upload_html("index.html", index_html)
+        await self.storage.upload_html("index.html", index_html)
 
         logger.info("Published edition %s to static site", edition_id)

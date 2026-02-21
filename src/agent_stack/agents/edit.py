@@ -40,13 +40,18 @@ class EditAgent:
             client=client,
             instructions=load_prompt("edit"),
             name="edit-agent",
-            tools=[self._get_edition_content, self._get_feedback, self._save_edit, self._resolve_feedback],
+            tools=[self.get_edition_content, self.get_feedback, self.save_edit, self.resolve_feedback],
             default_options=ChatOptions(max_tokens=4000, temperature=0.5),
             middleware=middleware,
         )
 
+    @property
+    def agent(self) -> Agent:
+        """Return the inner Agent framework instance."""
+        return self._agent  # ty: ignore[invalid-return-type]
+
     @tool
-    async def _get_edition_content(
+    async def get_edition_content(
         self,
         edition_id: Annotated[str, "The edition document ID"],
     ) -> str:
@@ -57,7 +62,7 @@ class EditAgent:
         return json.dumps(edition.content)
 
     @tool
-    async def _get_feedback(
+    async def get_feedback(
         self,
         edition_id: Annotated[str, "The edition document ID"],
     ) -> str:
@@ -66,7 +71,7 @@ class EditAgent:
         return json.dumps([{"id": f.id, "section": f.section, "comment": f.comment} for f in items])
 
     @tool
-    async def _save_edit(
+    async def save_edit(
         self,
         edition_id: Annotated[str, "The edition document ID"],
         content: Annotated[str, "Updated edition content as JSON"],
@@ -80,7 +85,7 @@ class EditAgent:
         return json.dumps({"status": "edited", "edition_id": edition_id})
 
     @tool
-    async def _resolve_feedback(
+    async def resolve_feedback(
         self,
         feedback_id: Annotated[str, "The feedback document ID"],
         edition_id: Annotated[str, "The edition partition key"],

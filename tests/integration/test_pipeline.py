@@ -49,8 +49,8 @@ async def test_handle_link_change_submitted(orchestrator: PipelineOrchestrator, 
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)
     links.get.return_value = link
 
-    orchestrator._fetch = AsyncMock()
-    orchestrator._fetch.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
+    orchestrator.fetch = AsyncMock()
+    orchestrator.fetch.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
 
     await orchestrator.handle_link_change(
         {
@@ -63,7 +63,7 @@ async def test_handle_link_change_submitted(orchestrator: PipelineOrchestrator, 
     links.get.assert_called_with("link-1", "ed-1")
     assert links.get.call_count == 3  # initial fetch + fail check + SSE publish
     agent_runs.create.assert_called_once()
-    orchestrator._fetch.run.assert_called_once_with(link)
+    orchestrator.fetch.run.assert_called_once_with(link)
 
 
 @pytest.mark.asyncio
@@ -106,8 +106,8 @@ async def test_handle_feedback_change_triggers_edit(orchestrator: PipelineOrches
     """Test that new feedback triggers the edit agent."""
     _, _, _, agent_runs = mock_repos
 
-    orchestrator._edit = AsyncMock()
-    orchestrator._edit.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
+    orchestrator.edit = AsyncMock()
+    orchestrator.edit.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
 
     await orchestrator.handle_feedback_change(
         {
@@ -118,7 +118,7 @@ async def test_handle_feedback_change_triggers_edit(orchestrator: PipelineOrches
     )
 
     agent_runs.create.assert_called_once()
-    orchestrator._edit.run.assert_called_once_with("ed-1")
+    orchestrator.edit.run.assert_called_once_with("ed-1")
 
 
 @pytest.mark.asyncio
@@ -146,8 +146,8 @@ async def test_agent_run_logged_on_failure(orchestrator: PipelineOrchestrator, m
     link = Link(id="link-3", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)
     links.get.return_value = link
 
-    orchestrator._fetch = AsyncMock()
-    orchestrator._fetch.run = AsyncMock(side_effect=RuntimeError("LLM unavailable"))
+    orchestrator.fetch = AsyncMock()
+    orchestrator.fetch.run = AsyncMock(side_effect=RuntimeError("LLM unavailable"))
 
     await orchestrator.handle_link_change(
         {

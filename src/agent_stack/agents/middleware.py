@@ -80,6 +80,24 @@ class RateLimitMiddleware(ChatMiddleware):
         self._request_window: list[float] = []
         self._lock = asyncio.Lock()
 
+    @property
+    def token_window(self) -> list[tuple[float, int]]:
+        """Return the token usage window."""
+        return self._token_window
+
+    @token_window.setter
+    def token_window(self, value: list[tuple[float, int]]) -> None:
+        self._token_window = value
+
+    @property
+    def request_window(self) -> list[float]:
+        """Return the request window."""
+        return self._request_window
+
+    @request_window.setter
+    def request_window(self, value: list[float]) -> None:
+        self._request_window = value
+
     async def process(
         self,
         context: ChatContext,
@@ -95,7 +113,7 @@ class RateLimitMiddleware(ChatMiddleware):
         while True:
             async with self._lock:
                 now = time.monotonic()
-                self._prune(now)
+                self.prune(now)
 
                 total_tokens = sum(tokens for _, tokens in self._token_window)
                 total_requests = len(self._request_window)
@@ -118,7 +136,7 @@ class RateLimitMiddleware(ChatMiddleware):
             self._token_window.append((now, tokens))
             self._request_window.append(now)
 
-    def _prune(self, now: float) -> None:
+    def prune(self, now: float) -> None:
         """Remove entries older than 60 seconds."""
         cutoff = now - 60.0
         self._token_window = [(t, n) for t, n in self._token_window if t > cutoff]

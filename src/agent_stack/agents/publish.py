@@ -15,9 +15,12 @@ from agent_stack.agents.prompts import load_prompt
 from agent_stack.models.edition import EditionStatus
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from agent_framework.azure import AzureOpenAIChatClient
 
     from agent_stack.database.repositories.editions import EditionRepository
+    from agent_stack.models.edition import Edition
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +32,8 @@ class PublishAgent:
         self,
         client: AzureOpenAIChatClient,
         editions_repo: EditionRepository,
-        render_fn=None,
-        upload_fn=None,
+        render_fn: Callable[[Edition], Awaitable[str]] | None = None,
+        upload_fn: Callable[[str, str], Awaitable[None]] | None = None,
         *,
         rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
@@ -43,13 +46,28 @@ class PublishAgent:
             client=client,
             instructions=load_prompt("publish"),
             name="publish-agent",
-            tools=[self._render_and_upload, self._mark_published],
+            tools=[self.render_and_upload, self.mark_published],
             default_options=ChatOptions(max_tokens=500, temperature=0.0),
             middleware=middleware,
         )
 
+    @property
+    def render_fn(self) -> Callable[[Edition], Awaitable[str]] | None:
+        """Return the render function."""
+        return self._render_fn
+
+    @property
+    def upload_fn(self) -> Callable[[str, str], Awaitable[None]] | None:
+        """Return the upload function."""
+        return self._upload_fn
+
+    @property
+    def agent(self) -> Agent:
+        """Return the inner Agent framework instance."""
+        return self._agent  # ty: ignore[invalid-return-type]
+
     @tool
-    async def _render_and_upload(
+    async def render_and_upload(
         self,
         edition_id: Annotated[str, "The edition document ID"],
     ) -> str:
@@ -66,7 +84,7 @@ class PublishAgent:
         return json.dumps({"status": "skipped", "reason": "render/upload functions not configured"})
 
     @tool
-    async def _mark_published(
+    async def mark_published(
         self,
         edition_id: Annotated[str, "The edition document ID"],
     ) -> str:

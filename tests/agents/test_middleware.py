@@ -87,22 +87,22 @@ class TestRateLimitMiddleware:
 
         await middleware.process(context, AsyncMock())
 
-        assert len(middleware._token_window) == 1
-        assert len(middleware._request_window) == 1
-        assert middleware._token_window[0][1] == 500
+        assert len(middleware.token_window) == 1
+        assert len(middleware.request_window) == 1
+        assert middleware.token_window[0][1] == 500
 
     async def test_prune_removes_old_entries(self, middleware: RateLimitMiddleware) -> None:
         """Verify prune removes old entries."""
         import time
 
         old_time = time.monotonic() - 120
-        middleware._token_window = [(old_time, 500)]
-        middleware._request_window = [old_time]
+        middleware.token_window = [(old_time, 500)]
+        middleware.request_window = [old_time]
 
-        middleware._prune(time.monotonic())
+        middleware.prune(time.monotonic())
 
-        assert len(middleware._token_window) == 0
-        assert len(middleware._request_window) == 0
+        assert len(middleware.token_window) == 0
+        assert len(middleware.request_window) == 0
 
     async def test_records_zero_tokens_when_no_usage(self, middleware: RateLimitMiddleware) -> None:
         """Verify records zero tokens when no usage."""
@@ -111,4 +111,4 @@ class TestRateLimitMiddleware:
 
         await middleware.process(context, AsyncMock())
 
-        assert middleware._token_window[0][1] == 0
+        assert middleware.token_window[0][1] == 0

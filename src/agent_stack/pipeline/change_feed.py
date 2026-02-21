@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any
 from azure.core.exceptions import ServiceResponseError
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from azure.cosmos.aio import ContainerProxy, DatabaseProxy
 
     from agent_stack.pipeline.orchestrator import PipelineOrchestrator
@@ -30,6 +32,21 @@ class ChangeFeedProcessor:
         self._orchestrator = orchestrator
         self._running = False
         self._task: asyncio.Task | None = None
+
+    @property
+    def running(self) -> bool:
+        """Return whether the processor is running."""
+        return self._running
+
+    @property
+    def task(self) -> asyncio.Task | None:
+        """Return the background polling task."""
+        return self._task
+
+    @property
+    def orchestrator(self) -> PipelineOrchestrator:
+        """Return the pipeline orchestrator."""
+        return self._orchestrator
 
     async def start(self) -> None:
         """Start polling the change feed in a background task."""
@@ -61,7 +78,7 @@ class ChangeFeedProcessor:
             had_error = False
 
             try:
-                links_token = await self._process_feed(
+                links_token = await self.process_feed(
                     links_container, links_token, self._orchestrator.handle_link_change
                 )
             except Exception as exc:
@@ -72,7 +89,7 @@ class ChangeFeedProcessor:
                     logger.warning("Error processing links change feed: %s", exc)
 
             try:
-                feedback_token = await self._process_feed(
+                feedback_token = await self.process_feed(
                     feedback_container, feedback_token, self._orchestrator.handle_feedback_change
                 )
             except Exception as exc:
@@ -90,11 +107,11 @@ class ChangeFeedProcessor:
                 consecutive_errors = 0
                 await asyncio.sleep(1.0)
 
-    async def _process_feed(
+    async def process_feed(
         self,
         container: ContainerProxy,
         continuation_token: str | None,
-        handler,
+        handler: Callable[[dict[str, Any]], Awaitable[None]],
     ) -> str | None:
         """Read a batch of changes from a container's change feed and process them sequentially."""
         query_kwargs: dict[str, Any] = {"max_item_count": 100}

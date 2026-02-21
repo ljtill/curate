@@ -14,7 +14,7 @@ router = APIRouter(prefix="/editions", tags=["editions"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def list_editions(request: Request):
+async def list_editions(request: Request) -> HTMLResponse:
     """Render the editions list page."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
@@ -27,7 +27,7 @@ async def list_editions(request: Request):
 
 
 @router.post("/")
-async def create_edition(request: Request, title: str = Form("")):
+async def create_edition(request: Request, title: str = Form("")) -> RedirectResponse:
     """Create a new edition."""
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
@@ -37,7 +37,7 @@ async def create_edition(request: Request, title: str = Form("")):
 
 
 @router.get("/{edition_id}", response_class=HTMLResponse)
-async def edition_detail(request: Request, edition_id: str):
+async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
     """Render the edition detail page."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
@@ -67,7 +67,7 @@ async def edition_detail(request: Request, edition_id: str):
 
 
 @router.post("/{edition_id}/publish")
-async def publish_edition(request: Request, edition_id: str):
+async def publish_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Trigger the publish pipeline for an edition."""
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
@@ -79,7 +79,7 @@ async def publish_edition(request: Request, edition_id: str):
 
 
 @router.post("/{edition_id}/delete")
-async def delete_edition(request: Request, edition_id: str):
+async def delete_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Soft-delete an edition and redirect to the editions list."""
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
@@ -90,7 +90,7 @@ async def delete_edition(request: Request, edition_id: str):
 
 
 @router.get("/{edition_id}/title/edit", response_class=HTMLResponse)
-async def edit_title_form(request: Request, edition_id: str):
+async def edit_title_form(request: Request, edition_id: str) -> HTMLResponse:
     """Return the inline title edit form partial."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
@@ -103,7 +103,7 @@ async def edit_title_form(request: Request, edition_id: str):
 
 
 @router.get("/{edition_id}/title/cancel", response_class=HTMLResponse)
-async def cancel_title_edit(request: Request, edition_id: str):
+async def cancel_title_edit(request: Request, edition_id: str) -> HTMLResponse:
     """Return the display-mode title partial (cancel editing)."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
@@ -116,7 +116,7 @@ async def cancel_title_edit(request: Request, edition_id: str):
 
 
 @router.post("/{edition_id}/title", response_class=HTMLResponse)
-async def update_title(request: Request, edition_id: str, title: str = Form("")):
+async def update_title(request: Request, edition_id: str, title: str = Form("")) -> HTMLResponse:
     """Update the edition title and return the display partial."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos

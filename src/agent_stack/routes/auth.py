@@ -11,7 +11,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.get("/login")
-async def login(request: Request):
+async def login(request: Request) -> RedirectResponse:
     """Redirect to Microsoft Entra ID login page."""
     settings = request.app.state.settings
     auth = MSALAuth(settings.entra)
@@ -21,7 +21,7 @@ async def login(request: Request):
 
 
 @router.get("/callback")
-async def callback(request: Request):
+async def callback(request: Request) -> RedirectResponse:
     """Handle the OAuth callback from Entra ID."""
     settings = request.app.state.settings
     auth = MSALAuth(settings.entra)
@@ -34,7 +34,7 @@ async def callback(request: Request):
 
 
 @router.get("/logout")
-async def logout(request: Request):
+async def logout(request: Request) -> RedirectResponse:
     """Clear the session and redirect to the login page."""
     request.session.clear()
     return RedirectResponse("/auth/login")

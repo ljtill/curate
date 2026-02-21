@@ -8,9 +8,9 @@ from agent_stack.events import EventManager
 @pytest.fixture(autouse=True)
 def reset_event_manager() -> None:
     """Reset the singleton between tests."""
-    EventManager._instance = None
+    EventManager.instance = None
     yield
-    EventManager._instance = None
+    EventManager.instance = None
 
 
 def test_get_instance_returns_singleton() -> None:

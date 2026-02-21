@@ -12,9 +12,9 @@ from agent_stack.events import EventManager
 @pytest.fixture(autouse=True)
 def reset_event_manager() -> None:
     """Reset the EventManager singleton between tests."""
-    EventManager._instance = None
+    EventManager.instance = None
     yield
-    EventManager._instance = None
+    EventManager.instance = None
 
 
 @pytest.mark.unit
@@ -26,7 +26,7 @@ class TestEventManagerPublish:
         manager = EventManager.get_instance()
         q1: asyncio.Queue = asyncio.Queue()
         q2: asyncio.Queue = asyncio.Queue()
-        manager._queues.extend([q1, q2])
+        manager.queues.extend([q1, q2])
 
         await manager.publish("status", {"stage": "fetch"})
 
@@ -40,7 +40,7 @@ class TestEventManagerPublish:
         """Verify publish with string data."""
         manager = EventManager.get_instance()
         q: asyncio.Queue = asyncio.Queue()
-        manager._queues.append(q)
+        manager.queues.append(q)
 
         await manager.publish("ping", "hello")
 
@@ -63,12 +63,12 @@ class TestEventManagerEventGenerator:
         request = MagicMock()
         request.is_disconnected = AsyncMock(side_effect=[False, True])
 
-        gen = manager._event_generator(request)
+        gen = manager.event_generator(request)
         msg = {"event": "test", "data": "payload"}
 
         async def _produce() -> None:
             await asyncio.sleep(0.01)
-            for q in manager._queues:
+            for q in manager.queues:
                 await q.put(msg)
 
         task = asyncio.create_task(_produce())
@@ -84,7 +84,7 @@ class TestEventManagerEventGenerator:
         request = MagicMock()
         request.is_disconnected = AsyncMock(side_effect=[False, True])
 
-        gen = manager._event_generator(request)
+        gen = manager.event_generator(request)
 
         with patch("agent_stack.events.asyncio.wait_for", side_effect=TimeoutError):
             result = await gen.__anext__()
@@ -97,11 +97,11 @@ class TestEventManagerEventGenerator:
         request = MagicMock()
         request.is_disconnected = AsyncMock(return_value=True)
 
-        gen = manager._event_generator(request)
+        gen = manager.event_generator(request)
         with pytest.raises(StopAsyncIteration):
             await gen.__anext__()
 
-        assert len(manager._queues) == 0
+        assert len(manager.queues) == 0
 
 
 @pytest.mark.unit

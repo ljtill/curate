@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import uvicorn
 from fastapi import FastAPI
@@ -32,6 +33,9 @@ from agent_stack.routes.status import router as status_router
 from agent_stack.storage.blob import BlobStorageClient
 from agent_stack.storage.renderer import StaticSiteRenderer
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
 logger = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
@@ -39,7 +43,7 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle — initialize DB, start change feed."""
     settings = load_settings()
 

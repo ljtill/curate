@@ -11,7 +11,7 @@ router = APIRouter(tags=["dashboard"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
+async def dashboard(request: Request) -> HTMLResponse:
     """Render the dashboard overview page."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos

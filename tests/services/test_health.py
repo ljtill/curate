@@ -93,7 +93,7 @@ async def test_check_storage_healthy() -> None:
     """Verify check storage healthy."""
     container = AsyncMock()
     storage = MagicMock()
-    storage._get_container.return_value = container
+    storage.get_container.return_value = container
 
     result = await check_storage(storage, _storage_config)
 
@@ -110,7 +110,7 @@ async def test_check_storage_unhealthy() -> None:
     container = AsyncMock()
     container.get_container_properties.side_effect = RuntimeError("Storage unavailable")
     storage = MagicMock()
-    storage._get_container.return_value = container
+    storage.get_container.return_value = container
 
     result = await check_storage(storage, _storage_config)
 
@@ -123,15 +123,15 @@ async def test_check_storage_unhealthy() -> None:
 
 def _make_processor(running: bool, task_done: bool = False, task_exc: Exception | None = None) -> None:
     processor = MagicMock(spec=ChangeFeedProcessor)
-    processor._running = running
+    processor.running = running
     if running or task_done:
         task = MagicMock()
         task.done.return_value = task_done
         task.cancelled.return_value = False
         task.exception.return_value = task_exc
-        processor._task = task
+        processor.task = task
     else:
-        processor._task = None
+        processor.task = None
     return processor
 
 

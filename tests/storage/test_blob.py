@@ -55,12 +55,12 @@ class TestBlobStorageClient:
     async def test_close_closes_client(self, client: BlobStorageClient) -> None:
         """Verify close closes client."""
         mock_service = AsyncMock()
-        client._service_client = mock_service
+        client.service_client = mock_service
 
         await client.close()
 
         mock_service.close.assert_awaited_once()
-        assert client._service_client is None
+        assert client.service_client is None
 
     async def test_close_noop_when_not_initialized(self, client: BlobStorageClient) -> None:
         """Verify close noop when not initialized."""
@@ -69,7 +69,7 @@ class TestBlobStorageClient:
     def test_get_container_raises_when_not_initialized(self, client: BlobStorageClient) -> None:
         """Verify get container raises when not initialized."""
         with pytest.raises(RuntimeError, match="not initialized"):
-            client._get_container()
+            client.get_container()
 
     async def test_upload_html(self, client: BlobStorageClient) -> None:
         """Verify upload html."""
@@ -78,7 +78,7 @@ class TestBlobStorageClient:
         mock_blob = AsyncMock()
         mock_container.get_blob_client.return_value = mock_blob
         mock_service.get_container_client.return_value = mock_container
-        client._service_client = mock_service
+        client.service_client = mock_service
 
         await client.upload_html("index.html", "<html>Test</html>")
 
@@ -94,7 +94,7 @@ class TestBlobStorageClient:
         mock_blob = AsyncMock()
         mock_container.get_blob_client.return_value = mock_blob
         mock_service.get_container_client.return_value = mock_container
-        client._service_client = mock_service
+        client.service_client = mock_service
 
         await client.upload_css("style.css", "body { color: red; }")
 

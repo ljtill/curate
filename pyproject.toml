@@ -50,13 +50,6 @@ ignore = [
     "COM812",  # conflicts with ruff formatter
     "D203",    # conflicts with D211
     "D213",    # conflicts with D212
-    # --- Phase 3: Type annotations ---
-    "ANN001",  # missing-type-function-argument
-    "ANN002",  # missing-type-args
-    "ANN003",  # missing-type-kwargs
-    "ANN201",  # missing-return-type-undocumented-public-function
-    "ANN202",  # missing-return-type-private-function
-    "ANN204",  # missing-return-type-special-method
     # --- Phase 4: Private member access ---
     "SLF001",  # private-member-access
     # --- Phase 5: Code quality ---

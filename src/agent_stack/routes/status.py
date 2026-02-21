@@ -12,7 +12,7 @@ router = APIRouter(tags=["status"])
 
 
 @router.get("/status", response_class=HTMLResponse)
-async def status(request: Request):
+async def status(request: Request) -> HTMLResponse:
     """Render the status page with live health probe results."""
     cosmos = request.app.state.cosmos
     settings = request.app.state.settings

@@ -16,7 +16,7 @@ async def test_agents_page_renders_template() -> None:
     request.app.state.cosmos = MagicMock()
     request.app.state.cosmos.database = MagicMock()
     request.app.state.processor = MagicMock()
-    request.app.state.processor._orchestrator = MagicMock()
+    request.app.state.processor.orchestrator = MagicMock()
 
     fake_metadata = [
         {
@@ -56,7 +56,7 @@ async def test_agents_page_with_runs() -> None:
     request.app.state.cosmos = MagicMock()
     request.app.state.cosmos.database = MagicMock()
     request.app.state.processor = MagicMock()
-    request.app.state.processor._orchestrator = MagicMock()
+    request.app.state.processor.orchestrator = MagicMock()
 
     fake_metadata = [
         {

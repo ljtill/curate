@@ -67,7 +67,7 @@ async def test_process_feed_delegates_to_handler(processor: ChangeFeedProcessor)
     container.query_items_change_feed = _mock_change_feed([items])
     handler = AsyncMock()
 
-    await processor._process_feed(container, None, handler)
+    await processor.process_feed(container, None, handler)
 
     assert handler.call_count == 2
     handler.assert_any_call({"id": "link-1"})
@@ -81,7 +81,7 @@ async def test_process_feed_passes_continuation_token(processor: ChangeFeedProce
     container = MagicMock()
     container.query_items_change_feed = factory
 
-    await processor._process_feed(container, "token-123", AsyncMock())
+    await processor.process_feed(container, "token-123", AsyncMock())
 
     assert factory.last_kwargs["continuation"] == "token-123"
 
@@ -93,7 +93,7 @@ async def test_process_feed_no_token_on_first_call(processor: ChangeFeedProcesso
     container = MagicMock()
     container.query_items_change_feed = factory
 
-    await processor._process_feed(container, None, AsyncMock())
+    await processor.process_feed(container, None, AsyncMock())
 
     assert "continuation" not in factory.last_kwargs
 
@@ -104,7 +104,7 @@ async def test_process_feed_returns_continuation_token(processor: ChangeFeedProc
     container = MagicMock()
     container.query_items_change_feed = _mock_change_feed([], token="new-token")
 
-    result = await processor._process_feed(container, None, AsyncMock())
+    result = await processor.process_feed(container, None, AsyncMock())
 
     assert result == "new-token"
 
@@ -119,7 +119,7 @@ async def test_process_feed_handles_handler_error(processor: ChangeFeedProcessor
     handler = AsyncMock(side_effect=[RuntimeError("fail"), None])
 
     # Should not raise — errors are caught per item
-    await processor._process_feed(container, None, handler)
+    await processor.process_feed(container, None, handler)
     assert handler.call_count == 2
 
 
@@ -127,8 +127,8 @@ async def test_process_feed_handles_handler_error(processor: ChangeFeedProcessor
 async def test_start_creates_background_task(processor: ChangeFeedProcessor) -> None:
     """Verify start creates background task."""
     await processor.start()
-    assert processor._running is True
-    assert processor._task is not None
+    assert processor.running is True
+    assert processor.task is not None
     await processor.stop()
 
 
@@ -137,4 +137,4 @@ async def test_stop_cancels_task(processor: ChangeFeedProcessor) -> None:
     """Verify stop cancels task."""
     await processor.start()
     await processor.stop()
-    assert processor._running is False
+    assert processor.running is False

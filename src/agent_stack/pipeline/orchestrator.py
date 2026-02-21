@@ -20,17 +20,21 @@ from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 from agent_stack.models.link import LinkStatus
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from agent_framework.azure import AzureOpenAIChatClient
 
     from agent_stack.database.repositories.agent_runs import AgentRunRepository
     from agent_stack.database.repositories.editions import EditionRepository
     from agent_stack.database.repositories.feedback import FeedbackRepository
     from agent_stack.database.repositories.links import LinkRepository
+    from agent_stack.models.edition import Edition
+    from agent_stack.models.link import Link
 
 logger = logging.getLogger(__name__)
 
 
-def _render_link_row(link, runs: list) -> str:
+def _render_link_row(link: Link, runs: list) -> str:
     """Render an HTML table row for a link (used in SSE updates)."""
     url = escape(link.url)
     display_url = (escape(link.url[:47]) + "...") if len(link.url) > 50 else url
@@ -74,8 +78,8 @@ class PipelineOrchestrator:
         editions_repo: EditionRepository,
         feedback_repo: FeedbackRepository,
         agent_runs_repo: AgentRunRepository,
-        render_fn=None,
-        upload_fn=None,
+        render_fn: Callable[[Edition], Awaitable[str]] | None = None,
+        upload_fn: Callable[[str, str], Awaitable[None]] | None = None,
     ) -> None:
         """Initialize the orchestrator with LLM client and all repositories."""
         self._client = client
@@ -91,11 +95,11 @@ class PipelineOrchestrator:
             rpm_limit=int(os.environ.get("OPENAI_RPM_LIMIT", "8000")),
         )
 
-        self._fetch = FetchAgent(client, links_repo, rate_limiter=rate_limiter)
-        self._review = ReviewAgent(client, links_repo, rate_limiter=rate_limiter)
-        self._draft = DraftAgent(client, links_repo, editions_repo, rate_limiter=rate_limiter)
-        self._edit = EditAgent(client, editions_repo, feedback_repo, rate_limiter=rate_limiter)
-        self._publish = PublishAgent(
+        self.fetch = FetchAgent(client, links_repo, rate_limiter=rate_limiter)
+        self.review = ReviewAgent(client, links_repo, rate_limiter=rate_limiter)
+        self.draft = DraftAgent(client, links_repo, editions_repo, rate_limiter=rate_limiter)
+        self.edit = EditAgent(client, editions_repo, feedback_repo, rate_limiter=rate_limiter)
+        self.publish = PublishAgent(
             client, editions_repo, render_fn=render_fn, upload_fn=upload_fn, rate_limiter=rate_limiter
         )
 
@@ -110,7 +114,7 @@ class PipelineOrchestrator:
             logger.warning("Link %s not found, skipping", link_id)
             return
 
-        stage = self._determine_stage_for_link(status)
+        stage = self.determine_stage_for_link(status)
         if not stage:
             logger.debug("No action needed for link %s with status %s", link_id, status)
             return
@@ -180,7 +184,7 @@ class PipelineOrchestrator:
         t0 = time.monotonic()
         logger.info("Pipeline dispatching stage=%s trigger=%s", AgentStage.EDIT, feedback_id)
         try:
-            result = await self._edit.run(edition_id)
+            result = await self.edit.run(edition_id)
             run.status = AgentRunStatus.COMPLETED
             run.usage = self._normalize_usage(result.get("usage") if result else None)
             if result:
@@ -203,7 +207,7 @@ class PipelineOrchestrator:
                 elapsed_ms,
             )
 
-    def _determine_stage_for_link(self, status: str) -> AgentStage | None:
+    def determine_stage_for_link(self, status: str) -> AgentStage | None:
         """Map link status to the next agent stage."""
         return {
             LinkStatus.SUBMITTED: AgentStage.FETCH,
@@ -211,15 +215,15 @@ class PipelineOrchestrator:
             LinkStatus.REVIEWED: AgentStage.DRAFT,
         }.get(status)
 
-    async def _execute_link_stage(self, stage: AgentStage, link) -> dict | None:
+    async def _execute_link_stage(self, stage: AgentStage, link: Link) -> dict | None:
         """Dispatch to the correct agent based on stage."""
         match stage:
             case AgentStage.FETCH:
-                return await self._fetch.run(link)
+                return await self.fetch.run(link)
             case AgentStage.REVIEW:
-                return await self._review.run(link)
+                return await self.review.run(link)
             case AgentStage.DRAFT:
-                return await self._draft.run(link)
+                return await self.draft.run(link)
         return None
 
     @staticmethod
