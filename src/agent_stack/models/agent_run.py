@@ -30,5 +30,6 @@ class AgentRun(DocumentBase):
     status: AgentRunStatus = AgentRunStatus.RUNNING
     input: dict | None = None
     output: dict | None = None
+    usage: dict | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None

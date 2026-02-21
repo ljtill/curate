@@ -7,9 +7,10 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
-from agent_framework import Agent, tool
+from agent_framework import Agent, ChatOptions, tool
 from agent_framework.azure import AzureOpenAIChatClient
 
+from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.models.edition import EditionStatus
@@ -26,15 +27,20 @@ class PublishAgent:
         editions_repo: EditionRepository,
         render_fn=None,
         upload_fn=None,
+        *,
+        rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
         self._editions_repo = editions_repo
         self._render_fn = render_fn
         self._upload_fn = upload_fn
+        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("publish"),
             name="publish-agent",
             tools=[self._render_and_upload, self._mark_published],
+            default_options=ChatOptions(max_tokens=500, temperature=0.0),
+            middleware=middleware,
         )
 
     @tool
@@ -68,8 +74,11 @@ class PublishAgent:
         await self._editions_repo.update(edition, edition_id)
         return json.dumps({"status": "published", "edition_id": edition_id})
 
-    async def run(self, edition_id: str) -> None:
+    async def run(self, edition_id: str) -> dict | None:
         """Execute the publish agent for an edition."""
         logger.info("Publish agent processing edition %s", edition_id)
         message = f"Render and publish the edition.\nEdition ID: {edition_id}"
-        await self._agent.run(message)
+        response = await self._agent.run(message)
+        if response and response.usage_details:
+            return dict(response.usage_details)
+        return None

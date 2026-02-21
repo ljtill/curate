@@ -6,9 +6,10 @@ import json
 import logging
 from typing import Annotated
 
-from agent_framework import Agent, tool
+from agent_framework import Agent, ChatOptions, tool
 from agent_framework.azure import AzureOpenAIChatClient
 
+from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
@@ -25,14 +26,19 @@ class DraftAgent:
         client: AzureOpenAIChatClient,
         links_repo: LinkRepository,
         editions_repo: EditionRepository,
+        *,
+        rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
         self._links_repo = links_repo
         self._editions_repo = editions_repo
+        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("draft"),
             name="draft-agent",
             tools=[self._get_reviewed_link, self._get_edition_content, self._save_draft],
+            default_options=ChatOptions(max_tokens=4000, temperature=0.7),
+            middleware=middleware,
         )
 
     @tool
@@ -89,8 +95,11 @@ class DraftAgent:
 
         return json.dumps({"status": "drafted", "edition_id": edition_id})
 
-    async def run(self, link: Link) -> None:
+    async def run(self, link: Link) -> dict | None:
         """Execute the draft agent for a reviewed link."""
         logger.info("Draft agent processing link %s for edition %s", link.id, link.edition_id)
         message = f"Draft newsletter content for this reviewed link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
-        await self._agent.run(message)
+        response = await self._agent.run(message)
+        if response and response.usage_details:
+            return dict(response.usage_details)
+        return None

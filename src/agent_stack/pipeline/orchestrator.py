@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import UTC, datetime
 from typing import Any
 
@@ -11,6 +12,7 @@ from agent_framework.azure import AzureOpenAIChatClient
 from agent_stack.agents.draft import DraftAgent
 from agent_stack.agents.edit import EditAgent
 from agent_stack.agents.fetch import FetchAgent
+from agent_stack.agents.middleware import RateLimitMiddleware
 from agent_stack.agents.publish import PublishAgent
 from agent_stack.agents.review import ReviewAgent
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
@@ -45,11 +47,18 @@ class PipelineOrchestrator:
 
         self._events = EventManager.get_instance()
 
-        self._fetch = FetchAgent(client, links_repo)
-        self._review = ReviewAgent(client, links_repo)
-        self._draft = DraftAgent(client, links_repo, editions_repo)
-        self._edit = EditAgent(client, editions_repo, feedback_repo)
-        self._publish = PublishAgent(client, editions_repo, render_fn=render_fn, upload_fn=upload_fn)
+        rate_limiter = RateLimitMiddleware(
+            tpm_limit=int(os.environ.get("OPENAI_TPM_LIMIT", "800000")),
+            rpm_limit=int(os.environ.get("OPENAI_RPM_LIMIT", "8000")),
+        )
+
+        self._fetch = FetchAgent(client, links_repo, rate_limiter=rate_limiter)
+        self._review = ReviewAgent(client, links_repo, rate_limiter=rate_limiter)
+        self._draft = DraftAgent(client, links_repo, editions_repo, rate_limiter=rate_limiter)
+        self._edit = EditAgent(client, editions_repo, feedback_repo, rate_limiter=rate_limiter)
+        self._publish = PublishAgent(
+            client, editions_repo, render_fn=render_fn, upload_fn=upload_fn, rate_limiter=rate_limiter
+        )
 
     async def handle_link_change(self, document: dict[str, Any]) -> None:
         """Process a link document change based on its current status."""
@@ -69,8 +78,9 @@ class PipelineOrchestrator:
 
         run = await self._create_run(stage, link_id, {"status": status})
         try:
-            await self._execute_link_stage(stage, link)
+            usage = await self._execute_link_stage(stage, link)
             run.status = AgentRunStatus.COMPLETED
+            run.usage = self._normalize_usage(usage)
         except Exception:
             logger.exception("Agent stage %s failed for link %s", stage, link_id)
             run.status = AgentRunStatus.FAILED
@@ -103,8 +113,9 @@ class PipelineOrchestrator:
 
         run = await self._create_run(AgentStage.EDIT, feedback_id, {"edition_id": edition_id})
         try:
-            await self._edit.run(edition_id)
+            usage = await self._edit.run(edition_id)
             run.status = AgentRunStatus.COMPLETED
+            run.usage = self._normalize_usage(usage)
         except Exception:
             logger.exception("Edit agent failed for feedback %s", feedback_id)
             run.status = AgentRunStatus.FAILED
@@ -121,15 +132,29 @@ class PipelineOrchestrator:
             LinkStatus.REVIEWED: AgentStage.DRAFT,
         }.get(status)
 
-    async def _execute_link_stage(self, stage: AgentStage, link) -> None:
+    async def _execute_link_stage(self, stage: AgentStage, link) -> dict | None:
         """Dispatch to the correct agent based on stage."""
         match stage:
             case AgentStage.FETCH:
-                await self._fetch.run(link)
+                return await self._fetch.run(link)
             case AgentStage.REVIEW:
-                await self._review.run(link)
+                return await self._review.run(link)
             case AgentStage.DRAFT:
-                await self._draft.run(link)
+                return await self._draft.run(link)
+        return None
+
+    @staticmethod
+    def _normalize_usage(usage: dict | None) -> dict | None:
+        """Normalize framework usage_details to a consistent schema."""
+        if not usage:
+            return None
+        input_tokens = usage.get("input_token_count", 0) or 0
+        output_tokens = usage.get("output_token_count", 0) or 0
+        return {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": usage.get("total_token_count", 0) or input_tokens + output_tokens,
+        }
 
     async def _create_run(self, stage: AgentStage, trigger_id: str, input_data: dict) -> AgentRun:
         """Create and persist an agent run document."""

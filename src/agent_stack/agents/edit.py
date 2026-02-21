@@ -6,9 +6,10 @@ import json
 import logging
 from typing import Annotated
 
-from agent_framework import Agent, tool
+from agent_framework import Agent, ChatOptions, tool
 from agent_framework.azure import AzureOpenAIChatClient
 
+from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.feedback import FeedbackRepository
@@ -24,14 +25,19 @@ class EditAgent:
         client: AzureOpenAIChatClient,
         editions_repo: EditionRepository,
         feedback_repo: FeedbackRepository,
+        *,
+        rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
         self._editions_repo = editions_repo
         self._feedback_repo = feedback_repo
+        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("edit"),
             name="edit-agent",
             tools=[self._get_edition_content, self._get_feedback, self._save_edit, self._resolve_feedback],
+            default_options=ChatOptions(max_tokens=4000, temperature=0.5),
+            middleware=middleware,
         )
 
     @tool
@@ -82,8 +88,11 @@ class EditAgent:
         await self._feedback_repo.update(feedback, edition_id)
         return json.dumps({"status": "resolved", "feedback_id": feedback_id})
 
-    async def run(self, edition_id: str) -> None:
+    async def run(self, edition_id: str) -> dict | None:
         """Execute the edit agent for an edition."""
         logger.info("Edit agent processing edition %s", edition_id)
         message = f"Edit and refine the current edition. Address any unresolved feedback.\nEdition ID: {edition_id}"
-        await self._agent.run(message)
+        response = await self._agent.run(message)
+        if response and response.usage_details:
+            return dict(response.usage_details)
+        return None

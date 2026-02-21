@@ -7,9 +7,10 @@ import logging
 from typing import Annotated
 
 import httpx
-from agent_framework import Agent, tool
+from agent_framework import Agent, ChatOptions, tool
 from agent_framework.azure import AzureOpenAIChatClient
 
+from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.models.link import Link, LinkStatus
@@ -20,13 +21,22 @@ logger = logging.getLogger(__name__)
 class FetchAgent:
     """Fetches URL content and updates the link document."""
 
-    def __init__(self, client: AzureOpenAIChatClient, links_repo: LinkRepository) -> None:
+    def __init__(
+        self,
+        client: AzureOpenAIChatClient,
+        links_repo: LinkRepository,
+        *,
+        rate_limiter: RateLimitMiddleware | None = None,
+    ) -> None:
         self._links_repo = links_repo
+        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("fetch"),
             name="fetch-agent",
             tools=[self._fetch_url, self._save_fetched_content],
+            default_options=ChatOptions(max_tokens=2000, temperature=0.0),
+            middleware=middleware,
         )
 
     @staticmethod
@@ -56,11 +66,14 @@ class FetchAgent:
         await self._links_repo.update(link, edition_id)
         return json.dumps({"status": "saved", "link_id": link_id})
 
-    async def run(self, link: Link) -> None:
+    async def run(self, link: Link) -> dict | None:
         """Execute the fetch agent for a given link."""
         logger.info("Fetch agent processing link %s (%s)", link.id, link.url)
         message = (
             f"Fetch and extract the content from this URL: {link.url}\n"
             f"Link ID: {link.id}\nEdition ID: {link.edition_id}"
         )
-        await self._agent.run(message)
+        response = await self._agent.run(message)
+        if response and response.usage_details:
+            return dict(response.usage_details)
+        return None
