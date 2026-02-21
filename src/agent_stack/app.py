@@ -27,6 +27,7 @@ from agent_stack.routes.editions import router as editions_router
 from agent_stack.routes.events import router as events_router
 from agent_stack.routes.feedback import router as feedback_router
 from agent_stack.routes.links import router as links_router
+from agent_stack.routes.status import router as status_router
 from agent_stack.storage.blob import BlobStorageClient
 from agent_stack.storage.renderer import StaticSiteRenderer
 
@@ -90,6 +91,7 @@ async def lifespan(app: FastAPI):
     )
     processor = ChangeFeedProcessor(cosmos.database, orchestrator)
     await processor.start()
+    app.state.processor = processor
     logger.info("Application started")
 
     yield
@@ -118,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router)
     app.include_router(events_router)
     app.include_router(agent_runs_router)
+    app.include_router(status_router)
 
     return app
 

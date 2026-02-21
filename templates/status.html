@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Status{% endblock %}
+{% block content %}
+<h1>Status</h1>
+<p style="color: var(--text-muted); margin-bottom: 1.5rem;">Health of external dependencies, checked on page load.</p>
+{% for check in checks %}
+<div class="card" style="display: flex; align-items: flex-start; gap: 1rem;">
+    <div style="
+        width: 2.5rem; height: 2.5rem; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; flex-shrink: 0;
+        {% if check.healthy %}
+        background: #1a3329; color: var(--success);
+        {% else %}
+        background: #3b1a1a; color: var(--danger);
+        {% endif %}
+    ">
+        {% if check.healthy %}✓{% else %}✗{% endif %}
+    </div>
+    <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-weight: 600; font-size: 1rem;">{{ check.name }}</span>
+            {% if check.healthy %}
+            <span class="badge badge-completed">healthy</span>
+            {% else %}
+            <span class="badge badge-failed">unhealthy</span>
+            {% endif %}
+            {% if check.latency_ms is not none %}
+            <span style="color: var(--text-muted); font-size: 0.8rem;">{{ check.latency_ms }} ms</span>
+            {% endif %}
+        </div>
+        {% if check.error %}
+        <div class="activity-error" style="margin-top: 0.5rem;">{{ check.error }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
