@@ -140,6 +140,14 @@ def main() -> None:
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
+    # The Cosmos SDK logs a noisy INFO message on the root logger every change
+    # feed poll ("'feed_range' empty. Using full range by default.").  Suppress it.
+    class _FeedRangeFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            return "'feed_range' empty" not in record.getMessage()
+
+    logging.getLogger().addFilter(_FeedRangeFilter())
+
     app = create_app()
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
 
