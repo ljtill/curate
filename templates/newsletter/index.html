@@ -1,96 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Agent Stack — Newsletter Archive</title>
-    <style>
-        :root {
-            --bg: #fafafa;
-            --surface: #ffffff;
-            --text: #1a1a2e;
-            --text-muted: #64748b;
-            --accent: #6366f1;
-            --border: #e2e8f0;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.8;
-        }
-        .container { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem; }
-        header {
-            text-align: center;
-            padding: 3rem 0 2rem;
-            border-bottom: 2px solid var(--accent);
-            margin-bottom: 2rem;
-        }
-        header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--accent);
-            letter-spacing: -0.02em;
-        }
-        header .subtitle {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-top: 0.5rem;
-            font-style: italic;
-        }
-        .edition-list { list-style: none; }
-        .edition-item {
-            padding: 1.5rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .edition-item:last-child { border-bottom: none; }
-        .edition-item a {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--text);
-            text-decoration: none;
-        }
-        .edition-item a:hover { color: var(--accent); }
-        .edition-item .date {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-        }
-        footer {
-            text-align: center;
-            padding: 2rem 0;
-            border-top: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Agent Stack — Archive</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0F0F12;
+      --surface: #18181E;
+      --surface-raised: #1E1E26;
+      --border: #2A2A35;
+      --border-accent: #3D5AFE;
+      --text: #E8E8EC;
+      --text-muted: #9898A6;
+      --text-dim: #6B6B7B;
+      --accent: #3D5AFE;
+      --signal-green: #00E676;
+      --toolkit-amber: #FFB300;
+      --deep-dive-cyan: #00E5FF;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    .header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 32px;
+      text-decoration: none;
+    }
+    .logo::before {
+      content: ''; display: inline-block;
+      width: 8px; height: 8px;
+      background: var(--accent); border-radius: 2px;
+      box-shadow: 0 0 12px var(--accent);
+    }
+
+    .header-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 42px; font-weight: 400; line-height: 1.15;
+      color: var(--text); margin-bottom: 12px;
+    }
+
+    .header-desc {
+      font-size: 16px; color: var(--text-muted); line-height: 1.7;
+      max-width: 540px;
+    }
+
+    .stats-bar {
+      display: flex; gap: 32px;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat { display: flex; flex-direction: column; }
+
+    .stat-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 22px; font-weight: 500;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .issues-section { padding: 36px 0; }
+
+    .year-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .year-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    .issue-card {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin-bottom: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, transform 0.15s;
+      position: relative;
+    }
+    .issue-card:hover {
+      border-color: var(--border-accent);
+      transform: translateX(4px);
+    }
+
+    .issue-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .issue-number {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+
+    .issue-date {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.03em;
+    }
+
+    .issue-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px; font-weight: 400;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .issue-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .issue-tags {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .issue-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 3px;
+    }
+
+    .tag-deep-dive { background: rgba(0, 229, 255, 0.1); color: var(--deep-dive-cyan); }
+    .tag-signal { background: rgba(0, 230, 118, 0.1); color: var(--signal-green); }
+    .tag-toolkit { background: rgba(255, 179, 0, 0.1); color: var(--toolkit-amber); }
+
+    .issue-arrow {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 16px;
+      color: var(--text-dim);
+      transition: color 0.2s, transform 0.2s;
+    }
+    .issue-card:hover .issue-arrow {
+      color: var(--accent);
+      transform: translateY(-50%) translateX(4px);
+    }
+
+    .latest-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      background: var(--accent);
+      color: var(--bg);
+      padding: 2px 8px;
+      border-radius: 3px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    .coming-soon {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 32px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .footer-line {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; color: var(--text-dim); margin-bottom: 4px;
+    }
+    .footer-cta { margin-top: 16px; font-size: 13px; color: var(--text-muted); }
+    .footer-cta a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .header-title { font-size: 32px; }
+      .stats-bar { gap: 20px; }
+      .stat-value { font-size: 18px; }
+      .issue-title { font-size: 18px; }
+      .issue-card { padding: 20px; }
+      .issue-arrow { display: none; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>The Agent Stack</h1>
-            <div class="subtitle">A newsletter about Agentic Engineering</div>
-        </header>
+<div class="container">
 
-        {% if editions %}
-        <ul class="edition-list">
-            {% for edition in editions %}
-            <li class="edition-item">
-                <a href="/editions/{{ edition.id }}.html">{{ edition.content.get('title', 'Untitled Edition') or 'Untitled Edition' }}</a>
-                {% if edition.published_at %}
-                <div class="date">{{ edition.published_at.strftime('%B %d, %Y') }}</div>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p style="color: var(--text-muted); text-align: center; padding: 3rem 0;">No editions published yet.</p>
+  <header class="header">
+    <div class="logo">The Agent Stack</div>
+    <h1 class="header-title">Archive</h1>
+    <p class="header-desc">
+      Every issue of The Agent Stack — agentic engineering developments from AI labs, hyperscalers, open-source communities, and startups. Published bi-weekly.
+    </p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <span class="stat-value">{{ editions | length }}</span>
+      <span class="stat-label">Issues</span>
+    </div>
+    <div class="stat">
+      {% set total_signals = editions | map(attribute='content') | map(attribute='signals', default=[]) | map('length') | sum %}
+      <span class="stat-value">{{ total_signals }}</span>
+      <span class="stat-label">Signals</span>
+    </div>
+    <div class="stat">
+      {% set total_deep_dives = editions | selectattr('content.deep_dive', 'defined') | list | length %}
+      <span class="stat-value">{{ total_deep_dives }}</span>
+      <span class="stat-label">Deep Dives</span>
+    </div>
+    <div class="stat">
+      {% set total_tools = editions | map(attribute='content') | map(attribute='toolkit', default=[]) | map('length') | sum %}
+      <span class="stat-value">{{ total_tools }}</span>
+      <span class="stat-label">Tools</span>
+    </div>
+  </div>
+
+  <section class="issues-section">
+    {% if editions %}
+      {% set current_year = [None] %}
+      {% for edition in editions %}
+        {% set pub_year = edition.published_at.strftime('%Y') if edition.published_at else 'Unknown' %}
+        {% if pub_year != current_year[0] %}
+          {% if current_year.append(pub_year) %}{% endif %}
+          <div class="year-label">{{ pub_year }}</div>
         {% endif %}
 
-        <footer>
-            <p>The Agent Stack — Curated by agents, for engineers.</p>
-        </footer>
-    </div>
+        <a class="issue-card" href="editions/{{ edition.id }}.html">
+          <div class="issue-card-top">
+            <span class="issue-number">Issue #{{ edition.content.get('issue_number', loop.revindex) }}{% if loop.first %} <span class="latest-badge">Latest</span>{% endif %}</span>
+            {% if edition.published_at %}
+            <span class="issue-date">{{ edition.published_at.strftime('%b %d, %Y') }}</span>
+            {% endif %}
+          </div>
+          <div class="issue-title">{{ edition.content.get('title', 'Untitled Edition') }}</div>
+          {% if edition.content.get('subtitle') %}
+          <div class="issue-subtitle">{{ edition.content.subtitle }}</div>
+          {% endif %}
+          <div class="issue-tags">
+            {% if edition.content.get('signals') %}
+            <span class="issue-tag tag-signal">{{ edition.content.signals | length }} signals</span>
+            {% endif %}
+            {% if edition.content.get('deep_dive') %}
+            <span class="issue-tag tag-deep-dive">Deep dive: {{ edition.content.deep_dive.get('title', '') | truncate(40) }}</span>
+            {% endif %}
+            {% if edition.content.get('toolkit') %}
+            <span class="issue-tag tag-toolkit">{{ edition.content.toolkit | length }} tools</span>
+            {% endif %}
+          </div>
+          <span class="issue-arrow">→</span>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="coming-soon">No issues published yet. Check back soon.</div>
+    {% endif %}
+  </section>
+
+  <footer class="footer">
+    <div class="footer-line">The Agent Stack · Agentic Engineering, Distilled</div>
+    <div class="footer-line">Curated by Lyon · Published bi-weekly</div>
+  </footer>
+
+</div>
 </body>
 </html>

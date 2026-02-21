@@ -9,8 +9,8 @@ Render the final edition content against the newsletter HTML template and prepar
 ## Instructions
 
 1. Read the finalized edition content.
-2. Render the content into the newsletter HTML template.
-3. Generate both the individual edition page and an updated index/archive page.
+2. Verify the content schema is complete: title, subtitle, issue_number, editors_note, signals (3-5 items), deep_dive, toolkit (1-3 items), and one_more_thing should all be present.
+3. Render the content into the newsletter HTML template (edition page and updated archive/index page).
 4. Upload the rendered static files to Azure Storage.
 5. Mark the edition as published upon successful upload.
 
