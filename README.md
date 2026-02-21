@@ -6,7 +6,7 @@ An event-driven, agent-powered editorial pipeline for "The Agent Stack", a newsl
 
 ```
 src/agent_stack/
-├── agents/          # Agent implementations + LLM client, middleware, prompt loader
+├── agents/          # Agent implementations, LLM client, middleware, prompt loader, registry
 ├── auth/            # Microsoft Entra ID authentication (MSAL)
 ├── database/
 │   ├── client.py    # Cosmos DB client
@@ -23,7 +23,7 @@ prompts/             # Agent system prompts (Markdown)
 templates/
 ├── *.html           # Dashboard views (Jinja2 + HTMX)
 ├── newsletter/      # Public newsletter templates (index + edition)
-└── partials/        # HTMX partial fragments
+└── partials/        # HTMX partial fragments (agent activity, edition title)
 infra/               # Bicep infrastructure modules
 tests/               # Unit and integration tests
 ```
