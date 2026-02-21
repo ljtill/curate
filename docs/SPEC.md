@@ -38,7 +38,7 @@
 
 - **Package layout**: `src/agent_stack/` — standard `src/` layout for an application package.
 - **Process model**: Single process — the FastAPI application runs the Cosmos DB change feed processor as a background task within the same process via FastAPI's lifespan events.
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible) via Docker for offline development.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible) and Azurite (Azure Storage emulator) via Docker for offline development.
 
 ---
 
@@ -224,7 +224,7 @@ Execution logs, decisions, and state per pipeline stage.
 
 - **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Cosmos DB, Container Apps, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics). Separate parameter files for dev and prod environments.
 - **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build container image, deploy infrastructure, deploy application).
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible) and Azurite (Azure Storage emulator) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
 
 ---
 

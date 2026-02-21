@@ -36,7 +36,7 @@ tests/               # Unit and integration tests
 # Install dependencies
 uv sync --all-groups --prerelease=allow
 
-# Start the Cosmos DB emulator
+# Start the Cosmos DB and Azurite emulators
 docker compose up -d
 
 # Configure environment

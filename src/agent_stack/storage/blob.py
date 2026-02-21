@@ -20,8 +20,11 @@ class BlobStorageClient:
         self._service_client: BlobServiceClient | None = None
 
     async def initialize(self) -> None:
-        """Create the blob service client."""
+        """Create the blob service client and ensure the target container exists."""
         self._service_client = BlobServiceClient.from_connection_string(self._config.connection_string)
+        container = self._service_client.get_container_client(self._config.container)
+        if not await container.exists():
+            await container.create_container()
 
     async def close(self) -> None:
         """Close the underlying client."""

@@ -27,6 +27,8 @@ from agent_stack.routes.editions import router as editions_router
 from agent_stack.routes.events import router as events_router
 from agent_stack.routes.feedback import router as feedback_router
 from agent_stack.routes.links import router as links_router
+from agent_stack.storage.blob import BlobStorageClient
+from agent_stack.storage.renderer import StaticSiteRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +55,22 @@ async def lifespan(app: FastAPI):
 
     # Start the agent pipeline
     chat_client = create_chat_client(settings.openai)
+    editions_repo = EditionRepository(cosmos.database)
+
+    storage = BlobStorageClient(settings.storage)
+    await storage.initialize()
+    app.state.storage = storage
+
+    renderer = StaticSiteRenderer(editions_repo, storage)
+
     orchestrator = PipelineOrchestrator(
         client=chat_client,
         links_repo=LinkRepository(cosmos.database),
-        editions_repo=EditionRepository(cosmos.database),
+        editions_repo=editions_repo,
         feedback_repo=FeedbackRepository(cosmos.database),
         agent_runs_repo=AgentRunRepository(cosmos.database),
+        render_fn=renderer.render_edition,
+        upload_fn=storage.upload_html,
     )
     processor = ChangeFeedProcessor(cosmos.database, orchestrator)
     await processor.start()
@@ -67,6 +79,7 @@ async def lifespan(app: FastAPI):
     yield
 
     await processor.stop()
+    await storage.close()
     await cosmos.close()
     logger.info("Application shutdown")
 

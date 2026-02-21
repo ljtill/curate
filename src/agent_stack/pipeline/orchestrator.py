@@ -34,6 +34,8 @@ class PipelineOrchestrator:
         editions_repo: EditionRepository,
         feedback_repo: FeedbackRepository,
         agent_runs_repo: AgentRunRepository,
+        render_fn=None,
+        upload_fn=None,
     ) -> None:
         self._client = client
         self._links_repo = links_repo
@@ -47,7 +49,7 @@ class PipelineOrchestrator:
         self._review = ReviewAgent(client, links_repo)
         self._draft = DraftAgent(client, links_repo, editions_repo)
         self._edit = EditAgent(client, editions_repo, feedback_repo)
-        self._publish = PublishAgent(client, editions_repo)
+        self._publish = PublishAgent(client, editions_repo, render_fn=render_fn, upload_fn=upload_fn)
 
     async def handle_link_change(self, document: dict[str, Any]) -> None:
         """Process a link document change based on its current status."""
