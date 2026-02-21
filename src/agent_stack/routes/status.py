@@ -26,7 +26,9 @@ async def status(request: Request) -> HTMLResponse:
         processor,
         cosmos_config=settings.cosmos,
         openai_config=settings.openai,
-        storage_health=StorageHealthConfig(client=storage, config=settings.storage) if storage else None,
+        storage_health=StorageHealthConfig(client=storage, config=settings.storage)
+        if storage
+        else None,
     )
 
     templates = request.app.state.templates

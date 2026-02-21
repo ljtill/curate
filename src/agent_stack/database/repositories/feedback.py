@@ -15,13 +15,16 @@ class FeedbackRepository(BaseRepository[Feedback]):
     async def get_by_edition(self, edition_id: str) -> list[Feedback]:
         """Fetch all active feedback for a given edition."""
         return await self.query(
-            "SELECT * FROM c WHERE c.edition_id = @edition_id AND NOT IS_DEFINED(c.deleted_at)",
+            "SELECT * FROM c WHERE c.edition_id = @edition_id"
+            " AND NOT IS_DEFINED(c.deleted_at)",
             [{"name": "@edition_id", "value": edition_id}],
         )
 
     async def get_unresolved(self, edition_id: str) -> list[Feedback]:
         """Fetch unresolved feedback for a given edition."""
         return await self.query(
-            "SELECT * FROM c WHERE c.edition_id = @edition_id AND c.resolved = false AND NOT IS_DEFINED(c.deleted_at)",
+            "SELECT * FROM c WHERE c.edition_id = @edition_id"
+            " AND c.resolved = false"
+            " AND NOT IS_DEFINED(c.deleted_at)",
             [{"name": "@edition_id", "value": edition_id}],
         )

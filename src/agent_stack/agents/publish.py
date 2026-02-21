@@ -41,7 +41,10 @@ class PublishAgent:
         self._editions_repo = editions_repo
         self._render_fn = render_fn
         self._upload_fn = upload_fn
-        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
+        middleware = [
+            TokenTrackingMiddleware(),
+            *([] if rate_limiter is None else [rate_limiter]),
+        ]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("publish"),
@@ -81,7 +84,9 @@ class PublishAgent:
             await self._upload_fn(edition_id, html)
             return json.dumps({"status": "uploaded", "edition_id": edition_id})
 
-        return json.dumps({"status": "skipped", "reason": "render/upload functions not configured"})
+        return json.dumps(
+            {"status": "skipped", "reason": "render/upload functions not configured"}
+        )
 
     @tool
     async def mark_published(
@@ -106,12 +111,22 @@ class PublishAgent:
             response = await self._agent.run(message)
         except Exception:
             elapsed_ms = (time.monotonic() - t0) * 1000
-            logger.exception("Publish agent failed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
+            logger.exception(
+                "Publish agent failed — edition=%s duration_ms=%.0f",
+                edition_id,
+                elapsed_ms,
+            )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info("Publish agent completed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
+        logger.info(
+            "Publish agent completed — edition=%s duration_ms=%.0f",
+            edition_id,
+            elapsed_ms,
+        )
         return {
-            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "usage": dict(response.usage_details)
+            if response and response.usage_details
+            else None,
             "message": message,
             "response": response.text if response else None,
         }

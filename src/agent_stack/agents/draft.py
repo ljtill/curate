@@ -36,7 +36,10 @@ class DraftAgent:
         """Initialize the draft agent with LLM client and repositories."""
         self._links_repo = links_repo
         self._editions_repo = editions_repo
-        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
+        middleware = [
+            TokenTrackingMiddleware(),
+            *([] if rate_limiter is None else [rate_limiter]),
+        ]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("draft"),
@@ -107,9 +110,14 @@ class DraftAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the draft agent for a reviewed link."""
-        logger.info("Draft agent started — link=%s edition=%s", link.id, link.edition_id)
+        logger.info(
+            "Draft agent started — link=%s edition=%s", link.id, link.edition_id
+        )
         t0 = time.monotonic()
-        message = f"Draft newsletter content for this reviewed link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
+        message = (
+            f"Draft newsletter content for this reviewed link.\n"
+            f"Link ID: {link.id}\nEdition ID: {link.edition_id}"
+        )
         try:
             response = await self._agent.run(message)
         except Exception:
@@ -122,9 +130,16 @@ class DraftAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info("Draft agent completed — link=%s edition=%s duration_ms=%.0f", link.id, link.edition_id, elapsed_ms)
+        logger.info(
+            "Draft agent completed — link=%s edition=%s duration_ms=%.0f",
+            link.id,
+            link.edition_id,
+            elapsed_ms,
+        )
         return {
-            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "usage": dict(response.usage_details)
+            if response and response.usage_details
+            else None,
             "message": message,
             "response": response.text if response else None,
         }

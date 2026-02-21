@@ -16,11 +16,15 @@ def editions_repo() -> AsyncMock:
 
 
 @pytest.fixture
-def publish_agent(editions_repo: AsyncMock) -> tuple[PublishAgent, object, object, object]:
+def publish_agent(
+    editions_repo: AsyncMock,
+) -> tuple[PublishAgent, object, object, object]:
     """Create a publish agent for testing."""
     client = MagicMock()
     with patch("agent_stack.agents.publish.Agent"):
-        return PublishAgent(client, editions_repo, render_fn=AsyncMock(), upload_fn=AsyncMock())
+        return PublishAgent(
+            client, editions_repo, render_fn=AsyncMock(), upload_fn=AsyncMock()
+        )
 
 
 @pytest.fixture
@@ -32,7 +36,9 @@ def publish_agent_no_fns(editions_repo: AsyncMock) -> tuple[PublishAgent, object
 
 
 @pytest.mark.asyncio
-async def test_render_and_upload_calls_functions(publish_agent: PublishAgent, editions_repo: AsyncMock) -> None:
+async def test_render_and_upload_calls_functions(
+    publish_agent: PublishAgent, editions_repo: AsyncMock
+) -> None:
     """Verify render and upload calls functions."""
     edition = Edition(id="ed-1", content={"title": "Test"})
     editions_repo.get.return_value = edition
@@ -58,7 +64,9 @@ async def test_render_and_upload_skips_without_functions(
 
 
 @pytest.mark.asyncio
-async def test_render_and_upload_edition_not_found(publish_agent: PublishAgent, editions_repo: AsyncMock) -> None:
+async def test_render_and_upload_edition_not_found(
+    publish_agent: PublishAgent, editions_repo: AsyncMock
+) -> None:
     """Verify render and upload edition not found."""
     editions_repo.get.return_value = None
     result = json.loads(await publish_agent.render_and_upload("missing"))
@@ -66,7 +74,9 @@ async def test_render_and_upload_edition_not_found(publish_agent: PublishAgent, 
 
 
 @pytest.mark.asyncio
-async def test_mark_published_updates_status(publish_agent: PublishAgent, editions_repo: AsyncMock) -> None:
+async def test_mark_published_updates_status(
+    publish_agent: PublishAgent, editions_repo: AsyncMock
+) -> None:
     """Verify mark published updates status."""
     edition = Edition(id="ed-1", content={}, status=EditionStatus.IN_REVIEW)
     editions_repo.get.return_value = edition
@@ -80,7 +90,9 @@ async def test_mark_published_updates_status(publish_agent: PublishAgent, editio
 
 
 @pytest.mark.asyncio
-async def test_mark_published_edition_not_found(publish_agent: PublishAgent, editions_repo: AsyncMock) -> None:
+async def test_mark_published_edition_not_found(
+    publish_agent: PublishAgent, editions_repo: AsyncMock
+) -> None:
     """Verify mark published edition not found."""
     editions_repo.get.return_value = None
     result = json.loads(await publish_agent.mark_published("missing"))

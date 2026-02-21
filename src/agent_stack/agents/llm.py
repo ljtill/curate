@@ -11,7 +11,9 @@ if TYPE_CHECKING:
     from agent_stack.config import OpenAIConfig
 
 
-def create_chat_client(config: OpenAIConfig, *, use_key: str | None = None) -> AzureOpenAIChatClient:
+def create_chat_client(
+    config: OpenAIConfig, *, use_key: str | None = None
+) -> AzureOpenAIChatClient:
     """Create an AzureOpenAIChatClient authenticated via managed identity or API key.
 
     In local development, pass ``use_key`` to authenticate with an API key.

@@ -15,14 +15,17 @@ class LinkRepository(BaseRepository[Link]):
     async def get_by_edition(self, edition_id: str) -> list[Link]:
         """Fetch all active links for a given edition."""
         return await self.query(
-            "SELECT * FROM c WHERE c.edition_id = @edition_id AND NOT IS_DEFINED(c.deleted_at)",
+            "SELECT * FROM c WHERE c.edition_id = @edition_id"
+            " AND NOT IS_DEFINED(c.deleted_at)",
             [{"name": "@edition_id", "value": edition_id}],
         )
 
     async def get_by_status(self, edition_id: str, status: LinkStatus) -> list[Link]:
         """Fetch links with a specific status within an edition."""
         return await self.query(
-            "SELECT * FROM c WHERE c.edition_id = @edition_id AND c.status = @status AND NOT IS_DEFINED(c.deleted_at)",
+            "SELECT * FROM c WHERE c.edition_id = @edition_id"
+            " AND c.status = @status"
+            " AND NOT IS_DEFINED(c.deleted_at)",
             [
                 {"name": "@edition_id", "value": edition_id},
                 {"name": "@status", "value": status.value},

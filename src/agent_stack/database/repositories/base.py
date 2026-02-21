@@ -21,7 +21,9 @@ class BaseRepository[T: DocumentBase]:
 
     def __init__(self, database: DatabaseProxy) -> None:
         """Initialize the repository with a Cosmos DB database reference."""
-        self._container: ContainerProxy = database.get_container_client(self.container_name)
+        self._container: ContainerProxy = database.get_container_client(
+            self.container_name
+        )
 
     async def create(self, item: T) -> T:
         """Create a new document."""
@@ -30,9 +32,14 @@ class BaseRepository[T: DocumentBase]:
         return item
 
     async def get(self, item_id: str, partition_key: str) -> T | None:
-        """Read a single document by id and partition key, returning None if soft-deleted."""
+        """Read a single document by id and partition key.
+
+        Returns None if soft-deleted.
+        """
         try:
-            data: dict[str, Any] = await self._container.read_item(item=item_id, partition_key=partition_key)
+            data: dict[str, Any] = await self._container.read_item(
+                item=item_id, partition_key=partition_key
+            )
         except CosmosHttpResponseError:
             return None
         if data.get("deleted_at") is not None:
@@ -53,10 +60,14 @@ class BaseRepository[T: DocumentBase]:
         item.deleted_at = datetime.now(UTC)
         return await self.update(item, partition_key)
 
-    async def query(self, query: str, parameters: list[dict[str, Any]] | None = None) -> list[T]:
+    async def query(
+        self, query: str, parameters: list[dict[str, Any]] | None = None
+    ) -> list[T]:
         """Run a parameterized query, filtering out soft-deleted documents."""
         return [
             self.model_class.model_validate(item)
-            async for item in self._container.query_items(query=query, parameters=parameters or [])
+            async for item in self._container.query_items(
+                query=query, parameters=parameters or []
+            )
             if item.get("deleted_at") is None
         ]

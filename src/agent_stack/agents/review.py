@@ -37,7 +37,10 @@ class ReviewAgent:
         """Initialize the review agent with LLM client and link repository."""
         self._links_repo = links_repo
         self.save_failures = 0
-        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
+        middleware = [
+            TokenTrackingMiddleware(),
+            *([] if rate_limiter is None else [rate_limiter]),
+        ]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("review"),
@@ -62,7 +65,9 @@ class ReviewAgent:
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
             return json.dumps({"error": "Link not found"})
-        return json.dumps({"title": link.title, "content": link.content, "url": link.url})
+        return json.dumps(
+            {"title": link.title, "content": link.content, "url": link.url}
+        )
 
     @tool
     async def save_review(
@@ -97,7 +102,11 @@ class ReviewAgent:
                 exc,
             )
             if self.save_failures >= MAX_SAVE_RETRIES:
-                msg = f"save_review failed after {MAX_SAVE_RETRIES} attempts for link {link_id}"
+                msg = (
+                    f"save_review failed after "
+                    f"{MAX_SAVE_RETRIES} attempts "
+                    f"for link {link_id}"
+                )
                 raise RuntimeError(msg) from exc
             return json.dumps({"error": f"Failed to save review: {exc}"})
         return json.dumps({"status": "reviewed", "link_id": link_id})
@@ -107,17 +116,26 @@ class ReviewAgent:
         logger.info("Review agent started — link=%s", link.id)
         t0 = time.monotonic()
         self.save_failures = 0
-        message = f"Review the fetched content for this link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
+        message = (
+            "Review the fetched content for this link.\n"
+            f"Link ID: {link.id}\nEdition ID: {link.edition_id}"
+        )
         try:
             response = await self._agent.run(message)
         except Exception:
             elapsed_ms = (time.monotonic() - t0) * 1000
-            logger.exception("Review agent failed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
+            logger.exception(
+                "Review agent failed — link=%s duration_ms=%.0f", link.id, elapsed_ms
+            )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info("Review agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
+        logger.info(
+            "Review agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms
+        )
         return {
-            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "usage": dict(response.usage_details)
+            if response and response.usage_details
+            else None,
             "message": message,
             "response": response.text if response else None,
         }

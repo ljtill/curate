@@ -10,7 +10,9 @@ from agent_stack.config import EntraConfig
 def test_get_auth_url_returns_uri(mock_msal_class: MagicMock) -> None:
     """Verify get auth url returns uri."""
     mock_app = MagicMock()
-    mock_app.initiate_auth_code_flow.return_value = {"auth_uri": "https://login.example.com/authorize"}
+    mock_app.initiate_auth_code_flow.return_value = {
+        "auth_uri": "https://login.example.com/authorize"
+    }
     mock_msal_class.return_value = mock_app
 
     config = EntraConfig.__new__(EntraConfig)

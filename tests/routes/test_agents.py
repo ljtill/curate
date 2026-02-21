@@ -25,12 +25,17 @@ async def test_agents_page_renders_template() -> None:
             "tools": [{"name": "fetch_url", "description": "Fetch a URL"}],
             "options": {"temperature": 0.0},
             "middleware": ["TokenTrackingMiddleware"],
-            "instructions": {"preview": "You are the Fetch agent…", "full": "You are the Fetch agent..."},
+            "instructions": {
+                "preview": "You are the Fetch agent…",
+                "full": "You are the Fetch agent...",
+            },
         }
     ]
 
     with (
-        patch("agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata),
+        patch(
+            "agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata
+        ),
         patch("agent_stack.routes.agents.AgentRunRepository") as mock_repo_cls,
     ):
         mock_repo_cls.return_value.list_recent_by_stage = AsyncMock(return_value=[])
@@ -80,10 +85,14 @@ async def test_agents_page_with_runs() -> None:
     mock_run.output = {"content": "I fetched the content."}
 
     with (
-        patch("agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata),
+        patch(
+            "agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata
+        ),
         patch("agent_stack.routes.agents.AgentRunRepository") as mock_repo_cls,
     ):
-        mock_repo_cls.return_value.list_recent_by_stage = AsyncMock(return_value=[mock_run])
+        mock_repo_cls.return_value.list_recent_by_stage = AsyncMock(
+            return_value=[mock_run]
+        )
         await agents_page(request)
 
     call_args = request.app.state.templates.TemplateResponse.call_args

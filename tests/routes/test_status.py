@@ -24,7 +24,11 @@ class TestStatusRoute:
 
         with (
             patch("agent_stack.routes.status.create_chat_client"),
-            patch("agent_stack.routes.status.check_all", new_callable=AsyncMock, return_value=mock_results),
+            patch(
+                "agent_stack.routes.status.check_all",
+                new_callable=AsyncMock,
+                return_value=mock_results,
+            ),
         ):
             await status(request)
 
@@ -46,7 +50,11 @@ class TestStatusRoute:
 
         with (
             patch("agent_stack.routes.status.create_chat_client"),
-            patch("agent_stack.routes.status.check_all", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "agent_stack.routes.status.check_all",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
             await status(request)
 

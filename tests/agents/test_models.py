@@ -3,7 +3,16 @@
 import uuid
 from datetime import UTC
 
-from agent_stack.models import AgentRun, AgentRunStatus, AgentStage, Edition, EditionStatus, Feedback, Link, LinkStatus
+from agent_stack.models import (
+    AgentRun,
+    AgentRunStatus,
+    AgentStage,
+    Edition,
+    EditionStatus,
+    Feedback,
+    Link,
+    LinkStatus,
+)
 from agent_stack.models.base import DocumentBase, _new_id, _utcnow
 
 

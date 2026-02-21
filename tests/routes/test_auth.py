@@ -38,7 +38,10 @@ class TestAuthRoutes:
 
         with patch("agent_stack.routes.auth.MSALAuth") as mock_auth_cls:
             mock_auth_cls.return_value.complete_auth.return_value = {
-                "id_token_claims": {"name": "Test User", "preferred_username": "test@example.com"}
+                "id_token_claims": {
+                    "name": "Test User",
+                    "preferred_username": "test@example.com",
+                }
             }
 
             response = await callback(request)

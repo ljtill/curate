@@ -24,7 +24,9 @@ async def test_submit_feedback_creates_feedback() -> None:
         repo = AsyncMock()
         mock_repo_cls.return_value = repo
 
-        response = await submit_feedback(request, edition_id="ed-1", section="intro", comment="Needs work")
+        response = await submit_feedback(
+            request, edition_id="ed-1", section="intro", comment="Needs work"
+        )
 
         repo.create.assert_called_once()
         created = repo.create.call_args[0][0]

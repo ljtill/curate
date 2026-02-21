@@ -26,7 +26,9 @@ def edit_agent(repos: tuple[AsyncMock, AsyncMock]) -> tuple[EditAgent, object, o
 
 
 @pytest.mark.asyncio
-async def test_get_edition_content(edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+async def test_get_edition_content(
+    edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
     """Verify get edition content."""
     editions_repo, _ = repos
     edition = Edition(id="ed-1", content={"title": "Test"})
@@ -40,7 +42,9 @@ _EXPECTED_FEEDBACK_COUNT = 2
 
 
 @pytest.mark.asyncio
-async def test_get_feedback_returns_unresolved(edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+async def test_get_feedback_returns_unresolved(
+    edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
     """Verify get feedback returns unresolved."""
     _, feedback_repo = repos
     items = [
@@ -56,7 +60,9 @@ async def test_get_feedback_returns_unresolved(edit_agent: EditAgent, repos: tup
 
 
 @pytest.mark.asyncio
-async def test_save_edit_updates_content(edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+async def test_save_edit_updates_content(
+    edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
     """Verify save edit updates content."""
     editions_repo, _ = repos
     edition = Edition(id="ed-1", content={"old": True})
@@ -71,10 +77,14 @@ async def test_save_edit_updates_content(edit_agent: EditAgent, repos: tuple[Asy
 
 
 @pytest.mark.asyncio
-async def test_resolve_feedback_marks_resolved(edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+async def test_resolve_feedback_marks_resolved(
+    edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
     """Verify resolve feedback marks resolved."""
     _, feedback_repo = repos
-    fb = Feedback(id="fb-1", edition_id="ed-1", section="intro", comment="Fix", resolved=False)
+    fb = Feedback(
+        id="fb-1", edition_id="ed-1", section="intro", comment="Fix", resolved=False
+    )
     feedback_repo.get.return_value = fb
 
     result = json.loads(await edit_agent.resolve_feedback("fb-1", "ed-1"))
@@ -85,7 +95,9 @@ async def test_resolve_feedback_marks_resolved(edit_agent: EditAgent, repos: tup
 
 
 @pytest.mark.asyncio
-async def test_resolve_feedback_not_found(edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+async def test_resolve_feedback_not_found(
+    edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
     """Verify resolve feedback not found."""
     _, feedback_repo = repos
     feedback_repo.get.return_value = None

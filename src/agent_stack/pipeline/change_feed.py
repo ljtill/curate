@@ -1,4 +1,7 @@
-"""Cosmos DB change feed processor — listens for document changes and delegates to the orchestrator."""
+"""Cosmos DB change feed processor.
+
+Listens for document changes and delegates to the orchestrator.
+"""
 
 from __future__ import annotations
 
@@ -26,7 +29,9 @@ class ChangeFeedProcessor:
     sequentially to avoid race conditions on the edition document.
     """
 
-    def __init__(self, database: DatabaseProxy, orchestrator: PipelineOrchestrator) -> None:
+    def __init__(
+        self, database: DatabaseProxy, orchestrator: PipelineOrchestrator
+    ) -> None:
         """Initialize the change feed processor with database and orchestrator."""
         self._database = database
         self._orchestrator = orchestrator
@@ -66,7 +71,9 @@ class ChangeFeedProcessor:
     async def _poll_loop(self) -> None:
         """Continuously poll change feeds for links and feedback."""
         links_container: ContainerProxy = self._database.get_container_client("links")
-        feedback_container: ContainerProxy = self._database.get_container_client("feedback")
+        feedback_container: ContainerProxy = self._database.get_container_client(
+            "feedback"
+        )
 
         # Track continuation tokens per container
         links_token: str | None = None
@@ -90,7 +97,9 @@ class ChangeFeedProcessor:
 
             try:
                 feedback_token = await self.process_feed(
-                    feedback_container, feedback_token, self._orchestrator.handle_feedback_change
+                    feedback_container,
+                    feedback_token,
+                    self._orchestrator.handle_feedback_change,
                 )
             except Exception as exc:
                 had_error = True
@@ -113,7 +122,10 @@ class ChangeFeedProcessor:
         continuation_token: str | None,
         handler: Callable[[dict[str, Any]], Awaitable[None]],
     ) -> str | None:
-        """Read a batch of changes from a container's change feed and process them sequentially."""
+        """Read a batch of changes from a container's change feed.
+
+        Processes them sequentially.
+        """
         query_kwargs: dict[str, Any] = {"max_item_count": 100}
         if continuation_token:
             query_kwargs["continuation"] = continuation_token
@@ -127,7 +139,9 @@ class ChangeFeedProcessor:
                     try:
                         await handler(item)
                     except Exception:
-                        logger.exception("Failed to process change feed item %s", item.get("id"))
+                        logger.exception(
+                            "Failed to process change feed item %s", item.get("id")
+                        )
         except ServiceResponseError as exc:
             # The Cosmos DB vnext-preview emulator returns malformed HTTP responses
             # for the change feed endpoint when there are no changes, causing aiohttp

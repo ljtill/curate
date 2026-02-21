@@ -39,7 +39,11 @@ _DISPLAY_URL_MAX_LENGTH = 50
 def _render_link_row(link: Link, runs: list) -> str:
     """Render an HTML table row for a link (used in SSE updates)."""
     url = escape(link.url)
-    display_url = (escape(link.url[:47]) + "...") if len(link.url) > _DISPLAY_URL_MAX_LENGTH else url
+    display_url = (
+        (escape(link.url[:47]) + "...")
+        if len(link.url) > _DISPLAY_URL_MAX_LENGTH
+        else url
+    )
     title = escape(link.title) if link.title else "—"
     status = escape(link.status)
     created = link.created_at.strftime("%Y-%m-%d %H:%M") if link.created_at else "—"
@@ -52,16 +56,21 @@ def _render_link_row(link: Link, runs: list) -> str:
         suffix = "s" if count != 1 else ""
         progress = (
             f'<span class="agent-indicator">'
-            f'<span class="agent-indicator-dot agent-indicator-dot-{run_status}"></span>'
+            f'<span class="agent-indicator-dot'
+            f' agent-indicator-dot-{run_status}"></span>'
             f'<span class="stage-{run_stage}">{run_stage}</span>'
             f"</span> ({count} run{suffix})"
         )
     else:
-        progress = '<span class="agent-indicator" style="color: var(--text-muted);">—</span>'
+        progress = (
+            '<span class="agent-indicator" style="color: var(--text-muted);">—</span>'
+        )
 
     return (
         f'<tr id="link-{escape(link.id)}" hx-swap-oob="true">'
-        f'<td><a href="{url}" target="_blank" style="color: var(--accent);">{display_url}</a></td>'
+        f'<td><a href="{url}" target="_blank"'
+        f' style="color: var(--accent);">'
+        f"{display_url}</a></td>"
         f"<td>{title}</td>"
         f'<td><span class="badge badge-{status}">{status}</span></td>'
         f"<td>{progress}</td>"
@@ -99,10 +108,18 @@ class PipelineOrchestrator:
 
         self.fetch = FetchAgent(client, links_repo, rate_limiter=rate_limiter)
         self.review = ReviewAgent(client, links_repo, rate_limiter=rate_limiter)
-        self.draft = DraftAgent(client, links_repo, editions_repo, rate_limiter=rate_limiter)
-        self.edit = EditAgent(client, editions_repo, feedback_repo, rate_limiter=rate_limiter)
+        self.draft = DraftAgent(
+            client, links_repo, editions_repo, rate_limiter=rate_limiter
+        )
+        self.edit = EditAgent(
+            client, editions_repo, feedback_repo, rate_limiter=rate_limiter
+        )
         self.publish = PublishAgent(
-            client, editions_repo, render_fn=render_fn, upload_fn=upload_fn, rate_limiter=rate_limiter
+            client,
+            editions_repo,
+            render_fn=render_fn,
+            upload_fn=upload_fn,
+            rate_limiter=rate_limiter,
         )
 
     async def handle_link_change(self, document: dict[str, Any]) -> None:
@@ -182,9 +199,13 @@ class PipelineOrchestrator:
         if document.get("resolved", False):
             return
 
-        run = await self._create_run(AgentStage.EDIT, feedback_id, {"edition_id": edition_id})
+        run = await self._create_run(
+            AgentStage.EDIT, feedback_id, {"edition_id": edition_id}
+        )
         t0 = time.monotonic()
-        logger.info("Pipeline dispatching stage=%s trigger=%s", AgentStage.EDIT, feedback_id)
+        logger.info(
+            "Pipeline dispatching stage=%s trigger=%s", AgentStage.EDIT, feedback_id
+        )
         try:
             result = await self.edit.run(edition_id)
             run.status = AgentRunStatus.COMPLETED
@@ -238,10 +259,13 @@ class PipelineOrchestrator:
         return {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
-            "total_tokens": usage.get("total_token_count", 0) or input_tokens + output_tokens,
+            "total_tokens": usage.get("total_token_count", 0)
+            or input_tokens + output_tokens,
         }
 
-    async def _create_run(self, stage: AgentStage, trigger_id: str, input_data: dict) -> AgentRun:
+    async def _create_run(
+        self, stage: AgentStage, trigger_id: str, input_data: dict
+    ) -> AgentRun:
         """Create and persist an agent run document."""
         run = AgentRun(
             stage=stage,
@@ -273,6 +297,8 @@ class PipelineOrchestrator:
                 "status": run.status,
                 "output": run.output,
                 "started_at": run.started_at.isoformat() if run.started_at else None,
-                "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+                "completed_at": run.completed_at.isoformat()
+                if run.completed_at
+                else None,
             },
         )

@@ -31,7 +31,11 @@ class TokenTrackingMiddleware(ChatMiddleware):
         elapsed_ms = (time.monotonic() - start) * 1000
 
         usage: dict[str, Any] = {}
-        if context.result and hasattr(context.result, "usage_details") and context.result.usage_details:
+        if (
+            context.result
+            and hasattr(context.result, "usage_details")
+            and context.result.usage_details
+        ):
             ud = cast("UsageDetails", context.result.usage_details)
             usage = {
                 "input_token_count": ud.get("input_token_count"),
@@ -44,7 +48,8 @@ class TokenTrackingMiddleware(ChatMiddleware):
         total_tokens = usage.get("total_token_count", 0) or input_tokens + output_tokens
 
         logger.info(
-            "LLM call: input_tokens=%d output_tokens=%d total_tokens=%d latency_ms=%.0f",
+            "LLM call: input_tokens=%d output_tokens=%d "
+            "total_tokens=%d latency_ms=%.0f",
             input_tokens,
             output_tokens,
             total_tokens,
@@ -127,7 +132,11 @@ class RateLimitMiddleware(ChatMiddleware):
     async def _record_usage(self, context: ChatContext) -> None:
         """Record actual token usage from the response."""
         tokens = 0
-        if context.result and hasattr(context.result, "usage_details") and context.result.usage_details:
+        if (
+            context.result
+            and hasattr(context.result, "usage_details")
+            and context.result.usage_details
+        ):
             ud = cast("UsageDetails", context.result.usage_details)
             tokens = ud.get("total_token_count", 0) or 0
 

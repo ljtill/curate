@@ -15,7 +15,9 @@ from agent_stack.services.health import (
 
 # --- Cosmos DB ---
 
-_cosmos_config = CosmosConfig(endpoint="https://localhost:8081", key="", database="agent-stack")
+_cosmos_config = CosmosConfig(
+    endpoint="https://localhost:8081", key="", database="agent-stack"
+)
 
 
 @pytest.mark.asyncio
@@ -50,7 +52,9 @@ async def test_check_cosmos_unhealthy() -> None:
 
 # --- Azure OpenAI ---
 
-_openai_config = OpenAIConfig(endpoint="https://myoai.openai.azure.com", deployment="gpt-4o")
+_openai_config = OpenAIConfig(
+    endpoint="https://myoai.openai.azure.com", deployment="gpt-4o"
+)
 
 
 @pytest.mark.asyncio
@@ -72,7 +76,9 @@ async def test_check_openai_healthy() -> None:
 async def test_check_openai_unhealthy() -> None:
     """Verify check openai unhealthy."""
     client = AsyncMock()
-    client.get_response = AsyncMock(side_effect=ConnectionError("nodename nor servname provided"))
+    client.get_response = AsyncMock(
+        side_effect=ConnectionError("nodename nor servname provided")
+    )
 
     result = await check_openai(client, _openai_config)
 
@@ -121,7 +127,9 @@ async def test_check_storage_unhealthy() -> None:
 # --- Change Feed Processor ---
 
 
-def _make_processor(*, running: bool, task_done: bool = False, task_exc: Exception | None = None) -> None:
+def _make_processor(
+    *, running: bool, task_done: bool = False, task_exc: Exception | None = None
+) -> None:
     processor = MagicMock(spec=ChangeFeedProcessor)
     processor.running = running
     if running or task_done:
@@ -157,7 +165,9 @@ def test_check_change_feed_not_running() -> None:
 
 def test_check_change_feed_task_crashed() -> None:
     """Verify check change feed task crashed."""
-    processor = _make_processor(running=False, task_done=True, task_exc=RuntimeError("boom"))
+    processor = _make_processor(
+        running=False, task_done=True, task_exc=RuntimeError("boom")
+    )
 
     result = check_change_feed(processor)
 

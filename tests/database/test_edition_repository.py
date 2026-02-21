@@ -22,7 +22,9 @@ class TestEditionRepository:
         mock_db.get_container_client.return_value = mock_container
         return EditionRepository(mock_db)
 
-    async def test_get_active_returns_first_result(self, repo: EditionRepository) -> None:
+    async def test_get_active_returns_first_result(
+        self, repo: EditionRepository
+    ) -> None:
         """Verify get active returns first result."""
         edition = Edition(id="ed-1", content={}, status=EditionStatus.CREATED)
         repo.query = AsyncMock(return_value=[edition])
@@ -32,7 +34,9 @@ class TestEditionRepository:
         assert result == edition
         repo.query.assert_called_once()
 
-    async def test_get_active_returns_none_when_empty(self, repo: EditionRepository) -> None:
+    async def test_get_active_returns_none_when_empty(
+        self, repo: EditionRepository
+    ) -> None:
         """Verify get active returns none when empty."""
         repo.query = AsyncMock(return_value=[])
 

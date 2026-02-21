@@ -25,7 +25,9 @@ class TestAgentRunRepository:
 
     async def test_get_by_trigger(self, repo: AgentRunRepository) -> None:
         """Verify get by trigger."""
-        run = AgentRun(stage=AgentStage.FETCH, trigger_id="link-1", status=AgentRunStatus.COMPLETED)
+        run = AgentRun(
+            stage=AgentStage.FETCH, trigger_id="link-1", status=AgentRunStatus.COMPLETED
+        )
         repo.query = AsyncMock(return_value=[run])
 
         result = await repo.get_by_trigger("link-1")
@@ -49,7 +51,9 @@ class TestAgentRunRepository:
 
         assert result == []
 
-    async def test_get_by_triggers_merges_results(self, repo: AgentRunRepository) -> None:
+    async def test_get_by_triggers_merges_results(
+        self, repo: AgentRunRepository
+    ) -> None:
         """Verify get by triggers merges results."""
         run1 = AgentRun(
             stage=AgentStage.FETCH,

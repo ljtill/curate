@@ -111,7 +111,9 @@ async def test_submit_link_creates_link() -> None:
         links_repo = AsyncMock()
         mock_links_repo_cls.return_value = links_repo
 
-        response = await submit_link(request, url="https://example.com", edition_id="ed-1")
+        response = await submit_link(
+            request, url="https://example.com", edition_id="ed-1"
+        )
 
         links_repo.create.assert_called_once()
         created = links_repo.create.call_args[0][0]
@@ -136,7 +138,9 @@ async def test_submit_link_redirects_when_no_edition() -> None:
         links_repo = AsyncMock()
         mock_links_repo_cls.return_value = links_repo
 
-        response = await submit_link(request, url="https://example.com", edition_id="nonexistent")
+        response = await submit_link(
+            request, url="https://example.com", edition_id="nonexistent"
+        )
 
         links_repo.create.assert_not_called()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
@@ -147,7 +151,12 @@ async def test_retry_link_resets_to_submitted() -> None:
     """Verify retry link resets to submitted."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
-    link = Link(id="link-1", url="https://example.com", edition_id="ed-1", status=LinkStatus.FAILED)
+    link = Link(
+        id="link-1",
+        url="https://example.com",
+        edition_id="ed-1",
+        status=LinkStatus.FAILED,
+    )
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
@@ -175,7 +184,12 @@ async def test_retry_link_ignores_non_failed() -> None:
     """Verify retry link ignores non failed."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
-    link = Link(id="link-1", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)
+    link = Link(
+        id="link-1",
+        url="https://example.com",
+        edition_id="ed-1",
+        status=LinkStatus.SUBMITTED,
+    )
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,

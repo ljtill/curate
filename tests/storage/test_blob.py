@@ -25,7 +25,9 @@ class TestBlobStorageClient:
         """Create a mock client."""
         return BlobStorageClient(config)
 
-    async def test_initialize_creates_service_client(self, client: BlobStorageClient) -> None:
+    async def test_initialize_creates_service_client(
+        self, client: BlobStorageClient
+    ) -> None:
         """Verify initialize creates service client."""
         with patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls:
             mock_service = MagicMock()
@@ -39,7 +41,9 @@ class TestBlobStorageClient:
             mock_bsc_cls.from_connection_string.assert_called_once()
             mock_container.exists.assert_awaited_once()
 
-    async def test_initialize_creates_container_if_missing(self, client: BlobStorageClient) -> None:
+    async def test_initialize_creates_container_if_missing(
+        self, client: BlobStorageClient
+    ) -> None:
         """Verify initialize creates container if missing."""
         with patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls:
             mock_service = MagicMock()
@@ -62,11 +66,15 @@ class TestBlobStorageClient:
         mock_service.close.assert_awaited_once()
         assert client.service_client is None
 
-    async def test_close_noop_when_not_initialized(self, client: BlobStorageClient) -> None:
+    async def test_close_noop_when_not_initialized(
+        self, client: BlobStorageClient
+    ) -> None:
         """Verify close noop when not initialized."""
         await client.close()  # Should not raise
 
-    def test_get_container_raises_when_not_initialized(self, client: BlobStorageClient) -> None:
+    def test_get_container_raises_when_not_initialized(
+        self, client: BlobStorageClient
+    ) -> None:
         """Verify get container raises when not initialized."""
         with pytest.raises(RuntimeError, match="not initialized"):
             client.get_container()

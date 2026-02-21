@@ -29,7 +29,9 @@ async def list_editions(request: Request) -> HTMLResponse:
 
 
 @router.post("/")
-async def create_edition(request: Request, title: Annotated[str, Form()] = "") -> RedirectResponse:
+async def create_edition(
+    request: Request, title: Annotated[str, Form()] = ""
+) -> RedirectResponse:
     """Create a new edition."""
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
@@ -118,7 +120,9 @@ async def cancel_title_edit(request: Request, edition_id: str) -> HTMLResponse:
 
 
 @router.post("/{edition_id}/title", response_class=HTMLResponse)
-async def update_title(request: Request, edition_id: str, title: Annotated[str, Form()] = "") -> HTMLResponse:
+async def update_title(
+    request: Request, edition_id: str, title: Annotated[str, Form()] = ""
+) -> HTMLResponse:
     """Update the edition title and return the display partial."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos

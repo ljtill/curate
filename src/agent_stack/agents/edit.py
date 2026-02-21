@@ -35,12 +35,20 @@ class EditAgent:
         """Initialize the edit agent with LLM client and repositories."""
         self._editions_repo = editions_repo
         self._feedback_repo = feedback_repo
-        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
+        middleware = [
+            TokenTrackingMiddleware(),
+            *([] if rate_limiter is None else [rate_limiter]),
+        ]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("edit"),
             name="edit-agent",
-            tools=[self.get_edition_content, self.get_feedback, self.save_edit, self.resolve_feedback],
+            tools=[
+                self.get_edition_content,
+                self.get_feedback,
+                self.save_edit,
+                self.resolve_feedback,
+            ],
             default_options=ChatOptions(max_tokens=4000, temperature=0.5),
             middleware=middleware,
         )
@@ -68,7 +76,9 @@ class EditAgent:
     ) -> str:
         """Read unresolved editor feedback for the edition."""
         items = await self._feedback_repo.get_unresolved(edition_id)
-        return json.dumps([{"id": f.id, "section": f.section, "comment": f.comment} for f in items])
+        return json.dumps(
+            [{"id": f.id, "section": f.section, "comment": f.comment} for f in items]
+        )
 
     @tool
     async def save_edit(
@@ -102,17 +112,29 @@ class EditAgent:
         """Execute the edit agent for an edition."""
         logger.info("Edit agent started — edition=%s", edition_id)
         t0 = time.monotonic()
-        message = f"Edit and refine the current edition. Address any unresolved feedback.\nEdition ID: {edition_id}"
+        message = (
+            "Edit and refine the current edition. "
+            "Address any unresolved feedback.\n"
+            f"Edition ID: {edition_id}"
+        )
         try:
             response = await self._agent.run(message)
         except Exception:
             elapsed_ms = (time.monotonic() - t0) * 1000
-            logger.exception("Edit agent failed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
+            logger.exception(
+                "Edit agent failed — edition=%s duration_ms=%.0f",
+                edition_id,
+                elapsed_ms,
+            )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info("Edit agent completed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
+        logger.info(
+            "Edit agent completed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms
+        )
         return {
-            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "usage": dict(response.usage_details)
+            if response and response.usage_details
+            else None,
             "message": message,
             "response": response.text if response else None,
         }

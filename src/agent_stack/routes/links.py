@@ -20,7 +20,9 @@ router = APIRouter(prefix="/links", tags=["links"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def list_links(request: Request, edition_id: Annotated[str | None, Query()] = None) -> HTMLResponse:
+async def list_links(
+    request: Request, edition_id: Annotated[str | None, Query()] = None
+) -> HTMLResponse:
     """Render the links page with edition selector and filtered links."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos

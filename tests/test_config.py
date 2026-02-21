@@ -2,7 +2,15 @@
 
 import pytest
 
-from agent_stack.config import AppConfig, CosmosConfig, EntraConfig, OpenAIConfig, Settings, StorageConfig, _env
+from agent_stack.config import (
+    AppConfig,
+    CosmosConfig,
+    EntraConfig,
+    OpenAIConfig,
+    Settings,
+    StorageConfig,
+    _env,
+)
 
 
 def test_env_returns_value(monkeypatch: pytest.MonkeyPatch) -> None:

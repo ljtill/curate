@@ -62,7 +62,9 @@ def processor(mock_orchestrator: AsyncMock) -> tuple[ChangeFeedProcessor, object
 
 
 @pytest.mark.asyncio
-async def test_process_feed_delegates_to_handler(processor: ChangeFeedProcessor) -> None:
+async def test_process_feed_delegates_to_handler(
+    processor: ChangeFeedProcessor,
+) -> None:
     """Test that _process_feed calls the handler for each change item."""
     items = [{"id": "link-1"}, {"id": "link-2"}]
 
@@ -78,7 +80,9 @@ async def test_process_feed_delegates_to_handler(processor: ChangeFeedProcessor)
 
 
 @pytest.mark.asyncio
-async def test_process_feed_passes_continuation_token(processor: ChangeFeedProcessor) -> None:
+async def test_process_feed_passes_continuation_token(
+    processor: ChangeFeedProcessor,
+) -> None:
     """Test that continuation token is passed to change feed query."""
     factory = _mock_change_feed([])
     container = MagicMock()
@@ -90,7 +94,9 @@ async def test_process_feed_passes_continuation_token(processor: ChangeFeedProce
 
 
 @pytest.mark.asyncio
-async def test_process_feed_no_token_on_first_call(processor: ChangeFeedProcessor) -> None:
+async def test_process_feed_no_token_on_first_call(
+    processor: ChangeFeedProcessor,
+) -> None:
     """Test that no continuation key is passed on the first call."""
     factory = _mock_change_feed([])
     container = MagicMock()
@@ -102,7 +108,9 @@ async def test_process_feed_no_token_on_first_call(processor: ChangeFeedProcesso
 
 
 @pytest.mark.asyncio
-async def test_process_feed_returns_continuation_token(processor: ChangeFeedProcessor) -> None:
+async def test_process_feed_returns_continuation_token(
+    processor: ChangeFeedProcessor,
+) -> None:
     """Test that the continuation token from the page iterator is returned."""
     container = MagicMock()
     container.query_items_change_feed = _mock_change_feed([], token=_TEST_TOKEN)
@@ -113,7 +121,9 @@ async def test_process_feed_returns_continuation_token(processor: ChangeFeedProc
 
 
 @pytest.mark.asyncio
-async def test_process_feed_handles_handler_error(processor: ChangeFeedProcessor) -> None:
+async def test_process_feed_handles_handler_error(
+    processor: ChangeFeedProcessor,
+) -> None:
     """Test that errors in handler don't stop processing remaining items."""
     items = [{"id": "link-1"}, {"id": "link-2"}]
 

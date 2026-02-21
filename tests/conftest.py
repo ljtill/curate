@@ -119,7 +119,9 @@ def make_agent_run() -> Callable[..., AgentRun]:
 @pytest.fixture
 def cosmos_config() -> tuple[CosmosConfig, object, object]:
     """Create a cosmos config for testing."""
-    return CosmosConfig(endpoint="https://localhost:8081", key="test-key", database="test-db")
+    return CosmosConfig(
+        endpoint="https://localhost:8081", key="test-key", database="test-db"
+    )
 
 
 @pytest.fixture
@@ -131,7 +133,10 @@ def openai_config() -> tuple[OpenAIConfig, object]:
 @pytest.fixture
 def storage_config() -> tuple[StorageConfig, object]:
     """Create a storage config for testing."""
-    return StorageConfig(connection_string="DefaultEndpointsProtocol=https;AccountName=test", container="$web")
+    return StorageConfig(
+        connection_string="DefaultEndpointsProtocol=https;AccountName=test",
+        container="$web",
+    )
 
 
 @pytest.fixture

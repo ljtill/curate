@@ -30,9 +30,13 @@ def _extract_tools(agent_obj: object) -> list[dict[str, str]]:
         if callable(t):
             name = getattr(t, "__name__", None) or getattr(t, "name", str(t))
             doc = getattr(t, "__doc__", None) or ""
-            result.append({"name": name, "description": doc.strip().split("\n")[0] if doc else ""})
+            result.append(
+                {"name": name, "description": doc.strip().split("\n")[0] if doc else ""}
+            )
         elif hasattr(t, "name"):
-            result.append({"name": t.name, "description": getattr(t, "description", "") or ""})
+            result.append(
+                {"name": t.name, "description": getattr(t, "description", "") or ""}
+            )
         else:
             result.append({"name": str(t), "description": ""})
     return result
@@ -43,7 +47,9 @@ def _extract_options(agent_obj: object) -> dict[str, Any]:
     inner = getattr(agent_obj, "agent", None)
     if inner is None:
         return {}
-    opts = getattr(inner, "_default_options", None) or getattr(inner, "default_options", None)
+    opts = getattr(inner, "_default_options", None) or getattr(
+        inner, "default_options", None
+    )
     if opts is None:
         return {}
     # Agent Framework stores options as a flat dict in default_options
@@ -81,13 +87,19 @@ def _extract_instructions(agent_obj: object, max_length: int = 200) -> dict[str,
     inner = getattr(agent_obj, "agent", None)
     if inner is None:
         return {"preview": "", "full": ""}
-    instructions = getattr(inner, "_instructions", None) or getattr(inner, "instructions", None) or ""
+    instructions = (
+        getattr(inner, "_instructions", None)
+        or getattr(inner, "instructions", None)
+        or ""
+    )
     # Agent Framework may store instructions in default_options["instructions"]
     if not instructions:
         opts = getattr(inner, "default_options", None)
         if isinstance(opts, dict):
             instructions = opts.get("instructions", "") or ""
-    preview = instructions[:max_length] + ("…" if len(instructions) > max_length else "")
+    preview = instructions[:max_length] + (
+        "…" if len(instructions) > max_length else ""
+    )
     return {"preview": preview, "full": instructions}
 
 
@@ -96,7 +108,9 @@ _AGENT_DESCRIPTIONS: dict[str, str] = {
     "review": "Evaluates relevance, extracts key insights, and categorizes content.",
     "draft": "Composes or revises newsletter content from reviewed material.",
     "edit": "Refines tone, structure, and coherence; processes editor feedback.",
-    "publish": "Renders final HTML against the newsletter template and deploys static pages.",
+    "publish": (
+        "Renders final HTML against the newsletter template and deploys static pages."
+    ),
 }
 
 _AGENT_MAP: dict[str, type] = {

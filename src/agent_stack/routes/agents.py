@@ -24,7 +24,13 @@ async def agents_page(request: Request) -> HTMLResponse:
     runs_repo = AgentRunRepository(cosmos.database)
 
     # Fetch recent runs per stage
-    stages = [AgentStage.FETCH, AgentStage.REVIEW, AgentStage.DRAFT, AgentStage.EDIT, AgentStage.PUBLISH]
+    stages = [
+        AgentStage.FETCH,
+        AgentStage.REVIEW,
+        AgentStage.DRAFT,
+        AgentStage.EDIT,
+        AgentStage.PUBLISH,
+    ]
     runs_by_stage: dict[str, list] = {}
     running_stages: set[str] = set()
     for stage in stages:

@@ -1,4 +1,7 @@
-"""Static site renderer — generates HTML from edition content using newsletter templates."""
+"""Static site renderer.
+
+Generates HTML from edition content using newsletter templates.
+"""
 
 from __future__ import annotations
 
@@ -15,17 +18,23 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-NEWSLETTER_TEMPLATES = Path(__file__).resolve().parent.parent.parent.parent / "templates" / "newsletter"
+NEWSLETTER_TEMPLATES = (
+    Path(__file__).resolve().parent.parent.parent.parent / "templates" / "newsletter"
+)
 
 
 class StaticSiteRenderer:
     """Renders newsletter editions as static HTML and uploads to Azure Storage."""
 
-    def __init__(self, editions_repo: EditionRepository, storage: BlobStorageClient) -> None:
+    def __init__(
+        self, editions_repo: EditionRepository, storage: BlobStorageClient
+    ) -> None:
         """Initialize the renderer with edition repository and storage client."""
         self.editions_repo = editions_repo
         self.storage = storage
-        self._env = Environment(loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True)
+        self._env = Environment(
+            loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True
+        )
 
     async def render_edition(self, edition: Edition) -> str:
         """Render a single edition to HTML."""

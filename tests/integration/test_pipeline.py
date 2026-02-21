@@ -44,14 +44,23 @@ def orchestrator(mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]) 
 
 
 @pytest.mark.asyncio
-async def test_handle_link_change_submitted(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
+async def test_handle_link_change_submitted(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
     """Test that a submitted link triggers the fetch agent and logs a run."""
     links, _, _, agent_runs = mock_repos
-    link = Link(id="link-1", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)
+    link = Link(
+        id="link-1",
+        url="https://example.com",
+        edition_id="ed-1",
+        status=LinkStatus.SUBMITTED,
+    )
     links.get.return_value = link
 
     orchestrator.fetch = AsyncMock()
-    orchestrator.fetch.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
+    orchestrator.fetch.run = AsyncMock(
+        return_value={"usage": None, "message": "test", "response": "ok"}
+    )
 
     await orchestrator.handle_link_change(
         {
@@ -62,16 +71,25 @@ async def test_handle_link_change_submitted(orchestrator: PipelineOrchestrator, 
     )
 
     links.get.assert_called_with("link-1", "ed-1")
-    assert links.get.call_count == _EXPECTED_LINK_GET_COUNT  # initial fetch + fail check + SSE publish
+    assert (
+        links.get.call_count == _EXPECTED_LINK_GET_COUNT
+    )  # initial fetch + fail check + SSE publish
     agent_runs.create.assert_called_once()
     orchestrator.fetch.run.assert_called_once_with(link)
 
 
 @pytest.mark.asyncio
-async def test_handle_link_change_drafted_is_noop(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
+async def test_handle_link_change_drafted_is_noop(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
     """Test that a drafted link does not trigger any agent."""
     links, _, _, agent_runs = mock_repos
-    link = Link(id="link-2", url="https://example.com", edition_id="ed-1", status=LinkStatus.DRAFTED)
+    link = Link(
+        id="link-2",
+        url="https://example.com",
+        edition_id="ed-1",
+        status=LinkStatus.DRAFTED,
+    )
     links.get.return_value = link
 
     await orchestrator.handle_link_change(
@@ -86,7 +104,9 @@ async def test_handle_link_change_drafted_is_noop(orchestrator: PipelineOrchestr
 
 
 @pytest.mark.asyncio
-async def test_handle_link_change_not_found(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
+async def test_handle_link_change_not_found(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
     """Test that a missing link is handled gracefully."""
     links, _, _, agent_runs = mock_repos
     links.get.return_value = None
@@ -103,12 +123,16 @@ async def test_handle_link_change_not_found(orchestrator: PipelineOrchestrator, 
 
 
 @pytest.mark.asyncio
-async def test_handle_feedback_change_triggers_edit(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
+async def test_handle_feedback_change_triggers_edit(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
     """Test that new feedback triggers the edit agent."""
     _, _, _, agent_runs = mock_repos
 
     orchestrator.edit = AsyncMock()
-    orchestrator.edit.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
+    orchestrator.edit.run = AsyncMock(
+        return_value={"usage": None, "message": "test", "response": "ok"}
+    )
 
     await orchestrator.handle_feedback_change(
         {
@@ -141,10 +165,17 @@ async def test_handle_feedback_change_resolved_is_noop(
 
 
 @pytest.mark.asyncio
-async def test_agent_run_logged_on_failure(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
+async def test_agent_run_logged_on_failure(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
     """Test that a failed agent run is logged with FAILED status."""
     links, _, _, agent_runs = mock_repos
-    link = Link(id="link-3", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)
+    link = Link(
+        id="link-3",
+        url="https://example.com",
+        edition_id="ed-1",
+        status=LinkStatus.SUBMITTED,
+    )
     links.get.return_value = link
 
     orchestrator.fetch = AsyncMock()

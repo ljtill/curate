@@ -62,11 +62,15 @@ class TestChangeFeedProcessor:
         return orch
 
     @pytest.fixture
-    def processor(self, mock_database: MagicMock, mock_orchestrator: MagicMock) -> tuple[ChangeFeedProcessor, object]:
+    def processor(
+        self, mock_database: MagicMock, mock_orchestrator: MagicMock
+    ) -> tuple[ChangeFeedProcessor, object]:
         """Create a processor for testing."""
         return ChangeFeedProcessor(mock_database, mock_orchestrator)
 
-    async def test_start_creates_background_task(self, processor: ChangeFeedProcessor) -> None:
+    async def test_start_creates_background_task(
+        self, processor: ChangeFeedProcessor
+    ) -> None:
         """Verify start creates background task."""
         # Prevent the actual poll loop from running
         with patch.object(processor, "_poll_loop", new_callable=AsyncMock):
@@ -85,13 +89,17 @@ class TestChangeFeedProcessor:
 
             assert processor.running is False
 
-    async def test_process_feed_calls_handler(self, processor: ChangeFeedProcessor) -> None:
+    async def test_process_feed_calls_handler(
+        self, processor: ChangeFeedProcessor
+    ) -> None:
         """Verify process feed calls handler."""
         mock_container = MagicMock()
 
         item = {"id": "link-1", "status": "submitted"}
 
-        page_iter = _MockPageIterator([_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN)
+        page_iter = _MockPageIterator(
+            [_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN
+        )
 
         mock_response = MagicMock()
         mock_response.by_page.return_value = page_iter
@@ -103,7 +111,9 @@ class TestChangeFeedProcessor:
         handler.assert_awaited_once_with(item)
         assert result == _TEST_CONTINUATION_TOKEN
 
-    async def test_process_feed_with_continuation_token(self, processor: ChangeFeedProcessor) -> None:
+    async def test_process_feed_with_continuation_token(
+        self, processor: ChangeFeedProcessor
+    ) -> None:
         """Verify process feed with continuation token."""
         mock_container = MagicMock()
 
@@ -128,13 +138,17 @@ class TestChangeFeedProcessor:
         assert call_kwargs["continuation"] == "prev-token"
         assert result == "prev-token"
 
-    async def test_process_feed_handles_item_error(self, processor: ChangeFeedProcessor) -> None:
+    async def test_process_feed_handles_item_error(
+        self, processor: ChangeFeedProcessor
+    ) -> None:
         """Verify process feed handles item error."""
         mock_container = MagicMock()
 
         item = {"id": "link-1"}
 
-        page_iter = _MockPageIterator([_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN_SHORT)
+        page_iter = _MockPageIterator(
+            [_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN_SHORT
+        )
 
         mock_response = MagicMock()
         mock_response.by_page.return_value = page_iter
@@ -145,7 +159,9 @@ class TestChangeFeedProcessor:
 
         assert result == _TEST_CONTINUATION_TOKEN_SHORT
 
-    async def test_process_feed_handles_emulator_http_error(self, processor: ChangeFeedProcessor) -> None:
+    async def test_process_feed_handles_emulator_http_error(
+        self, processor: ChangeFeedProcessor
+    ) -> None:
         """Verify process feed handles emulator http error."""
         mock_container = MagicMock()
 

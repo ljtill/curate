@@ -10,7 +10,9 @@ class TestDetermineStage:
 
     def test_submitted_routes_to_fetch(self) -> None:
         """Verify submitted routes to fetch."""
-        stage = PipelineOrchestrator.determine_stage_for_link(None, LinkStatus.SUBMITTED)
+        stage = PipelineOrchestrator.determine_stage_for_link(
+            None, LinkStatus.SUBMITTED
+        )
         assert stage == AgentStage.FETCH
 
     def test_fetching_routes_to_review(self) -> None:

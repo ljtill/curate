@@ -40,15 +40,26 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
         # Read container properties as a minimal round-trip
         await container.read()
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure Cosmos DB", healthy=True, latency_ms=round(latency, 1), detail=detail)
+        return ServiceHealth(
+            name="Azure Cosmos DB",
+            healthy=True,
+            latency_ms=round(latency, 1),
+            detail=detail,
+        )
     except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
-            name="Azure Cosmos DB", healthy=False, latency_ms=round(latency, 1), error=str(exc), detail=detail
+            name="Azure Cosmos DB",
+            healthy=False,
+            latency_ms=round(latency, 1),
+            error=str(exc),
+            detail=detail,
         )
 
 
-async def check_openai(client: AzureOpenAIChatClient, config: OpenAIConfig) -> ServiceHealth:
+async def check_openai(
+    client: AzureOpenAIChatClient, config: OpenAIConfig
+) -> ServiceHealth:
     """Probe Azure OpenAI with a minimal completion request."""
     detail = f"{config.endpoint} · {config.deployment}"
     start = time.monotonic()
@@ -58,16 +69,30 @@ async def check_openai(client: AzureOpenAIChatClient, config: OpenAIConfig) -> S
             options={"max_tokens": 1},
         )
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1), detail=detail)
+        return ServiceHealth(
+            name="Azure OpenAI",
+            healthy=True,
+            latency_ms=round(latency, 1),
+            detail=detail,
+        )
     except (OSError, RuntimeError, ValueError) as exc:
         latency = (time.monotonic() - start) * 1000
         raw = str(exc)
         if "max_tokens" in raw or "model output limit" in raw:
-            return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1), detail=detail)
+            return ServiceHealth(
+                name="Azure OpenAI",
+                healthy=True,
+                latency_ms=round(latency, 1),
+                detail=detail,
+            )
 
         message = _clean_openai_error(raw)
         return ServiceHealth(
-            name="Azure OpenAI", healthy=False, latency_ms=round(latency, 1), error=message, detail=detail
+            name="Azure OpenAI",
+            healthy=False,
+            latency_ms=round(latency, 1),
+            error=message,
+            detail=detail,
         )
 
 
@@ -80,7 +105,12 @@ def _clean_openai_error(raw: str) -> str:
     if raw.startswith("<class "):
         idx = raw.find(">")
         if idx != -1:
-            raw = raw[idx + 1 :].strip().removeprefix("service failed to complete the prompt:").strip()
+            raw = (
+                raw[idx + 1 :]
+                .strip()
+                .removeprefix("service failed to complete the prompt:")
+                .strip()
+            )
 
     # Try to pull the nested message from the error dict
     if "'message':" in raw:
@@ -99,7 +129,9 @@ def _storage_account_name(connection_string: str) -> str:
     return "unknown"
 
 
-async def check_storage(storage: BlobStorageClient, config: StorageConfig) -> ServiceHealth:
+async def check_storage(
+    storage: BlobStorageClient, config: StorageConfig
+) -> ServiceHealth:
     """Probe Azure Storage with a lightweight container existence check."""
     account = _storage_account_name(config.connection_string)
     detail = f"{account} · {config.container}"
@@ -108,11 +140,20 @@ async def check_storage(storage: BlobStorageClient, config: StorageConfig) -> Se
         container = storage.get_container()
         await container.get_container_properties()
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure Storage", healthy=True, latency_ms=round(latency, 1), detail=detail)
+        return ServiceHealth(
+            name="Azure Storage",
+            healthy=True,
+            latency_ms=round(latency, 1),
+            detail=detail,
+        )
     except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
-            name="Azure Storage", healthy=False, latency_ms=round(latency, 1), error=str(exc), detail=detail
+            name="Azure Storage",
+            healthy=False,
+            latency_ms=round(latency, 1),
+            error=str(exc),
+            detail=detail,
         )
 
 
@@ -125,7 +166,9 @@ def check_change_feed(processor: ChangeFeedProcessor) -> ServiceHealth:
     if processor.task is not None and processor.task.done():
         exc = processor.task.exception() if not processor.task.cancelled() else None
         error = str(exc) if exc else "Task finished unexpectedly"
-    return ServiceHealth(name="Change Feed Processor", healthy=False, error=error, detail=detail)
+    return ServiceHealth(
+        name="Change Feed Processor", healthy=False, error=error, detail=detail
+    )
 
 
 @dataclass

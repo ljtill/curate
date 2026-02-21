@@ -34,7 +34,10 @@ class FetchAgent:
     ) -> None:
         """Initialize the fetch agent with LLM client and link repository."""
         self._links_repo = links_repo
-        middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
+        middleware = [
+            TokenTrackingMiddleware(),
+            *([] if rate_limiter is None else [rate_limiter]),
+        ]
         self._agent = Agent(
             client=client,
             instructions=load_prompt("fetch"),
@@ -58,7 +61,9 @@ class FetchAgent:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
         try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0, headers=headers) as http:
+            async with httpx.AsyncClient(
+                follow_redirects=True, timeout=30.0, headers=headers
+            ) as http:
                 response = await http.get(url)
                 response.raise_for_status()
                 return response.text
@@ -69,11 +74,20 @@ class FetchAgent:
             httpx.WriteTimeout,
             httpx.PoolTimeout,
         ) as exc:
-            return json.dumps({"error": f"URL is unreachable: {exc}", "unreachable": True})
+            return json.dumps(
+                {"error": f"URL is unreachable: {exc}", "unreachable": True}
+            )
         except httpx.HTTPStatusError as exc:
-            return json.dumps({"error": f"HTTP {exc.response.status_code}: {exc}", "unreachable": True})
+            return json.dumps(
+                {
+                    "error": f"HTTP {exc.response.status_code}: {exc}",
+                    "unreachable": True,
+                }
+            )
         except httpx.HTTPError as exc:
-            return json.dumps({"error": f"Failed to fetch URL: {exc}", "unreachable": True})
+            return json.dumps(
+                {"error": f"Failed to fetch URL: {exc}", "unreachable": True}
+            )
 
     @tool
     async def save_fetched_content(
@@ -120,12 +134,18 @@ class FetchAgent:
             response = await self._agent.run(message)
         except Exception:
             elapsed_ms = (time.monotonic() - t0) * 1000
-            logger.exception("Fetch agent failed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
+            logger.exception(
+                "Fetch agent failed — link=%s duration_ms=%.0f", link.id, elapsed_ms
+            )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info("Fetch agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
+        logger.info(
+            "Fetch agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms
+        )
         return {
-            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "usage": dict(response.usage_details)
+            if response and response.usage_details
+            else None,
             "message": message,
             "response": response.text if response else None,
         }

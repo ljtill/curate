@@ -24,7 +24,9 @@ class TestCreateChatClient:
             )
             assert client == mock_client_cls.return_value
 
-    def test_creates_client_with_managed_identity(self, openai_config: OpenAIConfig) -> None:
+    def test_creates_client_with_managed_identity(
+        self, openai_config: OpenAIConfig
+    ) -> None:
         """Verify creates client with managed identity."""
         with (
             patch("agent_stack.agents.llm.AzureOpenAIChatClient") as mock_client_cls,

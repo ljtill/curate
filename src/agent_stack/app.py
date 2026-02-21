@@ -79,12 +79,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             upload_fn = storage.upload_html
             logger.info("Blob storage configured")
         except (AzureError, OSError, ValueError):
-            logger.warning("Failed to connect to blob storage — publish uploads disabled", exc_info=True)
+            logger.warning(
+                "Failed to connect to blob storage — publish uploads disabled",
+                exc_info=True,
+            )
             if storage:
                 await storage.close()
             storage = None
     else:
-        logger.warning("AZURE_STORAGE_CONNECTION_STRING not set — publish uploads disabled")
+        logger.warning(
+            "AZURE_STORAGE_CONNECTION_STRING not set — publish uploads disabled"
+        )
 
     orchestrator = PipelineOrchestrator(
         client=chat_client,
@@ -139,9 +144,13 @@ def main() -> None:
 
     file_handler = logging.FileHandler(log_dir / "server.log", mode="w")
     file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
 
-    logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), file_handler])
+    logging.basicConfig(
+        level=logging.INFO, handlers=[logging.StreamHandler(), file_handler]
+    )
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 

@@ -20,7 +20,9 @@ class TestRecentRunsRoute:
         mock_repo = AsyncMock()
         mock_repo.list_recent.return_value = []
 
-        with patch("agent_stack.routes.agent_runs.AgentRunRepository", return_value=mock_repo):
+        with patch(
+            "agent_stack.routes.agent_runs.AgentRunRepository", return_value=mock_repo
+        ):
             await recent_runs(request)
 
         mock_repo.list_recent.assert_called_once_with(20)

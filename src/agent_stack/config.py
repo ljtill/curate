@@ -19,7 +19,9 @@ class CosmosConfig:
 
     endpoint: str = field(default_factory=lambda: _env("COSMOS_ENDPOINT"))
     key: str = field(default_factory=lambda: _env("COSMOS_KEY"))
-    database: str = field(default_factory=lambda: _env("COSMOS_DATABASE", "agent-stack"))
+    database: str = field(
+        default_factory=lambda: _env("COSMOS_DATABASE", "agent-stack")
+    )
 
 
 @dataclass(frozen=True)
@@ -34,8 +36,12 @@ class OpenAIConfig:
 class StorageConfig:
     """Hold Azure Blob Storage connection settings."""
 
-    connection_string: str = field(default_factory=lambda: _env("AZURE_STORAGE_CONNECTION_STRING"))
-    container: str = field(default_factory=lambda: _env("AZURE_STORAGE_CONTAINER", "$web"))
+    connection_string: str = field(
+        default_factory=lambda: _env("AZURE_STORAGE_CONNECTION_STRING")
+    )
+    container: str = field(
+        default_factory=lambda: _env("AZURE_STORAGE_CONTAINER", "$web")
+    )
 
 
 @dataclass(frozen=True)
@@ -45,7 +51,11 @@ class EntraConfig:
     tenant_id: str = field(default_factory=lambda: _env("ENTRA_TENANT_ID"))
     client_id: str = field(default_factory=lambda: _env("ENTRA_CLIENT_ID"))
     client_secret: str = field(default_factory=lambda: _env("ENTRA_CLIENT_SECRET"))
-    redirect_uri: str = field(default_factory=lambda: _env("ENTRA_REDIRECT_URI", "http://localhost:8000/auth/callback"))
+    redirect_uri: str = field(
+        default_factory=lambda: _env(
+            "ENTRA_REDIRECT_URI", "http://localhost:8000/auth/callback"
+        )
+    )
 
     @property
     def authority(self) -> str:
@@ -57,7 +67,9 @@ class EntraConfig:
 class MonitorConfig:
     """Hold Application Insights connection settings."""
 
-    connection_string: str = field(default_factory=lambda: _env("APPLICATIONINSIGHTS_CONNECTION_STRING"))
+    connection_string: str = field(
+        default_factory=lambda: _env("APPLICATIONINSIGHTS_CONNECTION_STRING")
+    )
 
 
 @dataclass(frozen=True)
@@ -66,7 +78,9 @@ class AppConfig:
 
     env: str = field(default_factory=lambda: _env("APP_ENV", "development"))
     secret_key: str = field(default_factory=lambda: _env("APP_SECRET_KEY"))
-    app_config_endpoint: str = field(default_factory=lambda: _env("APP_CONFIG_ENDPOINT"))
+    app_config_endpoint: str = field(
+        default_factory=lambda: _env("APP_CONFIG_ENDPOINT")
+    )
 
     @property
     def is_development(self) -> bool:
