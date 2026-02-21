@@ -47,7 +47,8 @@ class BlobStorageClient:
     def get_container(self) -> ContainerClient:
         """Return the container client for the configured container."""
         if not self._service_client:
-            raise RuntimeError("BlobStorageClient not initialized")
+            msg = "BlobStorageClient not initialized"
+            raise RuntimeError(msg)
         return self._service_client.get_container_client(self._config.container)
 
     async def upload_html(self, blob_name: str, content: str) -> None:

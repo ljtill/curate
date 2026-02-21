@@ -47,5 +47,6 @@ class CosmosClient:
     def database(self) -> DatabaseProxy:
         """Return the database proxy, raising if not yet initialized."""
         if self._database is None:
-            raise RuntimeError("CosmosClient not initialized — call initialize() first")
+            msg = "CosmosClient not initialized — call initialize() first"
+            raise RuntimeError(msg)
         return self._database

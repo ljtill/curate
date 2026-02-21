@@ -160,7 +160,8 @@ class TestChangeFeedProcessor:
                 return self
 
             async def __anext__(self) -> None:
-                raise ServiceResponseError("Expected HTTP/ blah")
+                msg = "Expected HTTP/ blah"
+                raise ServiceResponseError(msg)
 
         page_iter = ErrorPageIterator()
 

@@ -97,7 +97,8 @@ class ReviewAgent:
                 exc,
             )
             if self.save_failures >= MAX_SAVE_RETRIES:
-                raise RuntimeError(f"save_review failed after {MAX_SAVE_RETRIES} attempts for link {link_id}") from exc
+                msg = f"save_review failed after {MAX_SAVE_RETRIES} attempts for link {link_id}"
+                raise RuntimeError(msg) from exc
             return json.dumps({"error": f"Failed to save review: {exc}"})
         return json.dumps({"status": "reviewed", "link_id": link_id})
 
