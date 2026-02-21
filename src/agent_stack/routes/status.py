@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from agent_stack.agents.llm import create_chat_client
-from agent_stack.services.health import check_all
+from agent_stack.services.health import StorageHealthConfig, check_all
 
 router = APIRouter(tags=["status"])
 
@@ -26,8 +26,7 @@ async def status(request: Request):
         processor,
         cosmos_config=settings.cosmos,
         openai_config=settings.openai,
-        storage=storage,
-        storage_config=settings.storage if storage else None,
+        storage_health=StorageHealthConfig(client=storage, config=settings.storage) if storage else None,
     )
 
     templates = request.app.state.templates

@@ -127,19 +127,26 @@ def check_change_feed(processor: ChangeFeedProcessor) -> ServiceHealth:
     return ServiceHealth(name="Change Feed Processor", healthy=False, error=error, detail=detail)
 
 
+@dataclass
+class StorageHealthConfig:
+    """Optional storage health check configuration."""
+
+    client: BlobStorageClient
+    config: StorageConfig
+
+
 async def check_all(
     database: DatabaseProxy,
     openai_client: AzureOpenAIChatClient,
     processor: ChangeFeedProcessor,
     cosmos_config: CosmosConfig,
     openai_config: OpenAIConfig,
-    storage: BlobStorageClient | None = None,
-    storage_config: StorageConfig | None = None,
+    storage_health: StorageHealthConfig | None = None,
 ) -> list[ServiceHealth]:
     """Run all health probes and return results."""
     coros: list = [check_cosmos(database, cosmos_config)]
-    if storage is not None and storage_config is not None:
-        coros.append(check_storage(storage, storage_config))
+    if storage_health is not None:
+        coros.append(check_storage(storage_health.client, storage_health.config))
     coros.append(check_openai(openai_client, openai_config))
     network_results = await asyncio.gather(*coros, return_exceptions=False)
     feed_result = check_change_feed(processor)
