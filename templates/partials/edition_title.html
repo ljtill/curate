@@ -1,0 +1,12 @@
+<div id="edition-title">
+    {% if editing %}
+    <form hx-patch="/editions/{{ edition.id }}/title" hx-target="#edition-title" hx-swap="outerHTML" style="display: flex; gap: 0.5rem; align-items: center;">
+        <input type="text" name="title" value="{{ edition.content.get('title', '') }}" placeholder="Edition title" style="margin-bottom: 0; font-size: 1.5rem; font-weight: 700; flex: 1;">
+        <button type="submit" class="btn" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Save</button>
+        <button type="button" class="btn" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--border);" hx-get="/editions/{{ edition.id }}/title/cancel" hx-target="#edition-title" hx-swap="outerHTML">Cancel</button>
+    </form>
+    {% else %}
+    <h1 style="display: inline;">{{ edition.content.get('title', 'Untitled Edition') or 'Untitled Edition' }}</h1>
+    <button class="btn" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem; background: var(--border);" hx-get="/editions/{{ edition.id }}/title/edit" hx-target="#edition-title" hx-swap="outerHTML">✎</button>
+    {% endif %}
+</div>

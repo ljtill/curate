@@ -3,7 +3,7 @@
 {% block content %}
 {% if edition %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h1>{{ edition.content.get('title', 'Untitled Edition') or 'Untitled Edition' }}</h1>
+    {% include "partials/edition_title.html" %}
     <div style="display: flex; gap: 0.5rem; align-items: center;">
         <span class="badge badge-{{ edition.status }}">{{ edition.status }}</span>
         {% if edition.status != 'published' %}
