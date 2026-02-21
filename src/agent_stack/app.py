@@ -57,11 +57,21 @@ async def lifespan(app: FastAPI):
     chat_client = create_chat_client(settings.openai)
     editions_repo = EditionRepository(cosmos.database)
 
-    storage = BlobStorageClient(settings.storage)
-    await storage.initialize()
-    app.state.storage = storage
+    render_fn = None
+    upload_fn = None
+    storage: BlobStorageClient | None = None
 
-    renderer = StaticSiteRenderer(editions_repo, storage)
+    if settings.storage.connection_string:
+        storage = BlobStorageClient(settings.storage)
+        await storage.initialize()
+        app.state.storage = storage
+
+        renderer = StaticSiteRenderer(editions_repo, storage)
+        render_fn = renderer.render_edition
+        upload_fn = storage.upload_html
+        logger.info("Blob storage configured")
+    else:
+        logger.warning("AZURE_STORAGE_CONNECTION_STRING not set — publish uploads disabled")
 
     orchestrator = PipelineOrchestrator(
         client=chat_client,
@@ -69,8 +79,8 @@ async def lifespan(app: FastAPI):
         editions_repo=editions_repo,
         feedback_repo=FeedbackRepository(cosmos.database),
         agent_runs_repo=AgentRunRepository(cosmos.database),
-        render_fn=renderer.render_edition,
-        upload_fn=storage.upload_html,
+        render_fn=render_fn,
+        upload_fn=upload_fn,
     )
     processor = ChangeFeedProcessor(cosmos.database, orchestrator)
     await processor.start()
@@ -79,7 +89,8 @@ async def lifespan(app: FastAPI):
     yield
 
     await processor.stop()
-    await storage.close()
+    if storage:
+        await storage.close()
     await cosmos.close()
     logger.info("Application shutdown")
 
