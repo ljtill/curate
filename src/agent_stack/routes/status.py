@@ -20,7 +20,15 @@ async def status(request: Request):
     storage = getattr(request.app.state, "storage", None)
     chat_client = create_chat_client(settings.openai)
 
-    results = await check_all(cosmos.database, chat_client, processor, storage=storage)
+    results = await check_all(
+        cosmos.database,
+        chat_client,
+        processor,
+        cosmos_config=settings.cosmos,
+        openai_config=settings.openai,
+        storage=storage,
+        storage_config=settings.storage if storage else None,
+    )
 
     templates = request.app.state.templates
     return templates.TemplateResponse(

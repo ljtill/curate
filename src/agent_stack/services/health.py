@@ -10,6 +10,7 @@ from agent_framework import Message
 from agent_framework.azure import AzureOpenAIChatClient
 from azure.cosmos.aio import DatabaseProxy
 
+from agent_stack.config import CosmosConfig, OpenAIConfig, StorageConfig
 from agent_stack.pipeline.change_feed import ChangeFeedProcessor
 from agent_stack.storage.blob import BlobStorageClient
 
@@ -22,24 +23,29 @@ class ServiceHealth:
     healthy: bool
     latency_ms: float | None = None
     error: str | None = None
+    detail: str | None = None
 
 
-async def check_cosmos(database: DatabaseProxy) -> ServiceHealth:
+async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> ServiceHealth:
     """Probe Cosmos DB with a lightweight read."""
+    detail = f"{config.endpoint} · {config.database}"
     start = time.monotonic()
     try:
         container = database.get_container_client("editions")
         # Read container properties as a minimal round-trip
         await container.read()
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure Cosmos DB", healthy=True, latency_ms=round(latency, 1))
+        return ServiceHealth(name="Azure Cosmos DB", healthy=True, latency_ms=round(latency, 1), detail=detail)
     except Exception as exc:
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure Cosmos DB", healthy=False, latency_ms=round(latency, 1), error=str(exc))
+        return ServiceHealth(
+            name="Azure Cosmos DB", healthy=False, latency_ms=round(latency, 1), error=str(exc), detail=detail
+        )
 
 
-async def check_openai(client: AzureOpenAIChatClient) -> ServiceHealth:
+async def check_openai(client: AzureOpenAIChatClient, config: OpenAIConfig) -> ServiceHealth:
     """Probe Azure OpenAI with a minimal completion request."""
+    detail = f"{config.endpoint} · {config.deployment}"
     start = time.monotonic()
     try:
         await client.get_response(
@@ -47,17 +53,19 @@ async def check_openai(client: AzureOpenAIChatClient) -> ServiceHealth:
             options={"max_tokens": 1},
         )
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1))
+        return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1), detail=detail)
     except Exception as exc:
         latency = (time.monotonic() - start) * 1000
         raw = str(exc)
 
         # A max_tokens / output limit error means the API is reachable — treat as healthy
         if "max_tokens" in raw or "model output limit" in raw:
-            return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1))
+            return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1), detail=detail)
 
         message = _clean_openai_error(raw)
-        return ServiceHealth(name="Azure OpenAI", healthy=False, latency_ms=round(latency, 1), error=message)
+        return ServiceHealth(
+            name="Azure OpenAI", healthy=False, latency_ms=round(latency, 1), error=message, detail=detail
+        )
 
 
 def _clean_openai_error(raw: str) -> str:
@@ -82,40 +90,56 @@ def _clean_openai_error(raw: str) -> str:
     return raw
 
 
-async def check_storage(storage: BlobStorageClient) -> ServiceHealth:
+def _storage_account_name(connection_string: str) -> str:
+    """Extract the account name from a storage connection string."""
+    for part in connection_string.split(";"):
+        if part.strip().lower().startswith("accountname="):
+            return part.split("=", 1)[1]
+    return "unknown"
+
+
+async def check_storage(storage: BlobStorageClient, config: StorageConfig) -> ServiceHealth:
     """Probe Azure Storage with a lightweight container existence check."""
+    account = _storage_account_name(config.connection_string)
+    detail = f"{account} · {config.container}"
     start = time.monotonic()
     try:
         container = storage._get_container()
         await container.get_container_properties()
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure Storage", healthy=True, latency_ms=round(latency, 1))
+        return ServiceHealth(name="Azure Storage", healthy=True, latency_ms=round(latency, 1), detail=detail)
     except Exception as exc:
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure Storage", healthy=False, latency_ms=round(latency, 1), error=str(exc))
+        return ServiceHealth(
+            name="Azure Storage", healthy=False, latency_ms=round(latency, 1), error=str(exc), detail=detail
+        )
 
 
 def check_change_feed(processor: ChangeFeedProcessor) -> ServiceHealth:
     """Check whether the change feed background task is alive."""
+    detail = "editions container"
     if processor._running and processor._task is not None and not processor._task.done():
-        return ServiceHealth(name="Change Feed Processor", healthy=True)
+        return ServiceHealth(name="Change Feed Processor", healthy=True, detail=detail)
     error = "Background task is not running"
     if processor._task is not None and processor._task.done():
         exc = processor._task.exception() if not processor._task.cancelled() else None
         error = str(exc) if exc else "Task finished unexpectedly"
-    return ServiceHealth(name="Change Feed Processor", healthy=False, error=error)
+    return ServiceHealth(name="Change Feed Processor", healthy=False, error=error, detail=detail)
 
 
 async def check_all(
     database: DatabaseProxy,
     openai_client: AzureOpenAIChatClient,
     processor: ChangeFeedProcessor,
+    cosmos_config: CosmosConfig,
+    openai_config: OpenAIConfig,
     storage: BlobStorageClient | None = None,
+    storage_config: StorageConfig | None = None,
 ) -> list[ServiceHealth]:
     """Run all health probes and return results."""
-    coros: list = [check_cosmos(database), check_openai(openai_client)]
-    if storage is not None:
-        coros.append(check_storage(storage))
+    coros: list = [check_cosmos(database, cosmos_config), check_openai(openai_client, openai_config)]
+    if storage is not None and storage_config is not None:
+        coros.append(check_storage(storage, storage_config))
     network_results = await asyncio.gather(*coros, return_exceptions=False)
     feed_result = check_change_feed(processor)
     return [*network_results, feed_result]

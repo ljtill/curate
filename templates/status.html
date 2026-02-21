@@ -29,6 +29,9 @@
             <span style="color: var(--text-muted); font-size: 0.8rem;">{{ check.latency_ms }} ms</span>
             {% endif %}
         </div>
+        {% if check.detail %}
+        <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">{{ check.detail }}</div>
+        {% endif %}
         {% if check.error %}
         <div class="activity-error" style="margin-top: 0.5rem;">{{ check.error }}</div>
         {% endif %}
