@@ -42,3 +42,14 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             "SELECT TOP @limit * FROM c WHERE NOT IS_DEFINED(c.deleted_at) ORDER BY c.started_at DESC",
             [{"name": "@limit", "value": limit}],
         )
+
+    async def list_recent_by_stage(self, stage: AgentStage, limit: int = 5) -> list[AgentRun]:
+        """Fetch the most recent agent runs for a specific stage."""
+        return await self.query(
+            "SELECT TOP @limit * FROM c WHERE c.stage = @stage"
+            " AND NOT IS_DEFINED(c.deleted_at) ORDER BY c.started_at DESC",
+            [
+                {"name": "@stage", "value": stage.value},
+                {"name": "@limit", "value": limit},
+            ],
+        )

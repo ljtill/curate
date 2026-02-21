@@ -48,7 +48,7 @@ async def test_handle_link_change_submitted(orchestrator, mock_repos):
     links.get.return_value = link
 
     orchestrator._fetch = AsyncMock()
-    orchestrator._fetch.run = AsyncMock()
+    orchestrator._fetch.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
 
     await orchestrator.handle_link_change(
         {
@@ -105,7 +105,7 @@ async def test_handle_feedback_change_triggers_edit(orchestrator, mock_repos):
     _, _, _, agent_runs = mock_repos
 
     orchestrator._edit = AsyncMock()
-    orchestrator._edit.run = AsyncMock()
+    orchestrator._edit.run = AsyncMock(return_value={"usage": None, "message": "test", "response": "ok"})
 
     await orchestrator.handle_feedback_change(
         {

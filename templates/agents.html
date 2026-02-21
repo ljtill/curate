@@ -18,7 +18,8 @@
             <div class="pipeline-connector-line"></div>
             <div class="pipeline-connector-arrow">›</div>
         </div>
-        <div class="pipeline-node {% if agent.is_running %}pipeline-node-active{% endif %}" id="pipeline-node-{{ agent.name }}">
+        <div class="pipeline-node {% if agent.is_running %}pipeline-node-active{% endif %}" id="pipeline-node-{{ agent.name }}"
+             onclick="toggleAgentCard('{{ agent.name }}')" style="cursor: pointer;" title="Click to view details">
             <div class="pipeline-node-status">
                 {% if agent.is_running %}
                 <span class="agent-indicator-dot agent-indicator-dot-running" title="Running"></span>
@@ -46,16 +47,18 @@
 
 <!-- Agent Detail Cards -->
 {% for agent in agents %}
-<div class="card" id="agent-card-{{ agent.name }}" style="margin-top: 1rem;">
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-        <span class="stage-{{ agent.name }}" style="font-size: 1.25rem; font-weight: 700;">
-            {% if agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
-        </span>
-        <div>
-            <h2 style="font-size: 1.1rem; margin: 0;">{{ agent.name | capitalize }} Agent</h2>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">{{ agent.description }}</p>
+<div class="card agent-card" id="agent-card-{{ agent.name }}" style="margin-top: 1rem;">
+    <div class="agent-card-header" onclick="toggleCardBody('{{ agent.name }}')" style="cursor: pointer;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+            <span class="stage-{{ agent.name }}" style="font-size: 1.25rem; font-weight: 700;">
+                {% if agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
+            </span>
+            <div>
+                <h2 style="font-size: 1.1rem; margin: 0;">{{ agent.name | capitalize }} Agent</h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">{{ agent.description }}</p>
+            </div>
         </div>
-        <div style="margin-left: auto;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
             {% if agent.is_running %}
             <span class="badge badge-running"><span class="spinner">⟳</span> Running</span>
             {% elif agent.last_run %}
@@ -63,96 +66,153 @@
             {% else %}
             <span class="badge" style="background: var(--border); color: var(--text-muted);">Idle</span>
             {% endif %}
+            <span class="agent-card-chevron" id="chevron-{{ agent.name }}" style="color: var(--text-muted); font-size: 1.2rem; transition: transform 0.2s;">▸</span>
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
-        <!-- Tools -->
-        <div>
-            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Tools ({{ agent.tools | length }})</h3>
-            {% if agent.tools %}
-            <ul style="list-style: none; font-size: 0.85rem;">
-                {% for tool in agent.tools %}
-                <li style="padding: 0.35rem 0; border-bottom: 1px solid var(--border);">
-                    <code style="color: var(--accent); font-size: 0.8rem;">{{ tool.name }}</code>
-                    {% if tool.description %}
-                    <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.1rem;">{{ tool.description }}</div>
+    <div class="agent-card-body" id="agent-body-{{ agent.name }}" style="display: none; margin-top: 1rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+            <!-- Tools -->
+            <div>
+                <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Tools ({{ agent.tools | length }})</h3>
+                {% if agent.tools %}
+                <ul style="list-style: none; font-size: 0.85rem;">
+                    {% for tool in agent.tools %}
+                    <li style="padding: 0.35rem 0; border-bottom: 1px solid var(--border);">
+                        <code style="color: var(--accent); font-size: 0.8rem;">{{ tool.name }}</code>
+                        {% if tool.description %}
+                        <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.1rem;">{{ tool.description }}</div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.85rem;">No tools registered.</p>
+                {% endif %}
+            </div>
+
+            <!-- Configuration -->
+            <div>
+                <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">LLM Options</h3>
+                {% if agent.options %}
+                <table style="width: 100%; font-size: 0.85rem;">
+                    {% for key, value in agent.options.items() %}
+                    <tr>
+                        <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">{{ key }}</td>
+                        <td style="padding: 0.25rem 0;"><code>{{ value }}</code></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Default options.</p>
+                {% endif %}
+
+                <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-top: 1rem; margin-bottom: 0.5rem;">Middleware</h3>
+                {% if agent.middleware %}
+                <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                    {% for mw in agent.middleware %}
+                    <span class="badge" style="background: var(--border); color: var(--text); font-size: 0.7rem; text-transform: none;">{{ mw }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.85rem;">No middleware.</p>
+                {% endif %}
+            </div>
+
+            <!-- Last Run Summary -->
+            <div>
+                <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Last Run</h3>
+                {% if agent.last_run %}
+                <table style="width: 100%; font-size: 0.85rem;">
+                    <tr>
+                        <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Status</td>
+                        <td style="padding: 0.25rem 0;"><span class="badge badge-{{ agent.last_run.status }}">{{ agent.last_run.status }}</span></td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Started</td>
+                        <td style="padding: 0.25rem 0;">{{ agent.last_run.started_at.strftime('%Y-%m-%d %H:%M:%S') if agent.last_run.started_at else '—' }}</td>
+                    </tr>
+                    {% if agent.last_run.completed_at and agent.last_run.started_at %}
+                    <tr>
+                        <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Duration</td>
+                        <td style="padding: 0.25rem 0;">{{ ((agent.last_run.completed_at - agent.last_run.started_at).total_seconds()) | round(1) }}s</td>
+                    </tr>
                     {% endif %}
+                    {% if agent.last_run.usage %}
+                    <tr>
+                        <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Tokens</td>
+                        <td style="padding: 0.25rem 0;">{{ agent.last_run.usage.get('total_tokens', '—') }} total</td>
+                    </tr>
+                    {% endif %}
+                </table>
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.85rem;">No runs yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Instructions Preview -->
+        {% if agent.instructions and agent.instructions.full %}
+        <details style="margin-top: 1rem;">
+            <summary class="activity-output-toggle" style="font-size: 0.8rem;">System Prompt</summary>
+            <div class="activity-output" style="margin-top: 0.5rem; white-space: pre-wrap;">{{ agent.instructions.full }}</div>
+        </details>
+        {% endif %}
+
+        <!-- Run History -->
+        {% if agent.recent_runs %}
+        <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem;">Run History ({{ agent.recent_runs | length }})</h3>
+            <ul class="activity-list">
+                {% for run in agent.recent_runs %}
+                <li class="activity-item">
+                    <div class="activity-icon activity-icon-{{ run.status }}">
+                        {% if run.status == 'running' %}<span class="spinner">⟳</span>{% elif run.status == 'completed' %}✓{% else %}✗{% endif %}
+                    </div>
+                    <div class="activity-body" style="flex: 1; min-width: 0;">
+                        <div class="activity-header">
+                            <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
+                            <span class="activity-time">
+                                {{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else '—' }}
+                                {% if run.completed_at and run.started_at %}
+                                · {{ ((run.completed_at - run.started_at).total_seconds()) | round(1) }}s
+                                {% endif %}
+                            </span>
+                            {% if run.usage %}
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">
+                                {{ run.usage.get('input_tokens', 0) }}↓ {{ run.usage.get('output_tokens', 0) }}↑ ({{ run.usage.get('total_tokens', 0) }} total)
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="activity-trigger">Trigger: {{ run.trigger_id[:12] if run.trigger_id else '—' }}…</div>
+
+                        <!-- LLM Input -->
+                        {% if run.input and run.input.get('message') %}
+                        <details style="margin-top: 0.5rem;">
+                            <summary class="activity-output-toggle">LLM Input</summary>
+                            <div class="activity-output" style="margin-top: 0.25rem;">{{ run.input.get('message') }}</div>
+                        </details>
+                        {% endif %}
+
+                        <!-- LLM Output -->
+                        {% if run.output and run.output.get('content') %}
+                        <details style="margin-top: 0.25rem;">
+                            <summary class="activity-output-toggle">LLM Output</summary>
+                            <div class="activity-output" style="margin-top: 0.25rem;">{{ run.output.get('content') }}</div>
+                        </details>
+                        {% endif %}
+
+                        <!-- Error output -->
+                        {% if run.output and run.output.get('error') %}
+                        <div class="activity-error" style="margin-top: 0.5rem;">{{ run.output.get('error') }}</div>
+                        {% endif %}
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
-            {% else %}
-            <p style="color: var(--text-muted); font-size: 0.85rem;">No tools registered.</p>
-            {% endif %}
         </div>
-
-        <!-- Configuration -->
-        <div>
-            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">LLM Options</h3>
-            {% if agent.options %}
-            <table style="width: 100%; font-size: 0.85rem;">
-                {% for key, value in agent.options.items() %}
-                <tr>
-                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">{{ key }}</td>
-                    <td style="padding: 0.25rem 0;"><code>{{ value }}</code></td>
-                </tr>
-                {% endfor %}
-            </table>
-            {% else %}
-            <p style="color: var(--text-muted); font-size: 0.85rem;">Default options.</p>
-            {% endif %}
-
-            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-top: 1rem; margin-bottom: 0.5rem;">Middleware</h3>
-            {% if agent.middleware %}
-            <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
-                {% for mw in agent.middleware %}
-                <span class="badge" style="background: var(--border); color: var(--text); font-size: 0.7rem; text-transform: none;">{{ mw }}</span>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p style="color: var(--text-muted); font-size: 0.85rem;">No middleware.</p>
-            {% endif %}
-        </div>
-
-        <!-- Last Run -->
-        <div>
-            <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Last Run</h3>
-            {% if agent.last_run %}
-            <table style="width: 100%; font-size: 0.85rem;">
-                <tr>
-                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Status</td>
-                    <td style="padding: 0.25rem 0;"><span class="badge badge-{{ agent.last_run.status }}">{{ agent.last_run.status }}</span></td>
-                </tr>
-                <tr>
-                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Started</td>
-                    <td style="padding: 0.25rem 0;">{{ agent.last_run.started_at.strftime('%Y-%m-%d %H:%M:%S') if agent.last_run.started_at else '—' }}</td>
-                </tr>
-                {% if agent.last_run.completed_at and agent.last_run.started_at %}
-                <tr>
-                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Duration</td>
-                    <td style="padding: 0.25rem 0;">{{ ((agent.last_run.completed_at - agent.last_run.started_at).total_seconds()) | round(1) }}s</td>
-                </tr>
-                {% endif %}
-                {% if agent.last_run.usage %}
-                <tr>
-                    <td style="color: var(--text-muted); padding: 0.25rem 0.5rem 0.25rem 0;">Tokens</td>
-                    <td style="padding: 0.25rem 0;">{{ agent.last_run.usage.get('total_tokens', '—') }} total</td>
-                </tr>
-                {% endif %}
-            </table>
-            {% else %}
-            <p style="color: var(--text-muted); font-size: 0.85rem;">No runs yet.</p>
-            {% endif %}
-        </div>
+        {% endif %}
     </div>
-
-    <!-- Instructions Preview -->
-    {% if agent.instructions and agent.instructions.full %}
-    <details style="margin-top: 1rem;">
-        <summary class="activity-output-toggle" style="font-size: 0.8rem;">System Prompt</summary>
-        <div class="activity-output" style="margin-top: 0.5rem; white-space: pre-wrap;">{{ agent.instructions.full }}</div>
-    </details>
-    {% endif %}
 </div>
 {% endfor %}
 
@@ -218,9 +278,47 @@
         line-height: 1;
         margin-left: -4px;
     }
+    .agent-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        user-select: none;
+    }
+    .agent-card-header:hover {
+        opacity: 0.85;
+    }
+    .agent-card-chevron-open {
+        transform: rotate(90deg);
+    }
 </style>
 
 <script>
+    function toggleCardBody(name) {
+        var body = document.getElementById('agent-body-' + name);
+        var chevron = document.getElementById('chevron-' + name);
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            chevron.classList.add('agent-card-chevron-open');
+        } else {
+            body.style.display = 'none';
+            chevron.classList.remove('agent-card-chevron-open');
+        }
+    }
+
+    function toggleAgentCard(name) {
+        var card = document.getElementById('agent-card-' + name);
+        var body = document.getElementById('agent-body-' + name);
+        var chevron = document.getElementById('chevron-' + name);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Open if closed
+            if (body && body.style.display === 'none') {
+                body.style.display = 'block';
+                if (chevron) chevron.classList.add('agent-card-chevron-open');
+            }
+        }
+    }
+
     // Live status updates for the pipeline diagram and agent cards
     document.addEventListener('htmx:sseMessage', function(event) {
         var eventType = event.detail.type;
@@ -236,7 +334,7 @@
             }
             var card = document.getElementById('agent-card-' + data.stage);
             if (card) {
-                var badge = card.querySelector('.badge');
+                var badge = card.querySelector('.agent-card-header .badge');
                 if (badge) {
                     badge.className = 'badge badge-running';
                     badge.innerHTML = '<span class="spinner">⟳</span> Running';
@@ -255,7 +353,7 @@
             }
             var card = document.getElementById('agent-card-' + data.stage);
             if (card) {
-                var badge = card.querySelector('.badge');
+                var badge = card.querySelector('.agent-card-header .badge');
                 if (badge) {
                     badge.className = 'badge badge-' + data.status;
                     badge.textContent = data.status;

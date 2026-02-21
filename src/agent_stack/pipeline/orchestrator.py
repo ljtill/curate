@@ -123,9 +123,12 @@ class PipelineOrchestrator:
 
         run = await self._create_run(stage, link_id, {"status": status})
         try:
-            usage = await self._execute_link_stage(stage, link)
+            result = await self._execute_link_stage(stage, link)
             run.status = AgentRunStatus.COMPLETED
-            run.usage = self._normalize_usage(usage)
+            run.usage = self._normalize_usage(result.get("usage") if result else None)
+            if result:
+                run.input = {**(run.input or {}), "message": result.get("message")}
+                run.output = {"content": result.get("response")}
         except Exception as exc:
             logger.exception("Agent stage %s failed for link %s", stage, link_id)
             run.status = AgentRunStatus.FAILED
@@ -161,9 +164,12 @@ class PipelineOrchestrator:
 
         run = await self._create_run(AgentStage.EDIT, feedback_id, {"edition_id": edition_id})
         try:
-            usage = await self._edit.run(edition_id)
+            result = await self._edit.run(edition_id)
             run.status = AgentRunStatus.COMPLETED
-            run.usage = self._normalize_usage(usage)
+            run.usage = self._normalize_usage(result.get("usage") if result else None)
+            if result:
+                run.input = {**(run.input or {}), "message": result.get("message")}
+                run.output = {"content": result.get("response")}
         except Exception as exc:
             logger.exception("Edit agent failed for feedback %s", feedback_id)
             run.status = AgentRunStatus.FAILED

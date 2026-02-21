@@ -32,7 +32,7 @@ async def test_agents_page_renders_template():
         patch("agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata),
         patch("agent_stack.routes.agents.AgentRunRepository") as mock_repo_cls,
     ):
-        mock_repo_cls.return_value.list_recent = AsyncMock(return_value=[])
+        mock_repo_cls.return_value.list_recent_by_stage = AsyncMock(return_value=[])
         await agents_page(request)
 
     call_args = request.app.state.templates.TemplateResponse.call_args
@@ -43,3 +43,52 @@ async def test_agents_page_renders_template():
     assert ctx["agents"][0]["name"] == "fetch"
     assert ctx["agents"][0]["last_run"] is None
     assert ctx["agents"][0]["is_running"] is False
+    assert ctx["agents"][0]["recent_runs"] == []
+
+
+@pytest.mark.asyncio
+async def test_agents_page_with_runs():
+    request = MagicMock()
+    request.app.state.templates = MagicMock()
+    request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
+    request.app.state.cosmos = MagicMock()
+    request.app.state.cosmos.database = MagicMock()
+    request.app.state.processor = MagicMock()
+    request.app.state.processor._orchestrator = MagicMock()
+
+    fake_metadata = [
+        {
+            "name": "fetch",
+            "description": "Fetches content",
+            "tools": [],
+            "options": {},
+            "middleware": [],
+            "instructions": {"preview": "", "full": ""},
+        }
+    ]
+
+    mock_run = MagicMock()
+    mock_run.id = "run-1"
+    mock_run.status = "completed"
+    mock_run.started_at = MagicMock()
+    mock_run.completed_at = MagicMock()
+    mock_run.usage = {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150}
+    mock_run.trigger_id = "link-abc"
+    mock_run.input = {"status": "submitted", "message": "Fetch this URL"}
+    mock_run.output = {"content": "I fetched the content."}
+
+    with (
+        patch("agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata),
+        patch("agent_stack.routes.agents.AgentRunRepository") as mock_repo_cls,
+    ):
+        mock_repo_cls.return_value.list_recent_by_stage = AsyncMock(return_value=[mock_run])
+        await agents_page(request)
+
+    call_args = request.app.state.templates.TemplateResponse.call_args
+    ctx = call_args[0][1]
+    agent = ctx["agents"][0]
+    assert agent["last_run"] is not None
+    assert agent["last_run"]["status"] == "completed"
+    assert agent["last_run"]["input"]["message"] == "Fetch this URL"
+    assert agent["last_run"]["output"]["content"] == "I fetched the content."
+    assert len(agent["recent_runs"]) == 1

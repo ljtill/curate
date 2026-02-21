@@ -95,11 +95,13 @@ class DraftAgent:
 
         return json.dumps({"status": "drafted", "edition_id": edition_id})
 
-    async def run(self, link: Link) -> dict | None:
+    async def run(self, link: Link) -> dict:
         """Execute the draft agent for a reviewed link."""
         logger.info("Draft agent processing link %s for edition %s", link.id, link.edition_id)
         message = f"Draft newsletter content for this reviewed link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
         response = await self._agent.run(message)
-        if response and response.usage_details:
-            return dict(response.usage_details)
-        return None
+        return {
+            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "message": message,
+            "response": response.text if response else None,
+        }

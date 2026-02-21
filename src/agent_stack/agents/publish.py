@@ -74,11 +74,13 @@ class PublishAgent:
         await self._editions_repo.update(edition, edition_id)
         return json.dumps({"status": "published", "edition_id": edition_id})
 
-    async def run(self, edition_id: str) -> dict | None:
+    async def run(self, edition_id: str) -> dict:
         """Execute the publish agent for an edition."""
         logger.info("Publish agent processing edition %s", edition_id)
         message = f"Render and publish the edition.\nEdition ID: {edition_id}"
         response = await self._agent.run(message)
-        if response and response.usage_details:
-            return dict(response.usage_details)
-        return None
+        return {
+            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "message": message,
+            "response": response.text if response else None,
+        }

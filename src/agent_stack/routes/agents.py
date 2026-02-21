@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse
 
 from agent_stack.agents.registry import get_agent_metadata
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
+from agent_stack.models.agent_run import AgentStage
 
 router = APIRouter(tags=["agents"])
 
@@ -21,27 +22,23 @@ async def agents_page(request: Request):
     agent_metadata = get_agent_metadata(orchestrator)
 
     runs_repo = AgentRunRepository(cosmos.database)
-    recent_runs = await runs_repo.list_recent(50)
 
-    # Group latest run per stage
-    latest_by_stage: dict[str, dict] = {}
+    # Fetch recent runs per stage
+    stages = [AgentStage.FETCH, AgentStage.REVIEW, AgentStage.DRAFT, AgentStage.EDIT, AgentStage.PUBLISH]
+    runs_by_stage: dict[str, list] = {}
     running_stages: set[str] = set()
-    for run in recent_runs:
-        if run.stage not in latest_by_stage:
-            latest_by_stage[run.stage] = {
-                "status": run.status,
-                "started_at": run.started_at,
-                "completed_at": run.completed_at,
-                "usage": run.usage,
-                "trigger_id": run.trigger_id,
-            }
-        if run.status == "running":
-            running_stages.add(run.stage)
+    for stage in stages:
+        stage_runs = await runs_repo.list_recent_by_stage(stage, limit=5)
+        runs_by_stage[stage.value] = stage_runs
+        if any(r.status == "running" for r in stage_runs):
+            running_stages.add(stage.value)
 
     # Attach run info to agent metadata
     for agent in agent_metadata:
         stage = agent["name"]
-        agent["last_run"] = latest_by_stage.get(stage)
+        stage_runs = runs_by_stage.get(stage, [])
+        agent["recent_runs"] = stage_runs
+        agent["last_run"] = _run_to_dict(stage_runs[0]) if stage_runs else None
         agent["is_running"] = stage in running_stages
 
     return templates.TemplateResponse(
@@ -52,3 +49,17 @@ async def agents_page(request: Request):
             "running_stages": running_stages,
         },
     )
+
+
+def _run_to_dict(run) -> dict:
+    """Convert an AgentRun to a template-friendly dict."""
+    return {
+        "id": run.id,
+        "status": run.status,
+        "started_at": run.started_at,
+        "completed_at": run.completed_at,
+        "usage": run.usage,
+        "trigger_id": run.trigger_id,
+        "input": run.input,
+        "output": run.output,
+    }

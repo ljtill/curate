@@ -74,11 +74,13 @@ class ReviewAgent:
         await self._links_repo.update(link, edition_id)
         return json.dumps({"status": "reviewed", "link_id": link_id})
 
-    async def run(self, link: Link) -> dict | None:
+    async def run(self, link: Link) -> dict:
         """Execute the review agent for a fetched link."""
         logger.info("Review agent processing link %s", link.id)
         message = f"Review the fetched content for this link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
         response = await self._agent.run(message)
-        if response and response.usage_details:
-            return dict(response.usage_details)
-        return None
+        return {
+            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "message": message,
+            "response": response.text if response else None,
+        }

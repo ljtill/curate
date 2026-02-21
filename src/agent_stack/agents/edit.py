@@ -88,11 +88,13 @@ class EditAgent:
         await self._feedback_repo.update(feedback, edition_id)
         return json.dumps({"status": "resolved", "feedback_id": feedback_id})
 
-    async def run(self, edition_id: str) -> dict | None:
+    async def run(self, edition_id: str) -> dict:
         """Execute the edit agent for an edition."""
         logger.info("Edit agent processing edition %s", edition_id)
         message = f"Edit and refine the current edition. Address any unresolved feedback.\nEdition ID: {edition_id}"
         response = await self._agent.run(message)
-        if response and response.usage_details:
-            return dict(response.usage_details)
-        return None
+        return {
+            "usage": dict(response.usage_details) if response and response.usage_details else None,
+            "message": message,
+            "response": response.text if response else None,
+        }
