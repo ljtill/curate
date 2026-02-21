@@ -27,6 +27,12 @@ jobs:
       - name: Build Bicep
         run: az bicep build --file infra/main.bicep
 
+      - name: Upload Bicep templates
+        uses: actions/upload-artifact@v4
+        with:
+          name: bicep-templates
+          path: infra/
+
   build:
     name: Build & Push Container Image
     runs-on: ubuntu-latest
