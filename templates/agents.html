@@ -16,6 +16,10 @@
                 <div class="pipeline-node-sub">Pipeline Agent</div>
             </div>
         </div>
+        <!-- Trunk line from orchestrator to horizontal bar -->
+        <div class="pipeline-trunk-line"></div>
+        <!-- Horizontal bar connecting all spokes -->
+        <div class="pipeline-crossbar"></div>
         <!-- Spokes connecting to sub-agents -->
         <div class="pipeline-spokes">
             {% for agent in agents %}
@@ -230,15 +234,29 @@
         flex-direction: column;
         align-items: center;
         padding: 1rem 0;
+        gap: 0;
     }
     .pipeline-hub-center {
         margin-bottom: 0;
+        z-index: 1;
+    }
+    .pipeline-trunk-line {
+        width: 2px;
+        height: 20px;
+        background: var(--border);
+    }
+    .pipeline-crossbar {
+        height: 2px;
+        background: var(--border);
+        align-self: stretch;
+        margin: 0 calc(0.75rem + 50px);
     }
     .pipeline-spokes {
         display: flex;
         justify-content: center;
         gap: 0.75rem;
         flex-wrap: wrap;
+        margin-top: 0;
     }
     .pipeline-spoke {
         display: flex;
@@ -247,7 +265,7 @@
     }
     .pipeline-spoke-line {
         width: 2px;
-        height: 24px;
+        height: 20px;
         background: var(--border);
     }
     .pipeline-node {
