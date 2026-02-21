@@ -12,9 +12,18 @@
             <button type="submit" class="btn">Publish</button>
         </form>
         {% endif %}
-        <form method="post" action="/editions/{{ edition.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this edition?');">
-            <button type="submit" class="btn btn-danger">Delete</button>
-        </form>
+        <span class="delete-inline">
+            <button type="button" class="btn btn-danger"
+                    onclick="this.style.display='none'; this.nextElementSibling.style.display='inline';">Delete</button>
+            <span style="display: none;">
+                <span style="color: var(--text-muted); margin-right: 0.25rem;">Delete this edition?</span>
+                <form method="post" action="/editions/{{ edition.id }}/delete" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Confirm</button>
+                </form>
+                <button type="button" class="btn" style="margin-left: 0.15rem;"
+                        onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline';">Cancel</button>
+            </span>
+        </span>
     </div>
 </div>
 
