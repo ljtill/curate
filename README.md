@@ -6,9 +6,11 @@ An event-driven, agent-powered editorial pipeline for "The Agent Stack", a newsl
 
 ```
 src/agent_stack/
-├── agents/          # Agent implementations (Fetch, Review, Draft, Edit, Publish)
+├── agents/          # Agent implementations + LLM client, middleware, prompt loader
 ├── auth/            # Microsoft Entra ID authentication (MSAL)
-├── database/        # Cosmos DB client and repository layer
+├── database/
+│   ├── client.py    # Cosmos DB client
+│   └── repositories/  # Per-entity repository layer
 ├── events/          # SSE event manager for real-time updates
 ├── models/          # Pydantic data models
 ├── pipeline/        # Orchestrator and change feed processor
@@ -18,7 +20,10 @@ src/agent_stack/
 ├── app.py           # FastAPI application factory
 └── config.py        # Configuration from environment variables
 prompts/             # Agent system prompts (Markdown)
-templates/           # Jinja2 templates (dashboard + newsletter)
+templates/
+├── *.html           # Dashboard views (Jinja2 + HTMX)
+├── newsletter/      # Public newsletter templates (index + edition)
+└── partials/        # HTMX partial fragments
 infra/               # Bicep infrastructure modules
 tests/               # Unit and integration tests
 ```
@@ -64,12 +69,13 @@ uv run ty check src/
 
 ## Pipelines
 
-GitHub Actions with four workflows chained via `workflow_run` triggers. All Azure-facing workflows authenticate using OIDC federated credentials.
+GitHub Actions with five workflows chained via `workflow_run` triggers. All Azure-facing workflows authenticate using OIDC federated credentials.
 
 | Workflow | File | Trigger | Responsibility |
 |---|---|---|---|
-| **Test** | `test.yml` | Push / PR to `main` | Lint, format check, type check, unit tests |
-| **Build** | `build.yml` | Test success on `main` | Docker build and push to ACR |
+| **Check** | `check.yml` | Push / PR to `main` | Lint, format check, type check |
+| **Test** | `test.yml` | Push / PR to `main` | Unit tests |
+| **Build** | `build.yml` | Check + Test success on `main` | Docker build, push to ACR, Bicep validation |
 | **Release** | `release.yml` | Build success on `main` | Bicep infrastructure deployment |
 | **Deploy** | `deploy.yml` | Release success on `main` | Container App update |
 

@@ -60,8 +60,9 @@ uv add agent-framework-core --prerelease=allow
 |--------------------------|----------------------------------------------------------------------------------------------------------------|
 | `Agent`                  | Each pipeline stage (Fetch, Review, Draft, Edit, Publish) is an `Agent` instance with stage-specific instructions and tools |
 | `AzureOpenAIChatClient`  | LLM provider integration with Azure OpenAI / Microsoft Foundry, authenticated via managed identity             |
-| Tools / Functions        | Typed Python functions registered on agents for structured operations (Cosmos DB reads/writes, HTTP fetches, HTML rendering) |
-| Workflows                | Graph-based orchestration for the multi-stage pipeline, managing agent-to-agent data flow and stage transitions |
+| `tool`                   | Decorator for typed Python functions registered on agents for structured operations (Cosmos DB reads/writes, HTTP fetches, HTML rendering) |
+| `ChatOptions`            | Per-invocation LLM configuration (temperature, response format) passed to agent `run()` calls                  |
+| `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) and rate limiting (`RateLimitMiddleware`) |
 
 **References:**
 
@@ -81,7 +82,7 @@ Links are submitted through the Editorial Dashboard (Links view). Submitting a l
 
 Event-driven and continuously iterating. Agents react to changes — new links, editor feedback — and refine the current edition. The pipeline is triggered via the Cosmos DB change feed, consumed by a dedicated change feed processor running within the Container App.
 
-**Orchestration layer:** An explicit orchestrator handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic. Links are processed sequentially (one at a time) to avoid race conditions on the edition document.
+**Orchestration layer:** An explicit `PipelineOrchestrator` handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic. Links are processed sequentially (one at a time) to avoid race conditions on the edition document. Rate limiting is enforced via `ChatMiddleware` (token-bucket for TPM/RPM).
 
 **Agent design:** Each pipeline stage is implemented as a separate Agent class using the Microsoft Agent Framework. Agent prompts and system messages are stored as Markdown files in a `prompts/` directory, loaded at runtime. LLM calls to Microsoft Foundry are authenticated via managed identity in Azure.
 
@@ -147,7 +148,7 @@ Submitted URLs with metadata, agent processing status, and extracted content.
 | `id`               | Unique identifier                                        |
 | `url`              | Submitted URL                                            |
 | `title`            | Page title (populated by Fetch agent)                    |
-| `status`           | Processing status: `submitted` → `fetching` → `reviewed` → `drafted` |
+| `status`           | Processing status: `submitted` → `fetching` → `reviewed` → `drafted` (or `failed`) |
 | `content`          | Extracted/parsed content (populated by Fetch agent)      |
 | `review`           | Agent review output — relevance, insights, category      |
 | `edition_id`       | Associated edition (partition key)                       |
@@ -217,6 +218,7 @@ Execution logs, decisions, and state per pipeline stage.
 | `status`           | Run status (`running`, `completed`, `failed`)            |
 | `input`            | Input data/context for the agent                         |
 | `output`           | Agent output/decisions                                   |
+| `usage`            | Token usage metrics (input, output, total tokens)        |
 | `started_at`       | Start timestamp                                          |
 | `completed_at`     | Completion timestamp                                     |
 | `deleted_at`       | Soft-delete timestamp (absent if active)                 |
