@@ -61,3 +61,40 @@ async def test_save_review_link_not_found(review_agent, links_repo):
     links_repo.get.return_value = None
     result = json.loads(await review_agent._save_review("missing", "ed-1", "[]", "cat", 5, "justification"))
     assert "error" in result
+
+
+@pytest.mark.asyncio
+async def test_save_review_retries_on_failure(review_agent, links_repo):
+    link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
+    links_repo.get.return_value = link
+    links_repo.update.side_effect = Exception("Cosmos DB error")
+
+    result = json.loads(await review_agent._save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good"))
+
+    assert "error" in result
+    assert review_agent._save_failures == 1
+
+
+@pytest.mark.asyncio
+async def test_save_review_raises_after_max_retries(review_agent, links_repo):
+    link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
+    links_repo.get.return_value = link
+    links_repo.update.side_effect = Exception("Cosmos DB error")
+
+    # Exhaust retries
+    for _ in range(2):
+        await review_agent._save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
+
+    with pytest.raises(RuntimeError, match="failed after 3 attempts"):
+        await review_agent._save_review("link-1", "ed-1", "[]", "AI/ML", 8, "Good")
+
+
+@pytest.mark.asyncio
+async def test_save_review_resets_failures_on_run(review_agent, links_repo):
+    review_agent._save_failures = 2
+    mock_response = MagicMock()
+    mock_response.usage_details = None
+    mock_response.text = "done"
+    review_agent._agent.run = AsyncMock(return_value=mock_response)
+    await review_agent.run(Link(id="link-1", url="https://example.com", edition_id="ed-1"))
+    assert review_agent._save_failures == 0

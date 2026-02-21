@@ -17,6 +17,9 @@ from agent_stack.models.link import Link, LinkStatus
 logger = logging.getLogger(__name__)
 
 
+MAX_SAVE_RETRIES = 3
+
+
 class ReviewAgent:
     """Evaluates fetched content and writes a structured review."""
 
@@ -28,6 +31,7 @@ class ReviewAgent:
         rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
         self._links_repo = links_repo
+        self._save_failures = 0
         middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
         self._agent = Agent(
             client=client,
@@ -71,12 +75,26 @@ class ReviewAgent:
             "justification": justification,
         }
         link.status = LinkStatus.REVIEWED
-        await self._links_repo.update(link, edition_id)
+        try:
+            await self._links_repo.update(link, edition_id)
+        except Exception as exc:
+            self._save_failures += 1
+            logger.warning(
+                "save_review failed for link %s (attempt %d/%d): %s",
+                link_id,
+                self._save_failures,
+                MAX_SAVE_RETRIES,
+                exc,
+            )
+            if self._save_failures >= MAX_SAVE_RETRIES:
+                raise RuntimeError(f"save_review failed after {MAX_SAVE_RETRIES} attempts for link {link_id}") from exc
+            return json.dumps({"error": f"Failed to save review: {exc}"})
         return json.dumps({"status": "reviewed", "link_id": link_id})
 
     async def run(self, link: Link) -> dict:
         """Execute the review agent for a fetched link."""
         logger.info("Review agent processing link %s", link.id)
+        self._save_failures = 0
         message = f"Review the fetched content for this link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
         response = await self._agent.run(message)
         return {
