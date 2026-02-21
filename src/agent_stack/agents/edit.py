@@ -52,7 +52,7 @@ class EditAgent:
                 self.save_edit,
                 self.resolve_feedback,
             ],
-            default_options=ChatOptions(max_tokens=4000, temperature=0.5),
+            default_options=ChatOptions(temperature=0.5),
             middleware=middleware,
         )
 

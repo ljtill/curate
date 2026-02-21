@@ -48,7 +48,7 @@ class DraftAgent:
                 "Composes or revises newsletter content from reviewed material."
             ),
             tools=[self.get_reviewed_link, self.get_edition_content, self.save_draft],
-            default_options=ChatOptions(max_tokens=4000, temperature=0.7),
+            default_options=ChatOptions(temperature=0.7),
             middleware=middleware,
         )
 

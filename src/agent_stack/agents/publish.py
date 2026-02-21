@@ -54,7 +54,7 @@ class PublishAgent:
                 "template and deploys static pages."
             ),
             tools=[self.render_and_upload, self.mark_published],
-            default_options=ChatOptions(max_tokens=500, temperature=0.0),
+            default_options=ChatOptions(temperature=0.0),
             middleware=middleware,
         )
 

@@ -182,7 +182,7 @@ class PipelineOrchestrator:
                 self.record_stage_start,
                 self.record_stage_complete,
             ],
-            default_options=ChatOptions(max_tokens=2000, temperature=0.0),
+            default_options=ChatOptions(temperature=0.0),
             middleware=[
                 TokenTrackingMiddleware(),
                 rate_limiter,

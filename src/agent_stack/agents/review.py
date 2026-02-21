@@ -49,7 +49,7 @@ class ReviewAgent:
                 "Evaluates relevance, extracts key insights, and categorizes content."
             ),
             tools=[self.get_link_content, self.save_review],
-            default_options=ChatOptions(max_tokens=1000, temperature=0.3),
+            default_options=ChatOptions(temperature=0.3),
             middleware=middleware,
         )
 
