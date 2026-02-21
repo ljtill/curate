@@ -137,9 +137,10 @@ async def check_all(
     storage_config: StorageConfig | None = None,
 ) -> list[ServiceHealth]:
     """Run all health probes and return results."""
-    coros: list = [check_cosmos(database, cosmos_config), check_openai(openai_client, openai_config)]
+    coros: list = [check_cosmos(database, cosmos_config)]
     if storage is not None and storage_config is not None:
         coros.append(check_storage(storage, storage_config))
+    coros.append(check_openai(openai_client, openai_config))
     network_results = await asyncio.gather(*coros, return_exceptions=False)
     feed_result = check_change_feed(processor)
     return [*network_results, feed_result]
