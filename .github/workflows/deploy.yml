@@ -17,6 +17,7 @@ env:
 
 jobs:
   deploy:
+    name: Deploy Container App
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     environment: production

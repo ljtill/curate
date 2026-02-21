@@ -16,6 +16,7 @@ env:
 
 jobs:
   bicep:
+    name: Build Bicep Templates
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
@@ -27,6 +28,7 @@ jobs:
         run: az bicep build --file infra/main.bicep
 
   build:
+    name: Build & Push Container Image
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     environment: production

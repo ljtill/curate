@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   lint:
+    name: Ruff Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -28,6 +29,7 @@ jobs:
         run: uv run ruff check src/ tests/
 
   format:
+    name: Ruff Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -45,6 +47,7 @@ jobs:
         run: uv run ruff format --check src/ tests/
 
   type-check:
+    name: Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
