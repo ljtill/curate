@@ -98,17 +98,14 @@ class ChangeFeedProcessor:
             query_kwargs["continuation"] = continuation_token
 
         response = container.query_items_change_feed(**query_kwargs)
-        new_token = continuation_token
+        page_iterator = response.by_page()
 
-        async for item in response:
-            try:
-                await handler(item)
-            except Exception:
-                logger.exception("Failed to process change feed item %s", item.get("id"))
+        async for page in page_iterator:
+            async for item in page:
+                try:
+                    await handler(item)
+                except Exception:
+                    logger.exception("Failed to process change feed item %s", item.get("id"))
 
-        if hasattr(response, "continuation_token"):
-            token = response.continuation_token
-            if isinstance(token, str):
-                new_token = token
-
-        return new_token
+        # AsyncPageIterator has continuation_token at runtime; type stub is imprecise.
+        return page_iterator.continuation_token or continuation_token  # type: ignore[union-attr]
