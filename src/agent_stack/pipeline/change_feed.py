@@ -7,6 +7,7 @@ import contextlib
 import logging
 from typing import Any
 
+from azure.core.exceptions import ServiceResponseError
 from azure.cosmos.aio import ContainerProxy, DatabaseProxy
 
 from agent_stack.pipeline.orchestrator import PipelineOrchestrator
@@ -100,12 +101,21 @@ class ChangeFeedProcessor:
         response = container.query_items_change_feed(**query_kwargs)
         page_iterator = response.by_page()
 
-        async for page in page_iterator:
-            async for item in page:
-                try:
-                    await handler(item)
-                except Exception:
-                    logger.exception("Failed to process change feed item %s", item.get("id"))
+        try:
+            async for page in page_iterator:
+                async for item in page:
+                    try:
+                        await handler(item)
+                    except Exception:
+                        logger.exception("Failed to process change feed item %s", item.get("id"))
+        except ServiceResponseError as exc:
+            # The Cosmos DB vnext-preview emulator returns malformed HTTP responses
+            # for the change feed endpoint when there are no changes, causing aiohttp
+            # to fail parsing. Treat as "no changes" and keep the current token.
+            if "Expected HTTP/" in str(exc):
+                logger.debug("Change feed returned no changes (emulator HTTP response)")
+                return continuation_token
+            raise
 
         # AsyncPageIterator has continuation_token at runtime; type stub is imprecise.
         return page_iterator.continuation_token or continuation_token  # type: ignore[union-attr]
