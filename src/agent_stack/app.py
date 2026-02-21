@@ -127,7 +127,15 @@ def create_app() -> FastAPI:
 
 def main() -> None:
     """Entry point for running the application."""
-    logging.basicConfig(level=logging.INFO)
+    log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+
+    file_handler = logging.FileHandler(log_dir / "server.log", mode="w")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+
+    logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), file_handler])
+
     app = create_app()
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
