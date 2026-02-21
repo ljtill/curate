@@ -32,10 +32,10 @@ async def check_cosmos(database: DatabaseProxy) -> ServiceHealth:
         # Read container properties as a minimal round-trip
         await container.read()
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=round(latency, 1))
+        return ServiceHealth(name="Azure Cosmos DB", healthy=True, latency_ms=round(latency, 1))
     except Exception as exc:
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Cosmos DB", healthy=False, latency_ms=round(latency, 1), error=str(exc))
+        return ServiceHealth(name="Azure Cosmos DB", healthy=False, latency_ms=round(latency, 1), error=str(exc))
 
 
 async def check_openai(client: AzureOpenAIChatClient) -> ServiceHealth:

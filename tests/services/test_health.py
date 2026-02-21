@@ -24,7 +24,7 @@ async def test_check_cosmos_healthy():
     result = await check_cosmos(database)
 
     assert result.healthy is True
-    assert result.name == "Cosmos DB"
+    assert result.name == "Azure Cosmos DB"
     assert result.latency_ms is not None
     assert result.error is None
 
