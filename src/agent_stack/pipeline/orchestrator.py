@@ -324,6 +324,11 @@ class PipelineOrchestrator:
             logger.warning("Link %s not found, skipping", link_id)
             return
 
+        # Skip failed links — user must click Retry to reprocess
+        if link.status == LinkStatus.FAILED:
+            logger.debug("Link %s is failed, skipping (use Retry)", link_id)
+            return
+
         # Only process links with actionable statuses
         if status not in (
             LinkStatus.SUBMITTED,
@@ -370,6 +375,19 @@ class PipelineOrchestrator:
                 "Orchestrator completed link=%s duration_ms=%.0f",
                 link_id,
                 elapsed_ms,
+            )
+
+        # If the link hasn't advanced past its original status, mark it
+        # as failed so the change feed doesn't retry indefinitely.
+        # The user can click Retry in the UI to try again.
+        updated_link = await self._links_repo.get(link_id, edition_id)
+        if updated_link and updated_link.status == status:
+            updated_link.status = LinkStatus.FAILED
+            await self._links_repo.update(updated_link, edition_id)
+            runs = await self._agent_runs_repo.get_by_trigger(link_id)
+            await self._events.publish(
+                "link-update",
+                _render_link_row(updated_link, runs),
             )
 
     async def handle_feedback_change(self, document: dict[str, Any]) -> None:
