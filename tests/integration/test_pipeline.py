@@ -47,6 +47,9 @@ def orchestrator(
         orch._agent.run = AsyncMock(  # noqa: SLF001
             return_value=MagicMock(text="done")
         )
+        orch._runs = MagicMock()  # noqa: SLF001
+        orch._runs.create_orchestrator_run = AsyncMock()  # noqa: SLF001
+        orch._runs.publish_run_event = AsyncMock()  # noqa: SLF001
         return orch
 
 
@@ -215,7 +218,7 @@ async def test_handle_link_change_dispatches_to_orchestrator_agent(
     )
 
     orchestrator._agent.run.assert_called_once()  # noqa: SLF001
-    runs.create.assert_called_once()
+    orchestrator._runs.create_orchestrator_run.assert_called_once()  # noqa: SLF001
     runs.update.assert_called_once()
     saved_run = runs.update.call_args[0][0]
     assert saved_run.status == "completed"

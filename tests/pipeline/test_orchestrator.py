@@ -11,6 +11,7 @@ import pytest
 
 from agent_stack.models.link import LinkStatus
 from agent_stack.pipeline.orchestrator import PipelineOrchestrator
+from agent_stack.pipeline.runs import RunManager
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -41,19 +42,23 @@ def orchestrator(
         patch("agent_stack.pipeline.orchestrator.PublishAgent"),
         patch("agent_stack.pipeline.orchestrator.load_prompt", return_value=""),
     ):
-        return PipelineOrchestrator(client, links, editions, feedback, runs)
+        orch = PipelineOrchestrator(client, links, editions, feedback, runs)
+        orch._runs = MagicMock()  # noqa: SLF001
+        orch._runs.create_orchestrator_run = AsyncMock()  # noqa: SLF001
+        orch._runs.publish_run_event = AsyncMock()  # noqa: SLF001
+        return orch
 
 
 class TestNormalizeUsage:
-    """Tests for _normalize_usage static helper."""
+    """Tests for RunManager.normalize_usage static helper."""
 
     def test_none_returns_none(self) -> None:
         """Return None when input is None."""
-        assert PipelineOrchestrator._normalize_usage(None) is None  # noqa: SLF001
+        assert RunManager.normalize_usage(None) is None
 
     def test_empty_dict_returns_none(self) -> None:
         """Return None for an empty dict (all zeros)."""
-        assert PipelineOrchestrator._normalize_usage({}) is None  # noqa: SLF001
+        assert RunManager.normalize_usage({}) is None
 
     def test_normalizes_framework_keys(self) -> None:
         """Translate framework key names to the app schema."""
@@ -63,13 +68,13 @@ class TestNormalizeUsage:
             "total_token_count": 150,
         }
         expected = {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150}
-        result = PipelineOrchestrator._normalize_usage(raw)  # noqa: SLF001
+        result = RunManager.normalize_usage(raw)
         assert result == expected
 
     def test_computes_total_when_missing(self) -> None:
         """Derive total_tokens from input + output when not provided."""
         raw = {"input_token_count": 80, "output_token_count": 20}
-        result = PipelineOrchestrator._normalize_usage(raw)  # noqa: SLF001
+        result = RunManager.normalize_usage(raw)
         assert result is not None
         expected_total = 100
         assert result["total_tokens"] == expected_total
