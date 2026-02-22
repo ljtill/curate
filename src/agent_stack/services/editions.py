@@ -1,4 +1,4 @@
-"""Edition business logic — create, detail assembly, publish, delete, title update."""
+"""Edition business logic — create, detail assembly, publish, delete."""
 
 from __future__ import annotations
 
@@ -90,14 +90,3 @@ async def delete_edition(edition_id: str, editions_repo: EditionRepository) -> N
     edition = await editions_repo.get(edition_id, edition_id)
     if edition:
         await editions_repo.soft_delete(edition, edition_id)
-
-
-async def update_title(
-    edition_id: str, title: str, editions_repo: EditionRepository
-) -> Edition | None:
-    """Update the title in an edition's content dict."""
-    edition = await editions_repo.get(edition_id, edition_id)
-    if edition:
-        edition.content["title"] = title.strip()
-        await editions_repo.update(edition, edition_id)
-    return edition

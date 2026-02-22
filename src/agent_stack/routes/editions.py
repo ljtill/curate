@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
@@ -57,7 +56,7 @@ async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
 
     return templates.TemplateResponse(
         "edition_detail.html",
-        {"request": request, "editing": False, **detail},
+        {"request": request, **detail},
     )
 
 
@@ -103,45 +102,3 @@ async def delete_edition(request: Request, edition_id: str) -> RedirectResponse:
     await edition_svc.delete_edition(edition_id, repo)
     logger.info("Edition deleted — edition=%s", edition_id)
     return RedirectResponse("/editions/", status_code=303)
-
-
-@router.get("/{edition_id}/title/edit", response_class=HTMLResponse)
-async def edit_title_form(request: Request, edition_id: str) -> HTMLResponse:
-    """Return the inline title edit form partial."""
-    templates = request.app.state.templates
-    cosmos = request.app.state.cosmos
-    repo = EditionRepository(cosmos.database)
-    edition = await edition_svc.get_edition(edition_id, repo)
-    return templates.TemplateResponse(
-        "partials/edition_title.html",
-        {"request": request, "edition": edition, "editing": True},
-    )
-
-
-@router.get("/{edition_id}/title/cancel", response_class=HTMLResponse)
-async def cancel_title_edit(request: Request, edition_id: str) -> HTMLResponse:
-    """Return the display-mode title partial (cancel editing)."""
-    templates = request.app.state.templates
-    cosmos = request.app.state.cosmos
-    repo = EditionRepository(cosmos.database)
-    edition = await edition_svc.get_edition(edition_id, repo)
-    return templates.TemplateResponse(
-        "partials/edition_title.html",
-        {"request": request, "edition": edition, "editing": False},
-    )
-
-
-@router.post("/{edition_id}/title", response_class=HTMLResponse)
-async def update_title(
-    request: Request, edition_id: str, title: Annotated[str, Form()] = ""
-) -> HTMLResponse:
-    """Update the edition title and return the display partial."""
-    templates = request.app.state.templates
-    cosmos = request.app.state.cosmos
-    repo = EditionRepository(cosmos.database)
-    edition = await edition_svc.update_title(edition_id, title, repo)
-    logger.info("Edition title updated — edition=%s", edition_id)
-    return templates.TemplateResponse(
-        "partials/edition_title.html",
-        {"request": request, "edition": edition, "editing": False},
-    )

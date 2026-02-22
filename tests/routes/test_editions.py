@@ -4,14 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from agent_stack.models.edition import Edition
 from agent_stack.routes.editions import (
-    cancel_title_edit,
     create_edition,
     delete_edition,
-    edit_title_form,
     edition_detail,
     list_editions,
     publish_edition,
-    update_title,
 )
 
 _EXPECTED_REDIRECT_STATUS = 303
@@ -51,93 +48,6 @@ async def test_create_edition_auto_numbers() -> None:
         assert edition.content["title"] == f"Issue #{_NEXT_ISSUE_NUMBER}"
         assert edition.content["issue_number"] == _NEXT_ISSUE_NUMBER
         assert edition.content["sections"] == []
-
-
-async def test_update_title() -> None:
-    """PATCH title updates the edition content and persists."""
-    request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "New Title", "sections": []})
-
-    with patch(
-        "agent_stack.routes.editions.edition_svc.update_title", new_callable=AsyncMock
-    ) as mock_update:
-        mock_update.return_value = edition
-
-        await update_title(request, edition_id="ed-1", title="New Title")
-
-        mock_update.assert_called_once()
-        assert edition.content["title"] == "New Title"
-
-
-async def test_update_title_strips_whitespace() -> None:
-    """PATCH title strips whitespace before saving."""
-    request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "Trimmed", "sections": []})
-
-    with patch(
-        "agent_stack.routes.editions.edition_svc.update_title", new_callable=AsyncMock
-    ) as mock_update:
-        mock_update.return_value = edition
-
-        await update_title(request, edition_id="ed-1", title="  Trimmed  ")
-
-        # The route passes the raw title to the service; service handles stripping
-        args = mock_update.call_args
-        assert args[0][1] == "  Trimmed  "
-
-
-async def test_update_title_renders_display_partial() -> None:
-    """PATCH title returns the display-mode partial."""
-    request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
-
-    with patch(
-        "agent_stack.routes.editions.edition_svc.update_title", new_callable=AsyncMock
-    ) as mock_update:
-        mock_update.return_value = edition
-
-        await update_title(request, edition_id="ed-1", title="Title")
-
-        request.app.state.templates.TemplateResponse.assert_called_once_with(
-            "partials/edition_title.html",
-            {"request": request, "edition": edition, "editing": False},
-        )
-
-
-async def test_edit_title_form_renders_editing_partial() -> None:
-    """GET title/edit returns the editing-mode partial."""
-    request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
-
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = edition
-
-        await edit_title_form(request, edition_id="ed-1")
-
-        request.app.state.templates.TemplateResponse.assert_called_once_with(
-            "partials/edition_title.html",
-            {"request": request, "edition": edition, "editing": True},
-        )
-
-
-async def test_cancel_title_edit_renders_display_partial() -> None:
-    """GET title/cancel returns the display-mode partial."""
-    request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
-
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = edition
-
-        await cancel_title_edit(request, edition_id="ed-1")
-
-        request.app.state.templates.TemplateResponse.assert_called_once_with(
-            "partials/edition_title.html",
-            {"request": request, "edition": edition, "editing": False},
-        )
 
 
 async def test_delete_edition_soft_deletes() -> None:

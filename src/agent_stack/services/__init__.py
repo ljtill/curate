@@ -12,7 +12,6 @@ from agent_stack.services.editions import (
     get_edition_detail,
     list_editions,
     publish_edition,
-    update_title,
 )
 from agent_stack.services.feedback import submit_feedback
 from agent_stack.services.links import delete_link, retry_link, submit_link
@@ -31,5 +30,4 @@ __all__ = [
     "retry_link",
     "submit_feedback",
     "submit_link",
-    "update_title",
 ]
