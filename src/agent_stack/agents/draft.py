@@ -7,7 +7,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Annotated
 
-from agent_framework import Agent, ChatOptions, tool
+from agent_framework import Agent, tool
 
 from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
@@ -48,7 +48,6 @@ class DraftAgent:
                 "Composes or revises newsletter content from reviewed material."
             ),
             tools=[self.get_reviewed_link, self.get_edition_content, self.save_draft],
-            default_options=ChatOptions(temperature=0.7),
             middleware=middleware,
         )
 

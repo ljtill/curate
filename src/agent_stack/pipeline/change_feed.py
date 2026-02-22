@@ -25,8 +25,9 @@ logger = logging.getLogger(__name__)
 class ChangeFeedProcessor:
     """Consumes Cosmos DB change feed for links and feedback containers.
 
-    Runs as a background task within the FastAPI lifespan, processing changes
-    sequentially to avoid race conditions on the edition document.
+    Runs as a background task within the FastAPI lifespan. Handlers are
+    dispatched as background tasks so the poll loop stays responsive and
+    does not block the event loop during long-running agent processing.
     """
 
     def __init__(
@@ -37,6 +38,7 @@ class ChangeFeedProcessor:
         self._orchestrator = orchestrator
         self._running = False
         self._task: asyncio.Task | None = None
+        self._handler_tasks: set[asyncio.Task] = set()
 
     @property
     def running(self) -> bool:
@@ -66,6 +68,12 @@ class ChangeFeedProcessor:
             self._task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
+        # Cancel any in-flight handler tasks
+        for task in list(self._handler_tasks):
+            task.cancel()
+        if self._handler_tasks:
+            await asyncio.gather(*self._handler_tasks, return_exceptions=True)
+            self._handler_tasks.clear()
         logger.info("Change feed processor stopped")
 
     async def _poll_loop(self) -> None:
@@ -116,6 +124,18 @@ class ChangeFeedProcessor:
                 consecutive_errors = 0
                 await asyncio.sleep(1.0)
 
+    async def _safe_handle(
+        self,
+        handler: Callable[[dict[str, Any]], Awaitable[None]],
+        item: dict[str, Any],
+        item_id: str,
+    ) -> None:
+        """Run a handler in a background task with error logging."""
+        try:
+            await handler(item)
+        except Exception:
+            logger.exception("Failed to process change feed item %s", item_id)
+
     async def process_feed(
         self,
         container: ContainerProxy,
@@ -138,16 +158,15 @@ class ChangeFeedProcessor:
                 async for item in page:
                     item_id = item.get("id", "unknown")
                     logger.info(
-                        "Change feed processing item=%s container=%s",
+                        "Change feed dispatching item=%s container=%s",
                         item_id,
                         container.id,
                     )
-                    try:
-                        await handler(item)
-                    except Exception:
-                        logger.exception(
-                            "Failed to process change feed item %s", item_id
-                        )
+                    task = asyncio.create_task(
+                        self._safe_handle(handler, item, item_id)
+                    )
+                    self._handler_tasks.add(task)
+                    task.add_done_callback(self._handler_tasks.discard)
         except ServiceResponseError as exc:
             # The Cosmos DB vnext-preview emulator returns malformed HTTP responses
             # for the change feed endpoint when there are no changes, causing aiohttp

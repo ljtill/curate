@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from html import escape
 from typing import TYPE_CHECKING, Annotated, Any
 
-from agent_framework import Agent, ChatOptions, tool
+from agent_framework import Agent, tool
 
 from agent_stack.agents.draft import DraftAgent
 from agent_stack.agents.edit import EditAgent
@@ -182,7 +182,6 @@ class PipelineOrchestrator:
                 self.record_stage_start,
                 self.record_stage_complete,
             ],
-            default_options=ChatOptions(temperature=0.0),
             middleware=[
                 TokenTrackingMiddleware(),
                 rate_limiter,

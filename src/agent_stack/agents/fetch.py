@@ -8,7 +8,7 @@ import time
 from typing import TYPE_CHECKING, Annotated
 
 import httpx
-from agent_framework import Agent, ChatOptions, tool
+from agent_framework import Agent, tool
 
 from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
@@ -44,7 +44,6 @@ class FetchAgent:
             name="fetch-agent",
             description="Retrieves and parses submitted link content from URLs.",
             tools=[self.fetch_url, self.save_fetched_content, self.mark_link_failed],
-            default_options=ChatOptions(temperature=0.0),
             middleware=middleware,
         )
 

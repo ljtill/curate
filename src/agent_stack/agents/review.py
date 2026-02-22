@@ -7,7 +7,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Annotated
 
-from agent_framework import Agent, ChatOptions, tool
+from agent_framework import Agent, tool
 
 from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
@@ -49,7 +49,6 @@ class ReviewAgent:
                 "Evaluates relevance, extracts key insights, and categorizes content."
             ),
             tools=[self.get_link_content, self.save_review],
-            default_options=ChatOptions(temperature=0.3),
             middleware=middleware,
         )
 

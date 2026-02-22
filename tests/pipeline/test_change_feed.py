@@ -1,5 +1,6 @@
 """Tests for ChangeFeedProcessor."""
 
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -72,6 +73,8 @@ async def test_process_feed_delegates_to_handler(
     handler = AsyncMock()
 
     await processor.process_feed(container, None, handler)
+    # Handlers are dispatched as background tasks — let them complete
+    await asyncio.sleep(0)
 
     assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
     handler.assert_any_call({"id": "link-1"})
@@ -128,6 +131,8 @@ async def test_process_feed_handles_handler_error(
 
     # Should not raise — errors are caught per item
     await processor.process_feed(container, None, handler)
+    # Handlers are dispatched as background tasks — let them complete
+    await asyncio.sleep(0)
     assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
 
 

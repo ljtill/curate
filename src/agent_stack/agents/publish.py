@@ -8,7 +8,7 @@ import time
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated
 
-from agent_framework import Agent, ChatOptions, tool
+from agent_framework import Agent, tool
 
 from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
@@ -54,7 +54,6 @@ class PublishAgent:
                 "template and deploys static pages."
             ),
             tools=[self.render_and_upload, self.mark_published],
-            default_options=ChatOptions(temperature=0.0),
             middleware=middleware,
         )
 

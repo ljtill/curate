@@ -20,7 +20,7 @@ async def test_agents_page_renders_template() -> None:
             "name": "fetch",
             "description": "Fetches content",
             "tools": [{"name": "fetch_url", "description": "Fetch a URL"}],
-            "options": {"temperature": 0.0},
+            "options": {},
             "middleware": ["TokenTrackingMiddleware"],
             "instructions": {
                 "preview": "You are the Fetch agent…",
