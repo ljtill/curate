@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from azure.identity.aio import DefaultAzureCredential
 from azure.storage.blob import ContentSettings
 from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 
@@ -21,11 +22,13 @@ class BlobStorageClient:
         """Initialize the blob storage client with connection config."""
         self._config = config
         self._service_client: BlobServiceClient | None = None
+        self._credential: DefaultAzureCredential | None = None
 
     async def initialize(self) -> None:
         """Create the blob service client and ensure the target container exists."""
-        self._service_client = BlobServiceClient.from_connection_string(
-            self._config.connection_string
+        self._credential = DefaultAzureCredential()
+        self._service_client = BlobServiceClient(
+            self._config.account_url, credential=self._credential
         )
         container = self._service_client.get_container_client(self._config.container)
         if not await container.exists():
@@ -36,6 +39,9 @@ class BlobStorageClient:
         if self._service_client:
             await self._service_client.close()
             self._service_client = None
+        if self._credential:
+            await self._credential.close()
+            self._credential = None
 
     @property
     def service_client(self) -> BlobServiceClient | None:

@@ -46,7 +46,7 @@ module appConfig 'modules/app-configuration.bicep' = {
     principalId: identity.outputs.principalId
     cosmosEndpoint: cosmosDb.outputs.endpoint
     cosmosDatabase: cosmosDb.outputs.databaseName
-    storageConnectionString: storage.outputs.connectionString
+    storageAccountUrl: storage.outputs.accountUrl
     appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }

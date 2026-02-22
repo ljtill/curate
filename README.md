@@ -38,6 +38,7 @@ tests/               # Unit and integration tests
 
 - Python 3.13+
 - [uv](https://docs.astral.sh/uv/)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) (for authentication)
 - Docker
 
 ### Setup
@@ -48,6 +49,9 @@ uv sync --all-groups --prerelease=allow
 
 # Start the Cosmos DB and Azurite emulators
 docker compose up -d
+
+# Authenticate with Azure (required for local development)
+az login
 
 # Configure environment
 cp .env.example .env

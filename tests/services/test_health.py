@@ -15,9 +15,7 @@ from agent_stack.services.health import (
     check_storage,
 )
 
-_cosmos_config = CosmosConfig(
-    endpoint="https://localhost:8081", key="", database="agent-stack"
-)
+_cosmos_config = CosmosConfig(endpoint="https://localhost:8081", database="agent-stack")
 
 
 async def test_check_cosmos_healthy() -> None:
@@ -81,7 +79,7 @@ async def test_check_openai_unhealthy() -> None:
 
 
 _storage_config = StorageConfig(
-    connection_string="DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=secret;EndpointSuffix=core.windows.net",
+    account_url="https://myaccount.blob.core.windows.net",
     container="$web",
 )
 
@@ -221,15 +219,15 @@ def test_clean_openai_error_passthrough() -> None:
 
 
 def test_storage_account_name_extracts_name() -> None:
-    """Verify account name is extracted from connection string."""
-    conn = "DefaultEndpointsProtocol=https;AccountName=mystore;AccountKey=key"
+    """Verify account name is extracted from account URL."""
+    url = "https://mystore.blob.core.windows.net"
 
-    assert _storage_account_name(conn) == "mystore"
+    assert _storage_account_name(url) == "mystore"
 
 
 def test_storage_account_name_unknown_fallback() -> None:
     """Verify 'unknown' is returned when account name is not found."""
-    assert _storage_account_name("SomeOtherFormat=value") == "unknown"
+    assert _storage_account_name("https://localhost:8081") == "unknown"
 
 
 async def test_check_all_without_storage() -> None:

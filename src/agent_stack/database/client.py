@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, ClassVar, cast
 from azure.cosmos import PartitionKey
 from azure.cosmos.aio import CosmosClient as AzureCosmosClient
 from azure.cosmos.aio import DatabaseProxy
+from azure.identity.aio import DefaultAzureCredential
 
 if TYPE_CHECKING:
     from agent_stack.config import CosmosConfig
@@ -19,6 +20,7 @@ class CosmosClient:
         """Initialize the Cosmos DB client wrapper with connection config."""
         self._config = config
         self._client: AzureCosmosClient | None = None
+        self._credential: DefaultAzureCredential | None = None
         self._database: DatabaseProxy | None = None
 
     _CONTAINERS: ClassVar[list[tuple[str, str]]] = [
@@ -31,8 +33,9 @@ class CosmosClient:
 
     async def initialize(self) -> None:
         """Create the client and ensure the database and containers exist."""
+        self._credential = DefaultAzureCredential()
         self._client = AzureCosmosClient(
-            self._config.endpoint, credential=self._config.key
+            self._config.endpoint, credential=self._credential
         )
         db = cast(
             "DatabaseProxy",
@@ -50,6 +53,9 @@ class CosmosClient:
             await self._client.close()
             self._client = None
             self._database = None
+        if self._credential:
+            await self._credential.close()
+            self._credential = None
 
     @property
     def database(self) -> DatabaseProxy:

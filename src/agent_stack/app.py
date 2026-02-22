@@ -69,7 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     upload_fn = None
     storage: BlobStorageClient | None = None
 
-    if settings.storage.connection_string:
+    if settings.storage.account_url:
         try:
             storage = BlobStorageClient(settings.storage)
             await storage.initialize()
@@ -88,9 +88,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 await storage.close()
             storage = None
     else:
-        logger.warning(
-            "AZURE_STORAGE_CONNECTION_STRING not set — publish uploads disabled"
-        )
+        logger.warning("AZURE_STORAGE_ACCOUNT_URL not set — publish uploads disabled")
 
     orchestrator = PipelineOrchestrator(
         client=chat_client,

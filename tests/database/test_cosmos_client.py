@@ -16,9 +16,7 @@ class TestCosmosClient:
     @pytest.fixture
     def config(self) -> tuple[CosmosConfig, object, object]:
         """Create a config for testing."""
-        return CosmosConfig(
-            endpoint="https://localhost:8081", key="test-key", database="test-db"
-        )
+        return CosmosConfig(endpoint="https://localhost:8081", database="test-db")
 
     @pytest.fixture
     def client(self, config: CosmosConfig) -> CosmosClient:

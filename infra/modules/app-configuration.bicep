@@ -13,9 +13,8 @@ param cosmosEndpoint string
 @description('Cosmos DB database name')
 param cosmosDatabase string
 
-@description('Storage account connection string')
-@secure()
-param storageConnectionString string
+@description('Storage account URL')
+param storageAccountUrl string
 
 @description('Application Insights connection string')
 @secure()
@@ -55,11 +54,11 @@ resource cosmosDatabaseKv 'Microsoft.AppConfiguration/configurationStores/keyVal
   }
 }
 
-resource storageConnectionKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
+resource storageAccountUrlKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
   parent: appConfig
-  name: 'AZURE_STORAGE_CONNECTION_STRING'
+  name: 'AZURE_STORAGE_ACCOUNT_URL'
   properties: {
-    value: storageConnectionString
+    value: storageAccountUrl
   }
 }
 

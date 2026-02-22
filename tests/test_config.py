@@ -55,11 +55,9 @@ def test_app_config_is_development_false() -> None:
 def test_cosmos_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify cosmos config defaults."""
     monkeypatch.setenv("COSMOS_ENDPOINT", "https://cosmos.example.com")
-    monkeypatch.setenv("COSMOS_KEY", "secret")
     monkeypatch.delenv("COSMOS_DATABASE", raising=False)
     config = CosmosConfig()
     assert config.endpoint == "https://cosmos.example.com"
-    assert config.key == "secret"
     assert config.database == "agent-stack"
 
 
@@ -74,7 +72,9 @@ def test_openai_config(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_storage_config_default_container(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify storage config default container."""
-    monkeypatch.setenv("AZURE_STORAGE_CONNECTION_STRING", "conn")
+    monkeypatch.setenv(
+        "AZURE_STORAGE_ACCOUNT_URL", "https://test.blob.core.windows.net"
+    )
     monkeypatch.delenv("AZURE_STORAGE_CONTAINER", raising=False)
     config = StorageConfig()
     assert config.container == "$web"
@@ -84,10 +84,9 @@ def test_settings_creates_all_sub_configs(monkeypatch: pytest.MonkeyPatch) -> No
     """Verify settings creates all sub configs."""
     for key in [
         "COSMOS_ENDPOINT",
-        "COSMOS_KEY",
         "AZURE_OPENAI_ENDPOINT",
         "AZURE_OPENAI_DEPLOYMENT",
-        "AZURE_STORAGE_CONNECTION_STRING",
+        "AZURE_STORAGE_ACCOUNT_URL",
         "ENTRA_TENANT_ID",
         "ENTRA_CLIENT_ID",
         "ENTRA_CLIENT_SECRET",

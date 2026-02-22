@@ -119,11 +119,20 @@ def _clean_openai_error(raw: str) -> str:
     return raw
 
 
-def _storage_account_name(connection_string: str) -> str:
-    """Extract the account name from a storage connection string."""
-    for part in connection_string.split(";"):
-        if part.strip().lower().startswith("accountname="):
-            return part.split("=", 1)[1]
+def _storage_account_name(account_url: str) -> str:
+    """Extract the account name from a storage account URL."""
+    from urllib.parse import urlparse  # noqa: PLC0415
+
+    try:
+        parsed = urlparse(account_url)
+        host = parsed.hostname or ""
+        if ".blob." in host:
+            return host.split(".")[0]
+        parts = parsed.path.strip("/").split("/")
+        if parts and parts[0]:
+            return parts[0]
+    except Exception:  # noqa: BLE001
+        return "unknown"
     return "unknown"
 
 
@@ -131,7 +140,7 @@ async def check_storage(
     storage: BlobStorageClient, config: StorageConfig
 ) -> ServiceHealth:
     """Probe Azure Storage with a lightweight container existence check."""
-    account = _storage_account_name(config.connection_string)
+    account = _storage_account_name(config.account_url)
     detail = f"{account} · {config.container}"
     start = time.monotonic()
     try:

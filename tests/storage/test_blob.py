@@ -15,7 +15,7 @@ class TestBlobStorageClient:
     def config(self) -> StorageConfig:
         """Create a config for testing."""
         return StorageConfig(
-            connection_string="DefaultEndpointsProtocol=https;AccountName=test",
+            account_url="https://test.blob.core.windows.net",
             container="$web",
         )
 
@@ -28,28 +28,37 @@ class TestBlobStorageClient:
         self, client: BlobStorageClient
     ) -> None:
         """Verify initialize creates service client."""
-        with patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls:
+        with (
+            patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls,
+            patch("agent_stack.storage.blob.DefaultAzureCredential") as mock_cred_cls,
+        ):
             mock_service = MagicMock()
             mock_container = AsyncMock()
             mock_container.exists.return_value = True
             mock_service.get_container_client.return_value = mock_container
-            mock_bsc_cls.from_connection_string.return_value = mock_service
+            mock_bsc_cls.return_value = mock_service
 
             await client.initialize()
 
-            mock_bsc_cls.from_connection_string.assert_called_once()
+            mock_bsc_cls.assert_called_once_with(
+                "https://test.blob.core.windows.net",
+                credential=mock_cred_cls.return_value,
+            )
             mock_container.exists.assert_awaited_once()
 
     async def test_initialize_creates_container_if_missing(
         self, client: BlobStorageClient
     ) -> None:
         """Verify initialize creates container if missing."""
-        with patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls:
+        with (
+            patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls,
+            patch("agent_stack.storage.blob.DefaultAzureCredential"),
+        ):
             mock_service = MagicMock()
             mock_container = AsyncMock()
             mock_container.exists.return_value = False
             mock_service.get_container_client.return_value = mock_container
-            mock_bsc_cls.from_connection_string.return_value = mock_service
+            mock_bsc_cls.return_value = mock_service
 
             await client.initialize()
 

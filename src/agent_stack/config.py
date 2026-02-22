@@ -18,7 +18,6 @@ class CosmosConfig:
     """Hold Azure Cosmos DB connection settings."""
 
     endpoint: str = field(default_factory=lambda: _env("COSMOS_ENDPOINT"))
-    key: str = field(default_factory=lambda: _env("COSMOS_KEY"))
     database: str = field(
         default_factory=lambda: _env("COSMOS_DATABASE", "agent-stack")
     )
@@ -36,9 +35,7 @@ class OpenAIConfig:
 class StorageConfig:
     """Hold Azure Blob Storage connection settings."""
 
-    connection_string: str = field(
-        default_factory=lambda: _env("AZURE_STORAGE_CONNECTION_STRING")
-    )
+    account_url: str = field(default_factory=lambda: _env("AZURE_STORAGE_ACCOUNT_URL"))
     container: str = field(
         default_factory=lambda: _env("AZURE_STORAGE_CONTAINER", "$web")
     )

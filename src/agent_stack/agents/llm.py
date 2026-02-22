@@ -11,21 +11,12 @@ if TYPE_CHECKING:
     from agent_stack.config import OpenAIConfig
 
 
-def create_chat_client(
-    config: OpenAIConfig, *, use_key: str | None = None
-) -> AzureOpenAIChatClient:
-    """Create an AzureOpenAIChatClient authenticated via managed identity or API key.
+def create_chat_client(config: OpenAIConfig) -> AzureOpenAIChatClient:
+    """Create an AzureOpenAIChatClient authenticated via DefaultAzureCredential.
 
-    In local development, pass ``use_key`` to authenticate with an API key.
-    In deployed environments, ``DefaultAzureCredential`` is used automatically.
+    Uses Azure CLI credentials in local development and managed identity
+    in deployed environments.
     """
-    if use_key:
-        return AzureOpenAIChatClient(
-            endpoint=config.endpoint,
-            deployment_name=config.deployment,
-            api_key=use_key,
-        )
-
     return AzureOpenAIChatClient(
         endpoint=config.endpoint,
         deployment_name=config.deployment,

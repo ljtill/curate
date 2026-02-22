@@ -9,22 +9,10 @@ from agent_stack.config import OpenAIConfig
 class TestCreateChatClient:
     """Test the Create Chat Client."""
 
-    def test_creates_client_with_api_key(self, openai_config: OpenAIConfig) -> None:
-        """Verify creates client with api key."""
-        with patch("agent_stack.agents.llm.AzureOpenAIChatClient") as mock_client_cls:
-            client = create_chat_client(openai_config, use_key="test-api-key")
-
-            mock_client_cls.assert_called_once_with(
-                endpoint=openai_config.endpoint,
-                deployment_name=openai_config.deployment,
-                api_key="test-api-key",
-            )
-            assert client == mock_client_cls.return_value
-
-    def test_creates_client_with_managed_identity(
+    def test_creates_client_with_default_credential(
         self, openai_config: OpenAIConfig
     ) -> None:
-        """Verify creates client with managed identity."""
+        """Verify creates client with DefaultAzureCredential."""
         with (
             patch("agent_stack.agents.llm.AzureOpenAIChatClient") as mock_client_cls,
             patch("agent_stack.agents.llm.DefaultAzureCredential") as mock_cred_cls,
