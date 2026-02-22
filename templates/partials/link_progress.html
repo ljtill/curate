@@ -1,0 +1,75 @@
+{% macro render_link_progress(groups) %}
+{% if not groups %}
+<span style="color: var(--text-muted);">—</span>
+{% else %}
+{% set latest = groups[-1] %}
+{% set stages = latest | rejectattr('stage', 'equalto', 'orchestrator') | list %}
+{% set orch = latest | selectattr('stage', 'equalto', 'orchestrator') | first %}
+
+{# Overall status indicator #}
+{% set failed_stages = stages | selectattr('status', 'equalto', 'failed') | list %}
+{% set running_stages = stages | selectattr('status', 'equalto', 'running') | list %}
+{% if running_stages %}
+<span class="agent-indicator" style="margin-bottom: 0.25rem;">
+    <span class="agent-indicator-dot agent-indicator-dot-running"></span>
+    <span style="font-size: 0.75rem;">Running</span>
+</span>
+{% elif failed_stages %}
+<span class="agent-indicator" style="margin-bottom: 0.25rem;">
+    <span class="agent-indicator-dot agent-indicator-dot-failed"></span>
+    <span style="font-size: 0.75rem; color: var(--danger);">Failed</span>
+</span>
+{% elif stages %}
+<span class="agent-indicator" style="margin-bottom: 0.25rem;">
+    <span class="agent-indicator-dot agent-indicator-dot-completed"></span>
+    <span style="font-size: 0.75rem; color: var(--success);">Completed</span>
+</span>
+{% endif %}
+
+{# Horizontal step indicator #}
+{% if stages %}
+<div class="pipeline-steps">
+    {% for run in stages %}
+    {% if not loop.first %}<span class="pipeline-step-arrow">→</span>{% endif %}
+    <span class="pipeline-step">
+        <span class="pipeline-step-icon pipeline-step-icon-{{ run.status }}">
+            {% if run.status == 'running' %}<span class="spinner">⟳</span>{% elif run.status == 'completed' %}✓{% else %}✗{% endif %}
+        </span>
+        <span class="stage-{{ run.stage }}">{{ run.stage | capitalize }}</span>
+    </span>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# Error message for failed stage #}
+{% for run in stages %}
+{% if run.status == 'failed' and run.output %}
+<div class="pipeline-step-error">{{ run.output.get('error', 'Unknown error') if run.output is mapping else run.output }}</div>
+{% endif %}
+{% endfor %}
+
+{# Previous invocations #}
+{% if groups | length > 1 %}
+<details>
+    <summary class="pipeline-prev-summary">{{ groups | length - 1 }} previous run{{ 's' if groups | length - 1 != 1 else '' }}</summary>
+    {% for group in groups[:-1] | reverse %}
+    {% set g_stages = group | rejectattr('stage', 'equalto', 'orchestrator') | list %}
+    {% set g_failed = g_stages | selectattr('status', 'equalto', 'failed') | list %}
+    <div class="pipeline-prev-run">
+        {% if g_failed %}
+        <span class="pipeline-step-icon pipeline-step-icon-failed" style="width: 1rem; height: 1rem; font-size: 0.55rem;">✗</span>
+        <span style="color: var(--danger);">{{ g_failed[0].stage | capitalize }} failed</span>
+        {% else %}
+        <span class="pipeline-step-icon pipeline-step-icon-completed" style="width: 1rem; height: 1rem; font-size: 0.55rem;">✓</span>
+        <span>Completed</span>
+        {% endif %}
+        {% set g_orch = group | selectattr('stage', 'equalto', 'orchestrator') | first %}
+        {% if g_orch and g_orch.started_at %}
+        <span>· {{ g_orch.started_at.strftime('%H:%M:%S') if g_orch.started_at.strftime is defined else g_orch.started_at }}</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</details>
+{% endif %}
+{% endif %}
+{% endmacro %}

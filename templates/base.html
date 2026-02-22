@@ -205,6 +205,63 @@
         .agent-indicator-dot-running { background: #60a5fa; animation: pulse 1.5s ease-in-out infinite; }
         .agent-indicator-dot-completed { background: var(--success); }
         .agent-indicator-dot-failed { background: var(--danger); }
+        /* Compact pipeline step indicator (links table) */
+        .pipeline-steps {
+            display: flex;
+            align-items: center;
+            gap: 0.15rem;
+            flex-wrap: wrap;
+        }
+        .pipeline-step {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .pipeline-step-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            flex-shrink: 0;
+        }
+        .pipeline-step-icon-completed { background: #1a3329; color: var(--success); }
+        .pipeline-step-icon-failed { background: #3b1a1a; color: var(--danger); }
+        .pipeline-step-icon-running { background: #1e3a5f; color: #60a5fa; }
+        .pipeline-step-arrow {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            margin: 0 0.1rem;
+        }
+        .pipeline-step-error {
+            margin-top: 0.35rem;
+            padding: 0.35rem 0.6rem;
+            background: #2d1515;
+            border: 1px solid #5c2020;
+            border-radius: 4px;
+            color: #fca5a5;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        .pipeline-prev-summary {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 0.35rem;
+            cursor: pointer;
+        }
+        .pipeline-prev-summary:hover { color: var(--accent); }
+        .pipeline-prev-run {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 0.2rem 0;
+        }
     </style>
 </head>
 <body>

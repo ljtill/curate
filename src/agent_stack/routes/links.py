@@ -42,10 +42,11 @@ async def list_links(
 
     links = await links_repo.get_by_edition(edition.id) if edition else []
 
-    # Build a map of link_id -> agent runs for display
-    link_runs: dict[str, list] = {}
+    # Build a map of link_id -> pipeline invocation groups for display
+    link_run_groups: dict[str, list[list]] = {}
     for link in links:
-        link_runs[link.id] = await runs_repo.get_by_trigger(link.id)
+        runs = await runs_repo.get_by_trigger(link.id)
+        link_run_groups[link.id] = _group_runs_by_invocation(runs)
 
     return templates.TemplateResponse(
         "links.html",
@@ -54,7 +55,7 @@ async def list_links(
             "links": links,
             "edition": edition,
             "editions": editions,
-            "link_runs": link_runs,
+            "link_run_groups": link_run_groups,
         },
     )
 
@@ -140,3 +141,20 @@ async def delete_link(
 
 def _get_editions_repo(cosmos: CosmosClient) -> EditionRepository:
     return EditionRepository(cosmos.database)
+
+
+def _group_runs_by_invocation(runs: list) -> list[list]:
+    """Group a flat list of agent runs into pipeline invocations.
+
+    Each orchestrator run marks the start of a new invocation. Stages that
+    follow belong to that group until the next orchestrator run appears.
+    """
+    if not runs:
+        return []
+
+    groups: list[list] = []
+    for run in runs:
+        if run.stage == "orchestrator" or not groups:
+            groups.append([])
+        groups[-1].append(run)
+    return groups
