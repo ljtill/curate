@@ -64,10 +64,6 @@
     </div>
 </div>
 
-<!-- SSE listeners for live status updates -->
-<div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-start" hx-swap="none"></div>
-<div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-complete" hx-swap="none"></div>
-
 <!-- Agent Detail Cards -->
 {% for agent in agents %}
 <div class="card agent-card" id="agent-card-{{ agent.name }}" style="margin-top: 1rem;">

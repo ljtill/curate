@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from agent_framework import Message
+from agent_framework.exceptions import ChatClientException
 from azure.core.exceptions import AzureError
 
 if TYPE_CHECKING:
@@ -75,7 +76,7 @@ async def check_openai(
             latency_ms=round(latency, 1),
             detail=detail,
         )
-    except (OSError, RuntimeError, ValueError) as exc:
+    except (ChatClientException, OSError, RuntimeError, ValueError) as exc:
         latency = (time.monotonic() - start) * 1000
         raw = str(exc)
         if "max_tokens" in raw or "model output limit" in raw:

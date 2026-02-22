@@ -23,10 +23,6 @@
 </div>
 <div class="card" style="margin-top: 1rem;">
     <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Recent Agent Activity</h2>
-    <div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-start" hx-swap="afterbegin" hx-target="#dashboard-activity-feed">
-    </div>
-    <div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-complete" hx-swap="none">
-    </div>
     {{ render_activity_list(recent_runs) }}
 </div>
 {% endblock %}
