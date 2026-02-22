@@ -11,42 +11,25 @@ Built on [Microsoft Agent Framework](https://github.com/microsoft/agent-framewor
 The system implements a nested two-loop architecture — an **outer orchestrator loop** that coordinates agents as tool calls, and an **inner agentic loop** where each agent iterates with the LLM until its task is complete.
 
 ```mermaid
-flowchart TB
-    %% Entry points
-    CFP["Change Feed Processor"]
-
-    subgraph Outer["Outer Loop — Pipeline Orchestrator (Agent)"]
-        direction TB
-        ORC_LLM["Orchestrator LLM"]
-        ORC_DECIDE{"Select next\nagent stage"}
-        ORC_RESULT["Evaluate result"]
-
-        ORC_LLM --> ORC_DECIDE
-        ORC_RESULT -->|"more stages needed"| ORC_LLM
-    end
-
-    subgraph Inner["Inner Loop — Sub-Agent (×5)"]
-        direction TB
-        AGENT_LLM["Agent LLM"]
-        TOOL_CALL{"Tool call?"}
-        TOOLS["Execute Tool\n(DB read/write, HTTP fetch,\nrender HTML)"]
-        DONE["Return result\nto orchestrator"]
-
-        AGENT_LLM --> TOOL_CALL
-        TOOL_CALL -->|yes| TOOLS
-        TOOLS -->|"tool result"| AGENT_LLM
-        TOOL_CALL -->|"no — task complete"| DONE
-    end
-
-    %% Connections
-    CFP -->|"link submitted /\neditor feedback"| ORC_LLM
-    ORC_DECIDE -->|"invoke agent\nas tool call"| AGENT_LLM
-    DONE --> ORC_RESULT
-    ORC_RESULT -->|"pipeline complete"| DB[("Cosmos DB")]
-
-    %% Human-in-the-loop
-    Editor([Editor]) -->|"submit feedback"| CFP
+flowchart LR
+    Editor([Editor]) -->|"submit link /\nfeedback"| CFP[Change Feed\nProcessor]
+    CFP --> ORC[Orchestrator\nLLM]
+    ORC -->|"invoke agent\nas tool call"| AGENT[Agent LLM\nFetch · Review · Draft\nEdit · Publish]
+    AGENT -->|"tool call"| TOOLS[Tools\nDB · HTTP · Render]
+    TOOLS -->|"result"| AGENT
+    AGENT -->|"task complete"| ORC
+    ORC -->|"pipeline\ncomplete"| DB[(Cosmos DB)]
     DB -.->|"change feed"| CFP
+
+    classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef human fill:#059669,stroke:#047857,color:#fff
+
+    class ORC outer
+    class AGENT,TOOLS inner
+    class CFP,DB infra
+    class Editor human
 ```
 
 > **Outer loop** — the orchestrator's LLM decides which agent to invoke next (Fetch → Review → Draft, or Edit/Publish), treating each sub-agent as a callable tool. After each agent returns, the orchestrator re-evaluates and either continues to the next stage or completes the pipeline.
