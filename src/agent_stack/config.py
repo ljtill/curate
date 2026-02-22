@@ -81,6 +81,7 @@ class AppConfig:
     app_config_endpoint: str = field(
         default_factory=lambda: _env("APP_CONFIG_ENDPOINT")
     )
+    log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
 
     @property
     def is_development(self) -> bool:

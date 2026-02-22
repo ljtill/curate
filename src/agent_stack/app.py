@@ -141,17 +141,20 @@ def create_app() -> FastAPI:
 
 def main() -> None:
     """Entry point for running the application."""
+    settings = load_settings()
+    log_level = getattr(logging, settings.app.log_level.upper(), logging.INFO)
+
     log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
     log_dir.mkdir(exist_ok=True)
 
     file_handler = logging.FileHandler(log_dir / "server.log", mode="w")
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(log_level)
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
     )
 
     logging.basicConfig(
-        level=logging.INFO, handlers=[logging.StreamHandler(), file_handler]
+        level=log_level, handlers=[logging.StreamHandler(), file_handler]
     )
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
