@@ -15,8 +15,8 @@ async def recent_runs(request: Request) -> HTMLResponse:
     """Return recent agent runs as an HTML partial for the dashboard."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
-    repo = AgentRunRepository(cosmos.database)
-    runs = await repo.list_recent(20)
+    runs_repo = AgentRunRepository(cosmos.database)
+    runs = await runs_repo.list_recent(20)
     return templates.TemplateResponse(
         "partials/agent_run_item.html",
         {"request": request, "runs": runs},

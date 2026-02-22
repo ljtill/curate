@@ -18,6 +18,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+async def list_editions(editions_repo: EditionRepository) -> list[Edition]:
+    """Return all editions."""
+    return await editions_repo.list_all()
+
+
+async def get_edition(
+    edition_id: str, editions_repo: EditionRepository
+) -> Edition | None:
+    """Return a single edition by ID, or None if not found."""
+    return await editions_repo.get(edition_id, edition_id)
+
+
 async def create_edition(editions_repo: EditionRepository) -> Edition:
     """Auto-generate an issue number and create a new edition."""
     issue_number = await editions_repo.next_issue_number()

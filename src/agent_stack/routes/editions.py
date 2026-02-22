@@ -25,7 +25,7 @@ async def list_editions(request: Request) -> HTMLResponse:
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    editions = await repo.list_all()
+    editions = await edition_svc.list_editions(repo)
     return templates.TemplateResponse(
         "editions.html",
         {"request": request, "editions": editions},
@@ -67,7 +67,7 @@ async def preview_edition(request: Request, edition_id: str) -> HTMLResponse:
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    edition = await repo.get(edition_id, edition_id)
+    edition = await edition_svc.get_edition(edition_id, repo)
     return templates.TemplateResponse(
         "newsletter/edition.html",
         {"request": request, "edition": edition},
@@ -111,7 +111,7 @@ async def edit_title_form(request: Request, edition_id: str) -> HTMLResponse:
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    edition = await repo.get(edition_id, edition_id)
+    edition = await edition_svc.get_edition(edition_id, repo)
     return templates.TemplateResponse(
         "partials/edition_title.html",
         {"request": request, "edition": edition, "editing": True},
@@ -124,7 +124,7 @@ async def cancel_title_edit(request: Request, edition_id: str) -> HTMLResponse:
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    edition = await repo.get(edition_id, edition_id)
+    edition = await edition_svc.get_edition(edition_id, repo)
     return templates.TemplateResponse(
         "partials/edition_title.html",
         {"request": request, "edition": edition, "editing": False},

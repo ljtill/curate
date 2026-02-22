@@ -26,16 +26,20 @@ async def test_agents_page_renders_template() -> None:
                 "preview": "You are the Fetch agent…",
                 "full": "You are the Fetch agent...",
             },
+            "recent_runs": [],
+            "last_run": None,
+            "is_running": False,
         }
     ]
 
     with (
         patch(
-            "agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata
+            "agent_stack.routes.agents.get_agents_page_data",
+            new_callable=AsyncMock,
+            return_value={"agents": fake_metadata, "running_stages": set()},
         ),
-        patch("agent_stack.routes.agents.AgentRunRepository") as mock_repo_cls,
+        patch("agent_stack.routes.agents.AgentRunRepository") as _mock_repo_cls,
     ):
-        mock_repo_cls.return_value.list_recent_by_stage = AsyncMock(return_value=[])
         await agents_page(request)
 
     call_args = request.app.state.templates.TemplateResponse.call_args
@@ -60,17 +64,6 @@ async def test_agents_page_with_runs() -> None:
     request.app.state.processor = MagicMock()
     request.app.state.processor.orchestrator = MagicMock()
 
-    fake_metadata = [
-        {
-            "name": "fetch",
-            "description": "Fetches content",
-            "tools": [],
-            "options": {},
-            "middleware": [],
-            "instructions": {"preview": "", "full": ""},
-        }
-    ]
-
     mock_run = MagicMock()
     mock_run.id = "run-1"
     mock_run.status = "completed"
@@ -81,15 +74,37 @@ async def test_agents_page_with_runs() -> None:
     mock_run.input = {"status": "submitted", "message": "Fetch this URL"}
     mock_run.output = {"content": "I fetched the content."}
 
+    fake_metadata = [
+        {
+            "name": "fetch",
+            "description": "Fetches content",
+            "tools": [],
+            "options": {},
+            "middleware": [],
+            "instructions": {"preview": "", "full": ""},
+            "recent_runs": [mock_run],
+            "last_run": {
+                "id": "run-1",
+                "status": "completed",
+                "started_at": mock_run.started_at,
+                "completed_at": mock_run.completed_at,
+                "usage": mock_run.usage,
+                "trigger_id": "link-abc",
+                "input": mock_run.input,
+                "output": mock_run.output,
+            },
+            "is_running": False,
+        }
+    ]
+
     with (
         patch(
-            "agent_stack.routes.agents.get_agent_metadata", return_value=fake_metadata
+            "agent_stack.routes.agents.get_agents_page_data",
+            new_callable=AsyncMock,
+            return_value={"agents": fake_metadata, "running_stages": set()},
         ),
-        patch("agent_stack.routes.agents.AgentRunRepository") as mock_repo_cls,
+        patch("agent_stack.routes.agents.AgentRunRepository") as _mock_repo_cls,
     ):
-        mock_repo_cls.return_value.list_recent_by_stage = AsyncMock(
-            return_value=[mock_run]
-        )
         await agents_page(request)
 
     call_args = request.app.state.templates.TemplateResponse.call_args

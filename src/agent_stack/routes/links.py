@@ -13,6 +13,7 @@ from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.services import links as link_svc
+from agent_stack.services.agent_runs import group_runs_by_invocation
 
 if TYPE_CHECKING:
     from agent_stack.database.client import CosmosClient
@@ -48,7 +49,7 @@ async def list_links(
     link_run_groups: dict[str, list[list]] = {}
     for link in links:
         runs = await runs_repo.get_by_trigger(link.id)
-        link_run_groups[link.id] = _group_runs_by_invocation(runs)
+        link_run_groups[link.id] = group_runs_by_invocation(runs)
 
     logger.info(
         "Links page loaded — requested_edition=%s selected_edition=%s "
@@ -134,20 +135,3 @@ async def delete_link(
 
 def _get_editions_repo(cosmos: CosmosClient) -> EditionRepository:
     return EditionRepository(cosmos.database)
-
-
-def _group_runs_by_invocation(runs: list) -> list[list]:
-    """Group a flat list of agent runs into pipeline invocations.
-
-    Each orchestrator run marks the start of a new invocation. Stages that
-    follow belong to that group until the next orchestrator run appears.
-    """
-    if not runs:
-        return []
-
-    groups: list[list] = []
-    for run in runs:
-        if run.stage == "orchestrator" or not groups:
-            groups.append([])
-        groups[-1].append(run)
-    return groups
