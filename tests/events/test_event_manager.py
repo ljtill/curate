@@ -76,18 +76,20 @@ class TestEventManagerEventGenerator:
         assert result["event"] == "test"
         assert result["data"] == "payload"
 
-    async def test_sends_ping_on_timeout(self) -> None:
-        """Verify sends ping on timeout."""
+    async def test_skips_on_timeout_and_rechecks(self) -> None:
+        """Verify timeout doesn't yield; loop rechecks disconnect."""
         manager = EventManager.get_instance()
         request = MagicMock()
+        # First is_disconnected returns False (timeout pass), second True (exit)
         request.is_disconnected = AsyncMock(side_effect=[False, True])
 
         gen = manager.event_generator(request)
 
-        with patch("agent_stack.events.asyncio.wait_for", side_effect=TimeoutError):
-            result = await gen.__anext__()
-
-        assert result["event"] == "ping"
+        with (
+            patch("agent_stack.events.asyncio.wait_for", side_effect=TimeoutError),
+            pytest.raises(StopAsyncIteration),
+        ):
+            await gen.__anext__()
 
     async def test_removes_queue_on_disconnect(self) -> None:
         """Verify removes queue on disconnect."""

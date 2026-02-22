@@ -51,13 +51,16 @@ class EventManager:
                 if await request.is_disconnected():
                     break
                 try:
-                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    message = await asyncio.wait_for(queue.get(), timeout=1.0)
                     yield message
                 except TimeoutError:
-                    yield {"event": "ping", "data": ""}
+                    pass
         finally:
             self.queues.remove(queue)
 
     def create_response(self, request: Request) -> EventSourceResponse:
         """Create an SSE response for a client."""
-        return EventSourceResponse(self.event_generator(request))
+        return EventSourceResponse(
+            self.event_generator(request),
+            ping=15,
+        )
