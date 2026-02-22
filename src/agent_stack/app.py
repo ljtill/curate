@@ -158,6 +158,7 @@ def main() -> None:
     )
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("sse_starlette").setLevel(logging.WARNING)
 
     # The Cosmos SDK logs a noisy INFO message on the root logger every change
     # feed poll ("'feed_range' empty. Using full range by default.").  Suppress it.
