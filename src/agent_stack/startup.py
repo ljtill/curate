@@ -66,12 +66,29 @@ def init_chat_client(settings: Settings) -> BaseChatClient | None:
         client = create_chat_client(settings.foundry)
         logger.info("Using Foundry Local — model=%s", settings.foundry.local_model)
         return client
-    if settings.foundry.project_endpoint:
+
+    if not settings.foundry.project_endpoint:
+        logger.warning(
+            "FOUNDRY_PROJECT_ENDPOINT is not set — agent pipeline will be unavailable"
+        )
+        return None
+
+    if not settings.foundry.model:
+        logger.warning(
+            "FOUNDRY_MODEL is not set for cloud provider — "
+            "agent pipeline will be unavailable"
+        )
+        return None
+
+    try:
         return create_chat_client(settings.foundry)
-    logger.warning(
-        "FOUNDRY_PROJECT_ENDPOINT is not set — agent pipeline will be unavailable"
-    )
-    return None
+    except ValueError as exc:
+        logger.warning(
+            "Foundry chat client initialization failed (%s) — "
+            "agent pipeline will be unavailable",
+            exc,
+        )
+        return None
 
 
 async def init_storage(

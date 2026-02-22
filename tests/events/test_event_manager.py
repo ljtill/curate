@@ -115,15 +115,3 @@ class TestEventManagerCreateResponse:
             result = manager.create_response(request)
             mock_sse_cls.assert_called_once()
             assert result == mock_sse_cls.return_value
-
-
-class TestSseModuleReExport:
-    """Verify the agent_stack.events.sse backward-compat re-export."""
-
-    def test_import_from_sse_module(self) -> None:
-        """Importing EventManager via agent_stack.events.sse succeeds."""
-        from agent_stack.events.sse import (  # noqa: PLC0415
-            EventManager as SseEventManager,
-        )
-
-        assert SseEventManager is EventManager

@@ -28,4 +28,3 @@ class Link(DocumentBase):
     content: str | None = None
     review: dict | None = None
     edition_id: str = Field(..., description="Associated edition (partition key)")
-    submitted_at: str | None = None

@@ -68,7 +68,6 @@ module containerApps 'modules/container-apps.bicep' = {
     identityId: identity.outputs.id
     acrLoginServer: acr.outputs.loginServer
     imageTag: imageTag
-    appConfigEndpoint: appConfig.outputs.endpoint
     logAnalyticsCustomerId: logAnalytics.outputs.customerId
     logAnalyticsSharedKey: logAnalytics.outputs.sharedKey
     appInsightsConnectionString: appInsights.outputs.connectionString

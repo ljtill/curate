@@ -35,11 +35,6 @@ class FoundryConfig:
     local_model: str = field(
         default_factory=lambda: _env("FOUNDRY_LOCAL_MODEL", "phi-4-mini")
     )
-    token_endpoint: str = field(
-        default_factory=lambda: _env(
-            "FOUNDRY_TOKEN_ENDPOINT", "https://ai.azure.com/.default"
-        )
-    )
 
     @property
     def is_local(self) -> bool:
@@ -100,9 +95,6 @@ class FoundryMemoryConfig:
             "FOUNDRY_EMBEDDING_MODEL", "text-embedding-3-small"
         )
     )
-    update_delay: int = field(
-        default_factory=lambda: int(_env("FOUNDRY_MEMORY_UPDATE_DELAY", "60"))
-    )
     enabled: bool = field(
         default_factory=lambda: _env("FOUNDRY_MEMORY_ENABLED", "true").lower() == "true"
     )
@@ -114,9 +106,6 @@ class AppConfig:
 
     env: str = field(default_factory=lambda: _env("APP_ENV", "development"))
     secret_key: str = field(default_factory=lambda: _env("APP_SECRET_KEY"))
-    app_config_endpoint: str = field(
-        default_factory=lambda: _env("AZURE_APP_CONFIG_ENDPOINT")
-    )
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
     slow_request_ms: int = field(
         default_factory=lambda: int(_env("APP_SLOW_REQUEST_MS", "800"))

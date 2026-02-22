@@ -13,9 +13,6 @@ param acrLoginServer string
 @description('Container image tag')
 param imageTag string
 
-@description('App Configuration endpoint')
-param appConfigEndpoint string
-
 @description('Log Analytics workspace customer ID')
 param logAnalyticsCustomerId string
 
@@ -85,10 +82,6 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
             memory: '1Gi'
           }
           env: [
-            {
-              name: 'AZURE_APP_CONFIG_ENDPOINT'
-              value: appConfigEndpoint
-            }
             {
               name: 'APP_ENV'
               value: 'production'

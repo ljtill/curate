@@ -27,15 +27,6 @@ class MSALAuth:
             authority=config.authority,
         )
 
-    def get_auth_url(self, state: str | None = None) -> str:
-        """Generate the authorization URL for the login redirect."""
-        flow = self._app.initiate_auth_code_flow(
-            scopes=self.SCOPE,
-            redirect_uri=self._config.redirect_uri,
-            state=state,
-        )
-        return flow.get("auth_uri", "")
-
     def get_auth_flow(self) -> dict[str, Any]:
         """Initiate the auth code flow.
 

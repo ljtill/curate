@@ -45,6 +45,34 @@ def test_init_chat_client_none_when_no_endpoint() -> None:
     assert result is None
 
 
+def test_init_chat_client_none_when_no_model() -> None:
+    """Verify None is returned when cloud model is not configured."""
+    settings = MagicMock()
+    settings.foundry.is_local = False
+    settings.foundry.project_endpoint = "https://example.services.ai.azure.com"
+    settings.foundry.model = ""
+    with patch("agent_stack.startup.create_chat_client") as mock_create:
+        result = init_chat_client(settings)
+
+    mock_create.assert_not_called()
+    assert result is None
+
+
+def test_init_chat_client_none_when_cloud_client_init_fails() -> None:
+    """Verify cloud client initialization errors disable pipeline startup."""
+    settings = MagicMock()
+    settings.foundry.is_local = False
+    settings.foundry.project_endpoint = "https://example.services.ai.azure.com"
+    settings.foundry.model = "gpt-4.1"
+    with patch(
+        "agent_stack.startup.create_chat_client",
+        side_effect=ValueError("deployment missing"),
+    ):
+        result = init_chat_client(settings)
+
+    assert result is None
+
+
 async def test_init_storage_returns_components() -> None:
     """Verify init_storage returns StorageComponents with callables."""
     settings = MagicMock()

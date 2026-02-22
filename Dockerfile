@@ -4,13 +4,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY src/ src/
 COPY prompts/ prompts/
 COPY templates/ templates/
-COPY main.py .
 
 RUN uv sync --frozen --no-dev
 
@@ -22,7 +21,6 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
 COPY --from=builder /app/prompts /app/prompts
 COPY --from=builder /app/templates /app/templates
-COPY --from=builder /app/main.py /app/main.py
 
 ENV PATH="/app/.venv/bin:$PATH"
 

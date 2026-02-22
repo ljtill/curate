@@ -7,28 +7,6 @@ from agent_stack.config import EntraConfig
 
 
 @patch("agent_stack.auth.msal_auth.msal.ConfidentialClientApplication")
-def test_get_auth_url_returns_uri(mock_msal_class: MagicMock) -> None:
-    """Verify get auth url returns uri."""
-    mock_app = MagicMock()
-    mock_app.initiate_auth_code_flow.return_value = {
-        "auth_uri": "https://login.example.com/authorize"
-    }
-    mock_msal_class.return_value = mock_app
-
-    config = EntraConfig.__new__(EntraConfig)
-    object.__setattr__(config, "tenant_id", "tenant-1")
-    object.__setattr__(config, "client_id", "client-1")
-    object.__setattr__(config, "client_secret", "secret")
-    object.__setattr__(config, "redirect_uri", "http://localhost/callback")
-
-    auth = MSALAuth(config)
-    url = auth.get_auth_url(state="test-state")
-
-    assert url == "https://login.example.com/authorize"
-    mock_app.initiate_auth_code_flow.assert_called_once()
-
-
-@patch("agent_stack.auth.msal_auth.msal.ConfidentialClientApplication")
 def test_get_auth_flow_returns_flow_dict(mock_msal_class: MagicMock) -> None:
     """Verify get auth flow returns flow dict."""
     mock_app = MagicMock()
