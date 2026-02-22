@@ -29,7 +29,7 @@ graph TB
     ChangeFeed -->|delegates| Orchestrator
     Orchestrator -->|coordinates| Agents
     Agents -->|LLM calls| LLM
-    Agents -.->|LLM calls<br/>(FOUNDRY_PROVIDER=local)| LocalLLM
+    Agents -.->|"LLM calls<br/>(FOUNDRY_PROVIDER=local)"| LocalLLM
     Agents -->|reads/writes| CosmosDB
     Agents -->|uploads HTML| Storage
     Storage -->|serves| StaticSite
