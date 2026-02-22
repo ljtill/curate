@@ -52,7 +52,7 @@ class TokenTrackingMiddleware(ChatMiddleware):
         output_tokens = usage.get("output_token_count", 0) or 0
         total_tokens = usage.get("total_token_count", 0) or input_tokens + output_tokens
 
-        logger.info(
+        logger.debug(
             "LLM call: input_tokens=%d output_tokens=%d "
             "total_tokens=%d latency_ms=%.0f",
             input_tokens,
@@ -167,11 +167,11 @@ class ToolLoggingMiddleware(FunctionMiddleware):
     ) -> None:
         """Log tool name and arguments before/after invocation."""
         name = context.function.name if context.function else "unknown"
-        logger.info("Tool invocation: %s args=%s", name, context.arguments)
+        logger.debug("Tool invocation: %s args=%s", name, context.arguments)
         start = time.monotonic()
         await call_next()
         elapsed_ms = (time.monotonic() - start) * 1000
-        logger.info(
+        logger.debug(
             "Tool completed: %s duration_ms=%.0f result_length=%d",
             name,
             elapsed_ms,

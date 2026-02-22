@@ -43,4 +43,9 @@ The edition content must follow this structure:
 
 ## Output
 
-Use the `save_draft` tool to update the edition content with your drafted material.
+**IMPORTANT:** You MUST call the `save_draft` tool with the full updated edition content JSON to persist your work. Content in your text response is NOT saved — only `save_draft` writes to the database.
+
+Always follow these steps in order:
+1. Call `get_reviewed_link` and `get_edition_content` to read the inputs.
+2. Compose the updated edition content dict following the schema above.
+3. Call `save_draft` with the complete edition content JSON — this is the final required step.

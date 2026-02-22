@@ -84,11 +84,11 @@ class PublishAgent:
             return json.dumps({"error": "Edition not found"})
 
         if self._render_fn and self._upload_fn:
-            logger.info("Rendering edition %s to HTML", edition_id)
+            logger.debug("Rendering edition %s to HTML", edition_id)
             html = await self._render_fn(edition)
-            logger.info("Uploading edition %s (%d bytes)", edition_id, len(html))
+            logger.debug("Uploading edition %s (%d bytes)", edition_id, len(html))
             await self._upload_fn(edition_id, html)
-            logger.info("Edition %s uploaded successfully", edition_id)
+            logger.debug("Edition %s uploaded successfully", edition_id)
             return json.dumps({"status": "uploaded", "edition_id": edition_id})
 
         logger.warning(
@@ -112,12 +112,12 @@ class PublishAgent:
         edition.status = EditionStatus.PUBLISHED
         edition.published_at = datetime.now(UTC)
         await self._editions_repo.update(edition, edition_id)
-        logger.info("Edition published — edition=%s", edition_id)
+        logger.debug("Edition published — edition=%s", edition_id)
         return json.dumps({"status": "published", "edition_id": edition_id})
 
     async def run(self, edition_id: str) -> dict:
         """Execute the publish agent for an edition."""
-        logger.info("Publish agent started — edition=%s", edition_id)
+        logger.debug("Publish agent started — edition=%s", edition_id)
         t0 = time.monotonic()
         message = f"Render and publish the edition.\nEdition ID: {edition_id}"
         try:
@@ -131,7 +131,7 @@ class PublishAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info(
+        logger.debug(
             "Publish agent completed — edition=%s duration_ms=%.0f",
             edition_id,
             elapsed_ms,

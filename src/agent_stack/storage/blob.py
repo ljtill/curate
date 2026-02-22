@@ -62,7 +62,7 @@ class BlobStorageClient:
             overwrite=True,
             content_settings=ContentSettings(content_type="text/html; charset=utf-8"),
         )
-        logger.info("Uploaded %s to %s", blob_name, self._config.container)
+        logger.debug("Uploaded %s to %s", blob_name, self._config.container)
 
     async def upload_css(self, blob_name: str, content: str) -> None:
         """Upload a CSS file to the static site container."""
@@ -73,4 +73,4 @@ class BlobStorageClient:
             overwrite=True,
             content_settings=ContentSettings(content_type="text/css; charset=utf-8"),
         )
-        logger.info("Uploaded %s to %s", blob_name, self._config.container)
+        logger.debug("Uploaded %s to %s", blob_name, self._config.container)

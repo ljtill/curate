@@ -94,3 +94,18 @@ async def test_save_draft_deduplicates_link_ids(
 
     # link-1 should not be duplicated
     assert edition.link_ids.count("link-1") == 1
+
+
+async def test_save_draft_invalid_content_json(
+    draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
+    """Verify save draft returns error for malformed content JSON."""
+    _, editions_repo = repos
+
+    result = json.loads(
+        await draft_agent.save_draft("ed-1", "link-1", "not valid json")
+    )
+
+    assert "error" in result
+    assert "JSON" in result["error"]
+    editions_repo.update.assert_not_called()

@@ -68,7 +68,7 @@ class ReviewAgent:
         if not link:
             logger.warning("get_link_content: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
-        logger.info(
+        logger.debug(
             "Retrieved link content — link=%s title=%s",
             link_id,
             (link.title or "")[:60],
@@ -127,7 +127,7 @@ class ReviewAgent:
                 )
                 raise RuntimeError(msg) from exc
             return json.dumps({"error": f"Failed to save review: {exc}"})
-        logger.info(
+        logger.debug(
             "Review saved — link=%s category=%s score=%d status=%s",
             link_id,
             category,
@@ -138,7 +138,7 @@ class ReviewAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the review agent for a fetched link."""
-        logger.info("Review agent started — link=%s", link.id)
+        logger.debug("Review agent started — link=%s", link.id)
         t0 = time.monotonic()
         self.save_failures = 0
         message = (
@@ -154,7 +154,7 @@ class ReviewAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info(
+        logger.debug(
             "Review agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms
         )
         return {

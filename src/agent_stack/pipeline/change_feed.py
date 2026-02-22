@@ -157,7 +157,7 @@ class ChangeFeedProcessor:
             async for page in page_iterator:
                 async for item in page:
                     item_id = item.get("id", "unknown")
-                    logger.info(
+                    logger.debug(
                         "Change feed dispatching item=%s container=%s",
                         item_id,
                         container.id,

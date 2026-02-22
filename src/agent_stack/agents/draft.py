@@ -67,7 +67,7 @@ class DraftAgent:
         if not link:
             logger.warning("get_reviewed_link: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
-        logger.info("Retrieved reviewed link — link=%s", link_id)
+        logger.debug("Retrieved reviewed link — link=%s", link_id)
         return json.dumps(
             {
                 "title": link.title,
@@ -87,7 +87,7 @@ class DraftAgent:
         if not edition:
             logger.warning("get_edition_content: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
-        logger.info("Retrieved edition content — edition=%s", edition_id)
+        logger.debug("Retrieved edition content — edition=%s", edition_id)
         return json.dumps(edition.content)
 
     @tool
@@ -98,11 +98,22 @@ class DraftAgent:
         content: Annotated[str, "Updated edition content as JSON"],
     ) -> str:
         """Update the edition content with drafted material."""
+        try:
+            parsed_content = (
+                json.loads(content) if isinstance(content, str) else content
+            )
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.warning(
+                "save_draft: invalid content JSON for edition %s: %s",
+                edition_id,
+                exc,
+            )
+            return json.dumps({"error": f"content must be valid JSON: {exc}"})
         edition = await self._editions_repo.get(edition_id, edition_id)
         if not edition:
             logger.warning("save_draft: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
-        edition.content = json.loads(content) if isinstance(content, str) else content
+        edition.content = parsed_content
         if link_id not in edition.link_ids:
             edition.link_ids.append(link_id)
         await self._editions_repo.update(edition, edition_id)
@@ -113,7 +124,7 @@ class DraftAgent:
             link.status = LinkStatus.DRAFTED
             await self._links_repo.update(link, edition_id)
 
-        logger.info(
+        logger.debug(
             "Draft saved — edition=%s link=%s status=drafted",
             edition_id,
             link_id,
@@ -122,7 +133,7 @@ class DraftAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the draft agent for a reviewed link."""
-        logger.info(
+        logger.debug(
             "Draft agent started — link=%s edition=%s", link.id, link.edition_id
         )
         t0 = time.monotonic()
@@ -142,7 +153,7 @@ class DraftAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info(
+        logger.debug(
             "Draft agent completed — link=%s edition=%s duration_ms=%.0f",
             link.id,
             link.edition_id,

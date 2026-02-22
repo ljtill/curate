@@ -70,7 +70,7 @@ class EditAgent:
         if not edition:
             logger.warning("get_edition_content: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
-        logger.info("Retrieved edition content — edition=%s", edition_id)
+        logger.debug("Retrieved edition content — edition=%s", edition_id)
         return json.dumps(edition.content)
 
     @tool
@@ -80,7 +80,7 @@ class EditAgent:
     ) -> str:
         """Read unresolved editor feedback for the edition."""
         items = await self._feedback_repo.get_unresolved(edition_id)
-        logger.info(
+        logger.debug(
             "Retrieved %d unresolved feedback items — edition=%s",
             len(items),
             edition_id,
@@ -102,7 +102,7 @@ class EditAgent:
             return json.dumps({"error": "Edition not found"})
         edition.content = json.loads(content) if isinstance(content, str) else content
         await self._editions_repo.update(edition, edition_id)
-        logger.info("Edit saved — edition=%s", edition_id)
+        logger.debug("Edit saved — edition=%s", edition_id)
         return json.dumps({"status": "edited", "edition_id": edition_id})
 
     @tool
@@ -118,7 +118,7 @@ class EditAgent:
             return json.dumps({"error": "Feedback not found"})
         feedback.resolved = True
         await self._feedback_repo.update(feedback, edition_id)
-        logger.info(
+        logger.debug(
             "Feedback resolved — feedback=%s edition=%s",
             feedback_id,
             edition_id,
@@ -127,7 +127,7 @@ class EditAgent:
 
     async def run(self, edition_id: str) -> dict:
         """Execute the edit agent for an edition."""
-        logger.info("Edit agent started — edition=%s", edition_id)
+        logger.debug("Edit agent started — edition=%s", edition_id)
         t0 = time.monotonic()
         message = (
             "Edit and refine the current edition. "
@@ -145,7 +145,7 @@ class EditAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info(
+        logger.debug(
             "Edit agent completed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms
         )
         return {

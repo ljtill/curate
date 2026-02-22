@@ -56,7 +56,7 @@ class FetchAgent:
     @tool
     async def fetch_url(url: Annotated[str, "The URL to fetch content from"]) -> str:
         """Fetch the raw HTML content of a URL."""
-        logger.info("Fetching URL: %s", url)
+        logger.debug("Fetching URL: %s", url)
         headers = {
             "User-Agent": "Mozilla/5.0 (compatible; AgentStack/1.0; +https://github.com/ljtill/agent-stack)",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -67,7 +67,7 @@ class FetchAgent:
             ) as http:
                 response = await http.get(url)
                 response.raise_for_status()
-                logger.info(
+                logger.debug(
                     "URL fetched successfully: %s (%d bytes)",
                     url,
                     len(response.text),
@@ -115,7 +115,7 @@ class FetchAgent:
         link.content = content
         link.status = LinkStatus.FETCHING
         await self._links_repo.update(link, edition_id)
-        logger.info(
+        logger.debug(
             "Fetched content saved — link=%s title=%s status=%s",
             link_id,
             title[:60],
@@ -142,7 +142,7 @@ class FetchAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the fetch agent for a given link."""
-        logger.info("Fetch agent started — link=%s url=%s", link.id, link.url)
+        logger.debug("Fetch agent started — link=%s url=%s", link.id, link.url)
         t0 = time.monotonic()
         message = (
             f"Fetch and extract the content from this URL: {link.url}\n"
@@ -157,7 +157,7 @@ class FetchAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info(
+        logger.debug(
             "Fetch agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms
         )
         return {
