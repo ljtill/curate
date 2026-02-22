@@ -42,7 +42,7 @@ This is an event-driven editorial pipeline for a newsletter. The system has thre
 
 **App wiring**: `app.py` uses a lifespan context manager to initialize Cosmos client → repositories → agents → orchestrator → change feed processor, stashing everything in `app.state`. Routes access dependencies via `request.app.state`.
 
-**LLM provider**: Controlled by `FOUNDRY_PROVIDER` env var — `cloud` uses Azure AI Foundry, `local` uses Foundry Local for on-device inference (no Azure credentials needed). See `config.py` `FoundryConfig` for all related settings.
+**LLM provider**: Controlled by `FOUNDRY_PROVIDER` env var — `cloud` uses Microsoft Foundry, `local` uses Foundry Local for on-device inference (no Azure credentials needed). See `config.py` `FoundryConfig` for all related settings.
 
 **Local emulators**: `docker compose up -d` starts the Cosmos DB emulator (ports 8081/1234) and Azurite storage emulator (ports 10000–10002).
 

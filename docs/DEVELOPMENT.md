@@ -47,7 +47,7 @@ FOUNDRY_LOCAL_MODEL=phi-4-mini
 
 The application will automatically start the Foundry Local service, download the model on first run, and use on-device inference. No `az login` or Azure credentials required for the LLM pipeline. Foundry Memory is automatically disabled when using Foundry Local.
 
-## Cloud Development (Azure AI Foundry)
+## Cloud Development (Microsoft Foundry)
 
 For cloud-based inference, authenticate with Azure and set the Foundry project endpoint:
 

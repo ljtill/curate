@@ -27,7 +27,7 @@ param logAnalyticsSharedKey string
 @secure()
 param appInsightsConnectionString string
 
-@description('Azure AI Foundry project endpoint for memory service')
+@description('Microsoft Foundry project endpoint for memory service')
 param foundryProjectEndpoint string = ''
 
 @description('Foundry Memory store name')
