@@ -27,6 +27,15 @@ param logAnalyticsSharedKey string
 @secure()
 param appInsightsConnectionString string
 
+@description('Azure AI Foundry project endpoint for memory service')
+param foundryProjectEndpoint string = ''
+
+@description('Foundry Memory store name')
+param foundryMemoryStoreName string = 'editorial-memory'
+
+@description('Foundry embedding model deployment name')
+param foundryEmbeddingModel string = 'text-embedding-3-small'
+
 resource environment 'Microsoft.App/managedEnvironments@2025-07-01' = {
   name: '${name}-env'
   location: location
@@ -87,6 +96,18 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
             {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
               value: appInsightsConnectionString
+            }
+            {
+              name: 'FOUNDRY_PROJECT_ENDPOINT'
+              value: foundryProjectEndpoint
+            }
+            {
+              name: 'FOUNDRY_MEMORY_STORE_NAME'
+              value: foundryMemoryStoreName
+            }
+            {
+              name: 'FOUNDRY_EMBEDDING_MODEL'
+              value: foundryEmbeddingModel
             }
           ]
         }

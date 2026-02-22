@@ -1,0 +1,11 @@
+{% if memory_enabled %}
+<form hx-post="/settings/memory/toggle" hx-target="#memory-toggle" hx-swap="innerHTML" style="display: inline;">
+    <input type="hidden" name="enabled" value="false">
+    <button type="submit" class="btn btn-sm" style="background: var(--success); color: white;">Enabled</button>
+</form>
+{% else %}
+<form hx-post="/settings/memory/toggle" hx-target="#memory-toggle" hx-swap="innerHTML" style="display: inline;">
+    <input type="hidden" name="enabled" value="true">
+    <button type="submit" class="btn btn-sm" style="background: var(--text-muted); color: white;">Disabled</button>
+</form>
+{% endif %}

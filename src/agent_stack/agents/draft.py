@@ -32,6 +32,7 @@ class DraftAgent:
         editions_repo: EditionRepository,
         *,
         rate_limiter: RateLimitMiddleware | None = None,
+        context_providers: list | None = None,
     ) -> None:
         """Initialize the draft agent with LLM client and repositories."""
         self._links_repo = links_repo
@@ -49,6 +50,7 @@ class DraftAgent:
                 "Composes or revises newsletter content from reviewed material."
             ),
             tools=[self.get_reviewed_link, self.get_edition_content, self.save_draft],
+            context_providers=context_providers,
             middleware=middleware,
         )
 

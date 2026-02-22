@@ -36,5 +36,6 @@ class AgentRun(DocumentBase):
     input: dict | None = None
     output: dict | None = None
     usage: dict | None = None
+    messages: list[dict] | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None

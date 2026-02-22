@@ -12,3 +12,4 @@ class Feedback(DocumentBase):
     section: str
     comment: str
     resolved: bool = False
+    learn_from_feedback: bool = True

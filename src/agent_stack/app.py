@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from agent_stack.agents.llm import create_chat_client
+from agent_stack.agents.memory import FoundryMemoryProvider
 from agent_stack.config import Settings, load_settings
 from agent_stack.database.client import CosmosClient
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
@@ -36,7 +37,9 @@ from agent_stack.routes.editions import router as editions_router
 from agent_stack.routes.events import router as events_router
 from agent_stack.routes.feedback import router as feedback_router
 from agent_stack.routes.links import router as links_router
+from agent_stack.routes.settings import router as settings_router
 from agent_stack.routes.status import router as status_router
+from agent_stack.services.memory import MemoryService
 from agent_stack.storage.blob import BlobStorageClient
 from agent_stack.storage.renderer import StaticSiteRenderer
 
@@ -117,6 +120,38 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     upload_fn = storage.upload_html
     logger.info("Blob storage configured")
 
+    # Initialize Foundry Memory (optional — gracefully disabled when unconfigured)
+    context_providers: list | None = None
+    memory_service: MemoryService | None = None
+    if settings.memory.project_endpoint and settings.memory.enabled:
+        try:
+            from azure.ai.projects import AIProjectClient  # noqa: PLC0415
+            from azure.identity import DefaultAzureCredential  # noqa: PLC0415
+
+            project_client = AIProjectClient(
+                endpoint=settings.memory.project_endpoint,
+                credential=DefaultAzureCredential(),
+            )
+            memory_service = MemoryService(project_client, settings.memory)
+            await memory_service.ensure_memory_store()
+            context_providers = [
+                FoundryMemoryProvider(
+                    project_client,
+                    settings.memory.memory_store_name,
+                    scope="project-editorial",
+                ),
+            ]
+            logger.info(
+                "Foundry Memory configured (store=%s)",
+                settings.memory.memory_store_name,
+            )
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Foundry Memory initialization failed, continuing without memory",
+                exc_info=True,
+            )
+    app.state.memory_service = memory_service
+
     orchestrator = PipelineOrchestrator(
         client=chat_client,
         links_repo=LinkRepository(cosmos.database),
@@ -125,6 +160,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         agent_runs_repo=AgentRunRepository(cosmos.database),
         render_fn=render_fn,
         upload_fn=upload_fn,
+        context_providers=context_providers,
     )
 
     agent_runs_repo = AgentRunRepository(cosmos.database)
@@ -175,6 +211,7 @@ def create_app() -> FastAPI:
     app.include_router(agent_runs_router)
     app.include_router(agents_router)
     app.include_router(status_router)
+    app.include_router(settings_router)
 
     return app
 

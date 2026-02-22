@@ -114,7 +114,13 @@
     <form method="post" action="/editions/{{ edition.id }}/feedback">
         <input type="text" name="section" placeholder="Section name (e.g., intro, tools)" required>
         <textarea name="comment" placeholder="Your feedback..." rows="3" required style="resize: vertical;"></textarea>
-        <button type="submit" class="btn">Submit Feedback</button>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+            <button type="submit" class="btn">Submit Feedback</button>
+            <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;">
+                <input type="checkbox" name="learn_from_feedback" value="true" checked style="cursor: pointer;">
+                Learn from this feedback
+            </label>
+        </div>
     </form>
 </div>
 

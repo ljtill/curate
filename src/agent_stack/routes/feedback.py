@@ -22,10 +22,19 @@ async def submit_feedback(
     edition_id: str,
     section: Annotated[str, Form(...)],
     comment: Annotated[str, Form(...)],
+    learn_from_feedback: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     """Submit editor feedback for a specific section of an edition."""
     cosmos = request.app.state.cosmos
     repo = FeedbackRepository(cosmos.database)
-    await feedback_svc.submit_feedback(edition_id, section, comment, repo)
-    logger.info("Feedback submitted — edition=%s section=%s", edition_id, section)
+    learn = learn_from_feedback == "true"
+    await feedback_svc.submit_feedback(
+        edition_id, section, comment, repo, learn_from_feedback=learn
+    )
+    logger.info(
+        "Feedback submitted — edition=%s section=%s learn=%s",
+        edition_id,
+        section,
+        learn,
+    )
     return RedirectResponse(f"/editions/{edition_id}", status_code=303)

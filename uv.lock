@@ -34,6 +34,7 @@ source = { editable = "." }
 dependencies = [
     { name = "agent-framework-core" },
     { name = "aiohttp" },
+    { name = "azure-ai-projects" },
     { name = "azure-appconfiguration" },
     { name = "azure-cosmos" },
     { name = "azure-identity" },
@@ -61,6 +62,7 @@ dev = [
 requires-dist = [
     { name = "agent-framework-core", specifier = ">=1.0.0rc1" },
     { name = "aiohttp", specifier = ">=3.13.3" },
+    { name = "azure-ai-projects", specifier = ">=2.0.0b3" },
     { name = "azure-appconfiguration", specifier = ">=1.8.0" },
     { name = "azure-cosmos", specifier = ">=4.14.6" },
     { name = "azure-identity", specifier = ">=1.25.2" },

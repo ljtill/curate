@@ -70,6 +70,32 @@ class MonitorConfig:
 
 
 @dataclass(frozen=True)
+class FoundryMemoryConfig:
+    """Hold Azure AI Foundry Memory settings."""
+
+    project_endpoint: str = field(
+        default_factory=lambda: _env("FOUNDRY_PROJECT_ENDPOINT")
+    )
+    memory_store_name: str = field(
+        default_factory=lambda: _env("FOUNDRY_MEMORY_STORE_NAME", "editorial-memory")
+    )
+    chat_model: str = field(
+        default_factory=lambda: _env("FOUNDRY_CHAT_MODEL", "gpt-4.1-mini")
+    )
+    embedding_model: str = field(
+        default_factory=lambda: _env(
+            "FOUNDRY_EMBEDDING_MODEL", "text-embedding-3-small"
+        )
+    )
+    update_delay: int = field(
+        default_factory=lambda: int(_env("FOUNDRY_MEMORY_UPDATE_DELAY", "60"))
+    )
+    enabled: bool = field(
+        default_factory=lambda: _env("FOUNDRY_MEMORY_ENABLED", "true").lower() == "true"
+    )
+
+
+@dataclass(frozen=True)
 class AppConfig:
     """Hold general application settings."""
 
@@ -95,6 +121,7 @@ class Settings:
     storage: StorageConfig = field(default_factory=StorageConfig)
     entra: EntraConfig = field(default_factory=EntraConfig)
     monitor: MonitorConfig = field(default_factory=MonitorConfig)
+    memory: FoundryMemoryConfig = field(default_factory=FoundryMemoryConfig)
     app: AppConfig = field(default_factory=AppConfig)
 
 

@@ -339,7 +339,7 @@ class TestHandleFeedbackChangeLock:
         *_, _runs = mock_repos
         order: list[str] = []
 
-        async def _slow_run(_msg: str) -> MagicMock:
+        async def _slow_run(_msg: str, **_kwargs: object) -> MagicMock:
             order.append("start")
             await asyncio.sleep(0.05)
             order.append("end")

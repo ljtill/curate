@@ -19,6 +19,7 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "aiohttp>=3.13.3",
     "azure-monitor-opentelemetry>=1.8.6",
+    "azure-ai-projects>=2.0.0b3",
 ]
 
 [project.scripts]
@@ -58,7 +59,7 @@ ignore = [
 allow-star-arg-any = true
 
 [tool.ruff.lint.pylint]
-max-args = 7
+max-args = 8
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

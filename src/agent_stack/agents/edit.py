@@ -31,6 +31,7 @@ class EditAgent:
         feedback_repo: FeedbackRepository,
         *,
         rate_limiter: RateLimitMiddleware | None = None,
+        context_providers: list | None = None,
     ) -> None:
         """Initialize the edit agent with LLM client and repositories."""
         self._editions_repo = editions_repo
@@ -52,6 +53,7 @@ class EditAgent:
                 self.save_edit,
                 self.resolve_feedback,
             ],
+            context_providers=context_providers,
             middleware=middleware,
         )
 

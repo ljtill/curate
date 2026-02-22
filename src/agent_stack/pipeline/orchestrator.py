@@ -102,6 +102,7 @@ class PipelineOrchestrator:
         agent_runs_repo: AgentRunRepository,
         render_fn: Callable[[Edition], Awaitable[str]] | None = None,
         upload_fn: Callable[[str, str], Awaitable[None]] | None = None,
+        context_providers: list | None = None,
     ) -> None:
         """Initialize the orchestrator with LLM client and all repositories."""
         self._client = client
@@ -125,10 +126,18 @@ class PipelineOrchestrator:
         self.fetch = FetchAgent(client, links_repo, rate_limiter=rate_limiter)
         self.review = ReviewAgent(client, links_repo, rate_limiter=rate_limiter)
         self.draft = DraftAgent(
-            client, links_repo, editions_repo, rate_limiter=rate_limiter
+            client,
+            links_repo,
+            editions_repo,
+            rate_limiter=rate_limiter,
+            context_providers=context_providers,
         )
         self.edit = EditAgent(
-            client, editions_repo, feedback_repo, rate_limiter=rate_limiter
+            client,
+            editions_repo,
+            feedback_repo,
+            rate_limiter=rate_limiter,
+            context_providers=context_providers,
         )
         self.publish = PublishAgent(
             client,
@@ -455,6 +464,7 @@ class PipelineOrchestrator:
         """Process new feedback by invoking the orchestrator agent."""
         edition_id = document.get("edition_id", "")
         feedback_id = document.get("id", "")
+        learn_from_feedback = document.get("learn_from_feedback", True)
 
         if document.get("resolved", False):
             return
@@ -478,7 +488,11 @@ class PipelineOrchestrator:
                     f"Feedback ID: {feedback_id}\n"
                     f"Run the edit stage to address the feedback."
                 )
-                response = await self._agent.run(message)
+                # When "Learn from this feedback" is unchecked, skip memory capture
+                session = self._agent.create_session()
+                if not learn_from_feedback:
+                    session.state["skip_memory_capture"] = True
+                response = await self._agent.run(message, session=session)
                 run.status = AgentRunStatus.COMPLETED
                 run.output = {"content": response.text if response else None}
                 run.usage = self._normalize_usage(

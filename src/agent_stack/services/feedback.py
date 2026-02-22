@@ -15,8 +15,15 @@ async def submit_feedback(
     section: str,
     comment: str,
     feedback_repo: FeedbackRepository,
+    *,
+    learn_from_feedback: bool = True,
 ) -> Feedback:
     """Create a feedback document for an edition section."""
-    feedback = Feedback(edition_id=edition_id, section=section, comment=comment)
+    feedback = Feedback(
+        edition_id=edition_id,
+        section=section,
+        comment=comment,
+        learn_from_feedback=learn_from_feedback,
+    )
     await feedback_repo.create(feedback)
     return feedback
