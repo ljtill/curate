@@ -188,7 +188,7 @@ async def _check_emulators(settings: Settings) -> bool:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: PLR0915
     """Manage application lifecycle — initialize DB, start change feed."""
     settings = load_settings()
 
@@ -202,7 +202,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.settings = settings
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-    chat_client = create_chat_client(settings.foundry)
+    chat_client = None
+    if settings.foundry.project_endpoint:
+        chat_client = create_chat_client(settings.foundry)
+    else:
+        logger.warning(
+            "FOUNDRY_PROJECT_ENDPOINT is not set — agent pipeline will be unavailable"
+        )
     editions_repo = EditionRepository(cosmos.database)
 
     storage = BlobStorageClient(settings.storage)
@@ -246,31 +252,35 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             )
     app.state.memory_service = memory_service
 
-    orchestrator = PipelineOrchestrator(
-        client=chat_client,
-        links_repo=LinkRepository(cosmos.database),
-        editions_repo=editions_repo,
-        feedback_repo=FeedbackRepository(cosmos.database),
-        agent_runs_repo=AgentRunRepository(cosmos.database),
-        render_fn=render_fn,
-        upload_fn=upload_fn,
-        context_providers=context_providers,
-    )
+    processor = None
+    if chat_client:
+        orchestrator = PipelineOrchestrator(
+            client=chat_client,
+            links_repo=LinkRepository(cosmos.database),
+            editions_repo=editions_repo,
+            feedback_repo=FeedbackRepository(cosmos.database),
+            agent_runs_repo=AgentRunRepository(cosmos.database),
+            render_fn=render_fn,
+            upload_fn=upload_fn,
+            context_providers=context_providers,
+        )
 
-    agent_runs_repo = AgentRunRepository(cosmos.database)
-    recovered = await agent_runs_repo.recover_orphaned_runs()
-    if recovered:
-        logger.info("Recovered %d orphaned agent runs from prior crash", recovered)
+        agent_runs_repo = AgentRunRepository(cosmos.database)
+        recovered = await agent_runs_repo.recover_orphaned_runs()
+        if recovered:
+            logger.info("Recovered %d orphaned agent runs from prior crash", recovered)
 
-    processor = ChangeFeedProcessor(cosmos.database, orchestrator)
-    await processor.start()
+        processor = ChangeFeedProcessor(cosmos.database, orchestrator)
+        await processor.start()
+
     app.state.processor = processor
     app.state.start_time = datetime.now(UTC)
     logger.info("Application started")
 
     yield
 
-    await processor.stop()
+    if processor:
+        await processor.stop()
     await storage.close()
     await cosmos.close()
     logger.info("Application shutdown")
