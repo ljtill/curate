@@ -329,12 +329,14 @@
         <a href="/auth/logout">Logout</a>
     </nav>
     <main>
+        {% if request.app.state.processor is not none %}
         <!-- Single shared SSE connection for all pages -->
         <div hx-ext="sse" sse-connect="/events" style="display:none;">
             <div sse-swap="agent-run-start" hx-swap="none"></div>
             <div sse-swap="agent-run-complete" hx-swap="none"></div>
             <div sse-swap="link-update" hx-swap="none"></div>
         </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
     <script>

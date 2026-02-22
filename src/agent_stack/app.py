@@ -54,6 +54,7 @@ TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 _REQUEST_ID_HEADER = "x-request-id"
+_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
 
 
 class _FeedRangeFilter(logging.Filter):
@@ -67,7 +68,10 @@ def _configure_logging(settings: Settings, *, include_file_handler: bool) -> Non
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
     if not root_logger.handlers:
-        root_logger.addHandler(logging.StreamHandler())
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(log_level)
+        stream_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+        root_logger.addHandler(stream_handler)
 
     if include_file_handler:
         log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
@@ -83,9 +87,7 @@ def _configure_logging(settings: Settings, *, include_file_handler: bool) -> Non
         if not has_file_handler:
             file_handler = logging.FileHandler(log_path, mode="w")
             file_handler.setLevel(log_level)
-            file_handler.setFormatter(
-                logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
-            )
+            file_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
             root_logger.addHandler(file_handler)
 
     logging.getLogger("azure").setLevel(logging.WARNING)
