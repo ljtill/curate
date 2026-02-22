@@ -23,7 +23,7 @@ prompts/             # Agent system prompts (Markdown)
 templates/
 ├── *.html           # Dashboard views (Jinja2 + HTMX)
 ├── newsletter/      # Public newsletter templates (index + edition)
-└── partials/        # HTMX partial fragments (agent activity, edition title)
+└── partials/        # HTMX partial fragments (agent activity, run items, edition title, link progress)
 infra/               # Bicep infrastructure modules
 tests/               # Unit and integration tests
 ```
@@ -69,7 +69,7 @@ uv run ty check src/
 
 ## Pipelines
 
-GitHub Actions with five workflows chained via `workflow_run` triggers. All Azure-facing workflows authenticate using OIDC federated credentials.
+GitHub Actions with five workflows. Check and Test run in parallel on push / PR to `main`; Build, Release, and Deploy chain sequentially via `workflow_run` triggers. All Azure-facing workflows authenticate using OIDC federated credentials.
 
 | Workflow | File | Trigger | Responsibility |
 |---|---|---|---|

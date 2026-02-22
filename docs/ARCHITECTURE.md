@@ -109,6 +109,7 @@ graph LR
     subgraph Middleware["Shared Middleware"]
         RL["Rate Limiter<br/>(TPM/RPM)"]
         TT["Token Tracking"]
+        TL["Tool Logging"]
     end
 
     Fetch & Review & Draft & Edit & Publish -.-> Middleware

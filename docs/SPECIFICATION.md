@@ -63,6 +63,7 @@ uv add agent-framework-core --prerelease=allow
 | `tool`                   | Decorator for typed Python functions registered on agents for structured operations (Cosmos DB reads/writes, HTTP fetches, HTML rendering) |
 | `ChatOptions`            | Per-invocation LLM configuration (temperature, response format) passed to agent `run()` calls                  |
 | `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) and rate limiting (`RateLimitMiddleware`) |
+| `FunctionMiddleware`     | Tool execution pipeline hooks — used for tool invocation logging (`ToolLoggingMiddleware`)                                            |
 
 **Agent registry:** An introspection layer (`agents/registry.py`) extracts metadata from live agent instances — registered tools, default options, middleware, and system prompt previews — for display on the Agents dashboard page.
 
@@ -113,9 +114,9 @@ FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft En
 - **Dashboard** — overview of pipeline status, current edition, recent activity. Polls `/runs/recent` for live agent activity via HTMX.
 - **Links** — submit new links, view agent processing status per link (`submitted` → `fetching` → `reviewed` → `drafted`). HTMX updates status in-place.
 - **Editions** — list of all editions with status (`created` → `drafting` → `in_review` → `published`).
-- **Edition Detail** — review agent-generated content, per-section structured feedback interface for comments back to agents (bidirectional), inline title editing, publish and delete actions.
+- **Edition Detail** — review agent-generated content, per-section structured feedback interface for comments back to agents (bidirectional), inline title editing, newsletter preview, publish and delete actions.
 - **Agents** — read-only view of the agent pipeline topology showing each stage's configuration, registered tools, middleware, system prompt preview, and recent run history.
-- **Status** — dependency health checks (Cosmos DB, Azure OpenAI, Change Feed Processor) with latency metrics, probed on page load.
+- **Status** — dependency health checks (Cosmos DB, Azure OpenAI, Storage, Change Feed Processor) with latency metrics, probed on page load.
 
 **Edition model:** Single active edition — all submitted links feed into the current draft. The editor creates a new edition when ready to start the next one.
 
@@ -216,7 +217,7 @@ Execution logs, decisions, and state per pipeline stage.
 | Field              | Description                                              |
 |--------------------|----------------------------------------------------------|
 | `id`               | Unique identifier                                        |
-| `stage`            | Pipeline stage (`fetch`, `review`, `draft`, `edit`, `publish`) |
+| `stage`            | Pipeline stage (`orchestrator`, `fetch`, `review`, `draft`, `edit`, `publish`) |
 | `trigger_id`       | ID of the document that triggered the run (partition key)|
 | `status`           | Run status (`running`, `completed`, `failed`)            |
 | `input`            | Input data/context for the agent                         |
