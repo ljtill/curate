@@ -38,7 +38,7 @@ graph TB
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef infra fill:#475569,stroke:#334155,color:#fff
     classDef human fill:#059669,stroke:#047857,color:#fff
 
     class Orchestrator outer
@@ -94,7 +94,7 @@ graph TB
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef infra fill:#475569,stroke:#334155,color:#fff
     classDef human fill:#059669,stroke:#047857,color:#fff
 
     class ACA,ACR outer
@@ -138,7 +138,7 @@ graph LR
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef infra fill:#475569,stroke:#334155,color:#fff
 
     class PO outer
     class Fetch,Review,Draft,Edit,Publish,TT,TL inner
@@ -217,7 +217,7 @@ graph LR
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef infra fill:#475569,stroke:#334155,color:#fff
     classDef human fill:#059669,stroke:#047857,color:#fff
 
     class Push human
