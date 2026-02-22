@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import uvicorn
-from azure.core.exceptions import AzureError
+from azure.core.exceptions import AzureError, HttpResponseError
 from azure.monitor.opentelemetry import configure_azure_monitor
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -127,6 +128,16 @@ def create_app() -> FastAPI:
         title="The Agent Stack — Editorial Dashboard",
         lifespan=lifespan,
     )
+
+    @app.exception_handler(HttpResponseError)
+    async def _azure_error_handler(
+        _request: Request, exc: HttpResponseError
+    ) -> HTMLResponse:
+        logger.exception("Azure service error: %s", exc.message)
+        return HTMLResponse(
+            content=f"<h1>Service Error</h1><p>{exc.message}</p>",
+            status_code=502,
+        )
 
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

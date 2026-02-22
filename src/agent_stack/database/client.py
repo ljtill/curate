@@ -26,6 +26,7 @@ class CosmosClient:
         ("links", "/edition_id"),
         ("feedback", "/edition_id"),
         ("agent_runs", "/trigger_id"),
+        ("metadata", "/id"),
     ]
 
     async def initialize(self) -> None:

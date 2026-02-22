@@ -7,7 +7,7 @@ import pytest
 from agent_stack.config import CosmosConfig
 from agent_stack.database.client import CosmosClient
 
-_EXPECTED_CONTAINER_COUNT = 4
+_EXPECTED_CONTAINER_COUNT = 5
 
 
 class TestCosmosClient:

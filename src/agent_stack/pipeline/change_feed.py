@@ -10,7 +10,7 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Any
 
-from azure.core.exceptions import ServiceResponseError
+from azure.core.exceptions import ResourceNotFoundError, ServiceResponseError
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -39,7 +39,7 @@ class ChangeFeedProcessor:
         self._running = False
         self._task: asyncio.Task | None = None
         self._handler_tasks: set[asyncio.Task] = set()
-        self._seen_etags: dict[str, dict[str, str]] = {}
+        self._metadata: ContainerProxy | None = None
 
     @property
     def running(self) -> bool:
@@ -58,6 +58,7 @@ class ChangeFeedProcessor:
 
     async def start(self) -> None:
         """Start polling the change feed in a background task."""
+        self._metadata = self._database.get_container_client("metadata")
         self._running = True
         self._task = asyncio.create_task(self._poll_loop())
         logger.info("Change feed processor started")
@@ -76,6 +77,32 @@ class ChangeFeedProcessor:
             self._handler_tasks.clear()
         logger.info("Change feed processor stopped")
 
+    async def _load_token(self, container_name: str) -> str | None:
+        """Load a persisted continuation token from the metadata container."""
+        if not self._metadata:
+            return None
+        doc_id = f"change-feed-token-{container_name}"
+        try:
+            doc = await self._metadata.read_item(doc_id, partition_key=doc_id)
+            return doc.get("token")
+        except ResourceNotFoundError:
+            return None
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to load continuation token for %s", container_name)
+            return None
+
+    async def _save_token(self, container_name: str, token: str | None) -> None:
+        """Persist a continuation token to the metadata container."""
+        if not self._metadata or not token:
+            return
+        doc_id = f"change-feed-token-{container_name}"
+        try:
+            await self._metadata.upsert_item(
+                {"id": doc_id, "token": token, "container": container_name}
+            )
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to save continuation token for %s", container_name)
+
     async def _poll_loop(self) -> None:
         """Continuously poll change feeds for links and feedback."""
         links_container: ContainerProxy = self._database.get_container_client("links")
@@ -83,8 +110,8 @@ class ChangeFeedProcessor:
             "feedback"
         )
 
-        links_token: str | None = None
-        feedback_token: str | None = None
+        links_token = await self._load_token("links")
+        feedback_token = await self._load_token("feedback")
 
         consecutive_errors = 0
 
@@ -95,6 +122,7 @@ class ChangeFeedProcessor:
                 links_token = await self.process_feed(
                     links_container, links_token, self._orchestrator.handle_link_change
                 )
+                await self._save_token("links", links_token)
             except Exception as exc:
                 had_error = True
                 if consecutive_errors == 0:
@@ -108,6 +136,7 @@ class ChangeFeedProcessor:
                     feedback_token,
                     self._orchestrator.handle_feedback_change,
                 )
+                await self._save_token("feedback", feedback_token)
             except Exception as exc:
                 had_error = True
                 if consecutive_errors == 0:
@@ -152,16 +181,10 @@ class ChangeFeedProcessor:
         response = container.query_items_change_feed(**query_kwargs)
         page_iterator = response.by_page()
 
-        seen = self._seen_etags.setdefault(container.id, {})
-
         try:
             async for page in page_iterator:
                 async for item in page:
                     item_id = item.get("id", "unknown")
-                    item_etag = item.get("_etag", "")
-                    if seen.get(item_id) == item_etag:
-                        continue
-                    seen[item_id] = item_etag
                     logger.debug(
                         "Change feed dispatching item=%s container=%s",
                         item_id,
