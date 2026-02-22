@@ -21,16 +21,8 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from agent_stack.agents.llm import create_chat_client
-from agent_stack.agents.memory import FoundryMemoryProvider
 from agent_stack.config import Settings, load_settings
-from agent_stack.database.client import CosmosClient
-from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
-from agent_stack.database.repositories.feedback import FeedbackRepository
-from agent_stack.database.repositories.links import LinkRepository
-from agent_stack.pipeline.change_feed import ChangeFeedProcessor
-from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 from agent_stack.routes.agent_runs import router as agent_runs_router
 from agent_stack.routes.agents import router as agents_router
 from agent_stack.routes.auth import router as auth_router
@@ -41,9 +33,13 @@ from agent_stack.routes.feedback import router as feedback_router
 from agent_stack.routes.links import router as links_router
 from agent_stack.routes.settings import router as settings_router
 from agent_stack.routes.status import router as status_router
-from agent_stack.services.memory import MemoryService
-from agent_stack.storage.blob import BlobStorageClient
-from agent_stack.storage.renderer import StaticSiteRenderer
+from agent_stack.startup import (
+    init_chat_client,
+    init_database,
+    init_memory,
+    init_pipeline,
+    init_storage,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable
@@ -190,7 +186,7 @@ async def _check_emulators(settings: Settings) -> bool:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: PLR0915
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle — initialize DB, start change feed."""
     settings = load_settings()
 
@@ -198,89 +194,30 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: PLR0915
         configure_azure_monitor(connection_string=settings.monitor.connection_string)
         logger.info("Azure Monitor OpenTelemetry configured")
 
-    cosmos = CosmosClient(settings.cosmos)
-    await cosmos.initialize()
+    cosmos = await init_database(settings)
     app.state.cosmos = cosmos
     app.state.settings = settings
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-    chat_client = None
-    if settings.foundry.is_local:
-        chat_client = create_chat_client(settings.foundry)
-        logger.info("Using Foundry Local — model=%s", settings.foundry.local_model)
-    elif settings.foundry.project_endpoint:
-        chat_client = create_chat_client(settings.foundry)
-    else:
-        logger.warning(
-            "FOUNDRY_PROJECT_ENDPOINT is not set — agent pipeline will be unavailable"
-        )
+    chat_client = init_chat_client(settings)
     editions_repo = EditionRepository(cosmos.database)
 
-    storage = BlobStorageClient(settings.storage)
-    await storage.initialize()
-    app.state.storage = storage
+    storage_components = await init_storage(settings, editions_repo)
+    app.state.storage = storage_components.client
 
-    renderer = StaticSiteRenderer(editions_repo, storage)
-    render_fn = renderer.render_edition
-    upload_fn = storage.upload_html
-    logger.info("Blob storage configured")
-
-    # Initialize Foundry Memory (disabled when using Foundry Local)
-    context_providers: list | None = None
-    memory_service: MemoryService | None = None
-    if (
-        not settings.foundry.is_local
-        and settings.foundry.project_endpoint
-        and settings.memory.enabled
-    ):
-        try:
-            from azure.ai.projects import AIProjectClient  # noqa: PLC0415
-            from azure.identity import DefaultAzureCredential  # noqa: PLC0415
-
-            project_client = AIProjectClient(
-                endpoint=settings.foundry.project_endpoint,
-                credential=DefaultAzureCredential(),
-            )
-            memory_service = MemoryService(project_client, settings.memory)
-            await memory_service.ensure_memory_store()
-            context_providers = [
-                FoundryMemoryProvider(
-                    project_client,
-                    settings.memory.memory_store_name,
-                    scope="project-editorial",
-                ),
-            ]
-            logger.info(
-                "Foundry Memory configured (store=%s)",
-                settings.memory.memory_store_name,
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning(
-                "Foundry Memory initialization failed, continuing without memory",
-                exc_info=True,
-            )
-    app.state.memory_service = memory_service
+    memory_components = await init_memory(settings)
+    app.state.memory_service = memory_components.service
 
     processor = None
     if chat_client:
-        orchestrator = PipelineOrchestrator(
-            client=chat_client,
-            links_repo=LinkRepository(cosmos.database),
-            editions_repo=editions_repo,
-            feedback_repo=FeedbackRepository(cosmos.database),
-            agent_runs_repo=AgentRunRepository(cosmos.database),
-            render_fn=render_fn,
-            upload_fn=upload_fn,
-            context_providers=context_providers,
+        pipeline = await init_pipeline(
+            chat_client,
+            cosmos,
+            editions_repo,
+            storage_components,
+            memory_components,
         )
-
-        agent_runs_repo = AgentRunRepository(cosmos.database)
-        recovered = await agent_runs_repo.recover_orphaned_runs()
-        if recovered:
-            logger.info("Recovered %d orphaned agent runs from prior crash", recovered)
-
-        processor = ChangeFeedProcessor(cosmos.database, orchestrator)
-        await processor.start()
+        processor = pipeline.processor
 
     app.state.processor = processor
     app.state.start_time = datetime.now(UTC)
@@ -290,7 +227,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: PLR0915
 
     if processor:
         await processor.stop()
-    await storage.close()
+    await storage_components.client.close()
     await cosmos.close()
     logger.info("Application shutdown")
 
