@@ -7,7 +7,10 @@ and the Settings dashboard routes for listing, searching, and clearing memories.
 from __future__ import annotations
 
 import logging
+from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
+
+from azure.core.exceptions import HttpResponseError
 
 if TYPE_CHECKING:
     from azure.ai.projects import AIProjectClient
@@ -73,6 +76,22 @@ class MemoryService:
                 "Foundry Memory store '%s' ensured",
                 self._config.memory_store_name,
             )
+        except HttpResponseError as exc:
+            already_exists = (
+                exc.status_code == HTTPStatus.BAD_REQUEST
+                and "already exists" in (exc.message or "")
+            )
+            if already_exists:
+                logger.info(
+                    "Foundry Memory store '%s' ensured",
+                    self._config.memory_store_name,
+                )
+            else:
+                logger.warning(
+                    "Failed to ensure Foundry Memory store '%s'",
+                    self._config.memory_store_name,
+                    exc_info=True,
+                )
         except Exception:  # noqa: BLE001
             logger.warning(
                 "Failed to ensure Foundry Memory store '%s'",
