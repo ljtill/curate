@@ -10,8 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
-from agent_stack.models.edition import EditionStatus
-from agent_stack.models.link import Link, LinkStatus
+from agent_stack.services import links as link_svc
 
 if TYPE_CHECKING:
     from agent_stack.database.client import CosmosClient
@@ -69,13 +68,10 @@ async def submit_link(
     editions_repo = _get_editions_repo(cosmos)
     links_repo = LinkRepository(cosmos.database)
 
-    edition = await editions_repo.get(edition_id, edition_id)
-    if not edition or edition.status == EditionStatus.PUBLISHED:
+    link = await link_svc.submit_link(url, edition_id, links_repo, editions_repo)
+    if not link:
         return RedirectResponse("/links/", status_code=303)
-
-    link = Link(url=url, edition_id=edition.id)
-    await links_repo.create(link)
-    return RedirectResponse(f"/links/?edition_id={edition.id}", status_code=303)
+    return RedirectResponse(f"/links/?edition_id={link.edition_id}", status_code=303)
 
 
 @router.post("/{link_id}/retry")
@@ -89,14 +85,9 @@ async def retry_link(request: Request, link_id: str) -> RedirectResponse:
     if not edition:
         return RedirectResponse("/links/", status_code=303)
 
-    link = await links_repo.get(link_id, edition.id)
-    if not link or link.status != LinkStatus.FAILED:
+    success = await link_svc.retry_link(link_id, edition.id, links_repo)
+    if not success:
         return RedirectResponse("/links/", status_code=303)
-
-    link.status = LinkStatus.SUBMITTED
-    link.title = None
-    link.content = None
-    await links_repo.update(link, edition.id)
     return RedirectResponse("/links/", status_code=303)
 
 
@@ -111,26 +102,9 @@ async def delete_link(
     editions_repo = _get_editions_repo(cosmos)
     links_repo = LinkRepository(cosmos.database)
 
-    edition = await editions_repo.get(edition_id, edition_id)
-    if not edition or edition.status == EditionStatus.PUBLISHED:
+    result = await link_svc.delete_link(link_id, edition_id, links_repo, editions_repo)
+    if result is None:
         return RedirectResponse("/links/", status_code=303)
-
-    link = await links_repo.get(link_id, edition_id)
-    if not link:
-        return RedirectResponse(f"/links/?edition_id={edition_id}", status_code=303)
-
-    await links_repo.soft_delete(link, edition_id)
-
-    if link_id in edition.link_ids:
-        edition.link_ids.remove(link_id)
-        edition.content = {}
-        await editions_repo.update(edition, edition_id)
-
-        remaining = await links_repo.get_by_status(edition_id, LinkStatus.DRAFTED)
-        for remaining_link in remaining:
-            remaining_link.status = LinkStatus.REVIEWED
-            await links_repo.update(remaining_link, edition_id)
-
     return RedirectResponse(f"/links/?edition_id={edition_id}", status_code=303)
 
 

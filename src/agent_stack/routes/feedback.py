@@ -8,7 +8,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 
 from agent_stack.database.repositories.feedback import FeedbackRepository
-from agent_stack.models.feedback import Feedback
+from agent_stack.services import feedback as feedback_svc
 
 router = APIRouter(tags=["feedback"])
 
@@ -23,6 +23,5 @@ async def submit_feedback(
     """Submit editor feedback for a specific section of an edition."""
     cosmos = request.app.state.cosmos
     repo = FeedbackRepository(cosmos.database)
-    feedback = Feedback(edition_id=edition_id, section=section, comment=comment)
-    await repo.create(feedback)
+    await feedback_svc.submit_feedback(edition_id, section, comment, repo)
     return RedirectResponse(f"/editions/{edition_id}", status_code=303)

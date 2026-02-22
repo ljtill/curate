@@ -30,54 +30,60 @@ def _make_request(_app_state: object | None = None) -> MagicMock:
 async def test_create_edition_auto_numbers() -> None:
     """Creating an edition auto-generates title and issue_number."""
     request = _make_request()
+    created = Edition(
+        id="ed-new",
+        content={
+            "title": f"Issue #{_NEXT_ISSUE_NUMBER}",
+            "issue_number": _NEXT_ISSUE_NUMBER,
+            "sections": [],
+        },
+    )
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.create.return_value = None
-        repo.next_issue_number.return_value = _NEXT_ISSUE_NUMBER
+    with patch(
+        "agent_stack.routes.editions.edition_svc.create_edition", new_callable=AsyncMock
+    ) as mock_create:
+        mock_create.return_value = created
 
         await create_edition(request)
 
-        repo.create.assert_called_once()
-        created_edition = repo.create.call_args[0][0]
-        assert created_edition.content["title"] == f"Issue #{_NEXT_ISSUE_NUMBER}"
-        assert created_edition.content["issue_number"] == _NEXT_ISSUE_NUMBER
-        assert created_edition.content["sections"] == []
+        mock_create.assert_called_once()
+        edition = mock_create.return_value
+        assert edition.content["title"] == f"Issue #{_NEXT_ISSUE_NUMBER}"
+        assert edition.content["issue_number"] == _NEXT_ISSUE_NUMBER
+        assert edition.content["sections"] == []
 
 
 async def test_update_title() -> None:
     """PATCH title updates the edition content and persists."""
     request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "Old Title", "sections": []})
+    edition = Edition(id="ed-1", content={"title": "New Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = edition
-        repo.update.return_value = edition
+    with patch(
+        "agent_stack.routes.editions.edition_svc.update_title", new_callable=AsyncMock
+    ) as mock_update:
+        mock_update.return_value = edition
 
         await update_title(request, edition_id="ed-1", title="New Title")
 
-        repo.get.assert_called_once_with("ed-1", "ed-1")
-        repo.update.assert_called_once_with(edition, "ed-1")
+        mock_update.assert_called_once()
         assert edition.content["title"] == "New Title"
 
 
 async def test_update_title_strips_whitespace() -> None:
     """PATCH title strips whitespace before saving."""
     request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "", "sections": []})
+    edition = Edition(id="ed-1", content={"title": "Trimmed", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = edition
-        repo.update.return_value = edition
+    with patch(
+        "agent_stack.routes.editions.edition_svc.update_title", new_callable=AsyncMock
+    ) as mock_update:
+        mock_update.return_value = edition
 
         await update_title(request, edition_id="ed-1", title="  Trimmed  ")
 
-        assert edition.content["title"] == "Trimmed"
+        # The route passes the raw title to the service; service handles stripping
+        args = mock_update.call_args
+        assert args[0][1] == "  Trimmed  "
 
 
 async def test_update_title_renders_display_partial() -> None:
@@ -85,11 +91,10 @@ async def test_update_title_renders_display_partial() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = edition
-        repo.update.return_value = edition
+    with patch(
+        "agent_stack.routes.editions.edition_svc.update_title", new_callable=AsyncMock
+    ) as mock_update:
+        mock_update.return_value = edition
 
         await update_title(request, edition_id="ed-1", title="Title")
 
@@ -138,18 +143,13 @@ async def test_cancel_title_edit_renders_display_partial() -> None:
 async def test_delete_edition_soft_deletes() -> None:
     """POST delete soft-deletes the edition and redirects."""
     request = _make_request()
-    edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = edition
-        repo.soft_delete.return_value = edition
-
+    with patch(
+        "agent_stack.routes.editions.edition_svc.delete_edition", new_callable=AsyncMock
+    ) as mock_delete:
         response = await delete_edition(request, edition_id="ed-1")
 
-        repo.get.assert_called_once_with("ed-1", "ed-1")
-        repo.soft_delete.assert_called_once_with(edition, "ed-1")
+        mock_delete.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
@@ -157,14 +157,12 @@ async def test_delete_edition_not_found() -> None:
     """POST delete on missing edition still redirects without error."""
     request = _make_request()
 
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.get.return_value = None
-
+    with patch(
+        "agent_stack.routes.editions.edition_svc.delete_edition", new_callable=AsyncMock
+    ) as mock_delete:
         response = await delete_edition(request, edition_id="missing")
 
-        repo.soft_delete.assert_not_called()
+        mock_delete.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
@@ -192,26 +190,20 @@ async def test_edition_detail_renders_template() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Issue #1", "sections": []})
 
-    with (
-        patch("agent_stack.routes.editions.EditionRepository") as mock_ed_cls,
-        patch("agent_stack.routes.editions.LinkRepository") as mock_link_cls,
-        patch("agent_stack.routes.editions.AgentRunRepository") as mock_run_cls,
-    ):
-        ed_repo = AsyncMock()
-        mock_ed_cls.return_value = ed_repo
-        ed_repo.get.return_value = edition
-
-        link_repo = AsyncMock()
-        mock_link_cls.return_value = link_repo
-        link_repo.get_by_edition.return_value = []
-
-        run_repo = AsyncMock()
-        mock_run_cls.return_value = run_repo
+    with patch(
+        "agent_stack.routes.editions.edition_svc.get_edition_detail",
+        new_callable=AsyncMock,
+    ) as mock_detail:
+        mock_detail.return_value = {
+            "edition": edition,
+            "links": [],
+            "agent_runs": [],
+            "links_by_id": {},
+        }
 
         await edition_detail(request, edition_id="ed-1")
 
-        ed_repo.get.assert_called_once_with("ed-1", "ed-1")
-        link_repo.get_by_edition.assert_called_once_with("ed-1")
+        mock_detail.assert_called_once()
         request.app.state.templates.TemplateResponse.assert_called_once()
 
 

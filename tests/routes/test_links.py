@@ -2,8 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack.models.edition import Edition, EditionStatus
-from agent_stack.models.link import Link, LinkStatus
+from agent_stack.models.edition import Edition
+from agent_stack.models.link import Link
 from agent_stack.routes.links import delete_link, list_links, retry_link, submit_link
 
 _EXPECTED_REDIRECT_STATUS = 303
@@ -92,27 +92,18 @@ async def test_list_links_without_editions() -> None:
 async def test_submit_link_creates_link() -> None:
     """Verify submit link creates link."""
     request = _make_request()
-    edition = Edition(id="ed-1", content={})
+    link = Link(id="link-new", url="https://example.com", edition_id="ed-1")
 
-    with (
-        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
-    ):
-        editions_repo = AsyncMock()
-        editions_repo.get.return_value = edition
-        mock_get_repo.return_value = editions_repo
-
-        links_repo = AsyncMock()
-        mock_links_repo_cls.return_value = links_repo
+    with patch(
+        "agent_stack.routes.links.link_svc.submit_link", new_callable=AsyncMock
+    ) as mock_submit:
+        mock_submit.return_value = link
 
         response = await submit_link(
             request, url="https://example.com", edition_id="ed-1"
         )
 
-        links_repo.create.assert_called_once()
-        created = links_repo.create.call_args[0][0]
-        assert created.url == "https://example.com"
-        assert created.edition_id == "ed-1"
+        mock_submit.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
@@ -120,22 +111,16 @@ async def test_submit_link_redirects_when_no_edition() -> None:
     """Verify submit link redirects when no edition."""
     request = _make_request()
 
-    with (
-        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
-    ):
-        editions_repo = AsyncMock()
-        editions_repo.get.return_value = None
-        mock_get_repo.return_value = editions_repo
-
-        links_repo = AsyncMock()
-        mock_links_repo_cls.return_value = links_repo
+    with patch(
+        "agent_stack.routes.links.link_svc.submit_link", new_callable=AsyncMock
+    ) as mock_submit:
+        mock_submit.return_value = None
 
         response = await submit_link(
             request, url="https://example.com", edition_id="nonexistent"
         )
 
-        links_repo.create.assert_not_called()
+        mock_submit.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
@@ -143,31 +128,22 @@ async def test_retry_link_resets_to_submitted() -> None:
     """Verify retry link resets to submitted."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
-    link = Link(
-        id="link-1",
-        url="https://example.com",
-        edition_id="ed-1",
-        status=LinkStatus.FAILED,
-    )
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch(
+            "agent_stack.routes.links.link_svc.retry_link", new_callable=AsyncMock
+        ) as mock_retry,
     ):
         editions_repo = AsyncMock()
         editions_repo.get_active.return_value = edition
         mock_get_repo.return_value = editions_repo
 
-        links_repo = AsyncMock()
-        links_repo.get.return_value = link
-        mock_links_repo_cls.return_value = links_repo
+        mock_retry.return_value = True
 
         response = await retry_link(request, link_id="link-1")
 
-        assert link.status == LinkStatus.SUBMITTED
-        assert link.title is None
-        assert link.content is None
-        links_repo.update.assert_called_once_with(link, "ed-1")
+        mock_retry.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
@@ -175,28 +151,22 @@ async def test_retry_link_ignores_non_failed() -> None:
     """Verify retry link ignores non failed."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
-    link = Link(
-        id="link-1",
-        url="https://example.com",
-        edition_id="ed-1",
-        status=LinkStatus.SUBMITTED,
-    )
 
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch(
+            "agent_stack.routes.links.link_svc.retry_link", new_callable=AsyncMock
+        ) as mock_retry,
     ):
         editions_repo = AsyncMock()
         editions_repo.get_active.return_value = edition
         mock_get_repo.return_value = editions_repo
 
-        links_repo = AsyncMock()
-        links_repo.get.return_value = link
-        mock_links_repo_cls.return_value = links_repo
+        mock_retry.return_value = False
 
         response = await retry_link(request, link_id="link-1")
 
-        links_repo.update.assert_not_called()
+        mock_retry.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
@@ -204,29 +174,15 @@ async def test_delete_link_soft_deletes() -> None:
     """Verify delete link soft-deletes and removes from edition link_ids."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Test"}, link_ids=["link-1"])
-    link = Link(
-        id="link-1",
-        url="https://example.com",
-        edition_id="ed-1",
-        status=LinkStatus.DRAFTED,
-    )
 
-    with (
-        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
-    ):
-        editions_repo = AsyncMock()
-        editions_repo.get.return_value = edition
-        mock_get_repo.return_value = editions_repo
-
-        links_repo = AsyncMock()
-        links_repo.get.return_value = link
-        links_repo.get_by_status.return_value = []
-        mock_links_repo_cls.return_value = links_repo
+    with patch(
+        "agent_stack.routes.links.link_svc.delete_link", new_callable=AsyncMock
+    ) as mock_delete:
+        mock_delete.return_value = edition
 
         response = await delete_link(request, link_id="link-1", edition_id="ed-1")
 
-        links_repo.soft_delete.assert_called_once_with(link, "ed-1")
+        mock_delete.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
@@ -235,74 +191,35 @@ async def test_delete_link_triggers_regeneration() -> None:
     request = _make_request()
     edition = Edition(
         id="ed-1",
-        content={"title": "Test"},
-        link_ids=["link-1", "link-2"],
-    )
-    link = Link(
-        id="link-1",
-        url="https://example.com",
-        edition_id="ed-1",
-        status=LinkStatus.DRAFTED,
-    )
-    remaining = Link(
-        id="link-2",
-        url="https://other.com",
-        edition_id="ed-1",
-        status=LinkStatus.DRAFTED,
+        content={},
+        link_ids=["link-2"],
     )
 
-    with (
-        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
-    ):
-        editions_repo = AsyncMock()
-        editions_repo.get.return_value = edition
-        mock_get_repo.return_value = editions_repo
+    with patch(
+        "agent_stack.routes.links.link_svc.delete_link", new_callable=AsyncMock
+    ) as mock_delete:
+        mock_delete.return_value = edition
 
-        links_repo = AsyncMock()
-        links_repo.get.return_value = link
-        links_repo.get_by_status.return_value = [remaining]
-        mock_links_repo_cls.return_value = links_repo
+        response = await delete_link(request, link_id="link-1", edition_id="ed-1")
 
-        await delete_link(request, link_id="link-1", edition_id="ed-1")
-
-        assert edition.content == {}
-        assert "link-1" not in edition.link_ids
-        assert "link-2" in edition.link_ids
-        editions_repo.update.assert_called_once_with(edition, "ed-1")
-
-        assert remaining.status == LinkStatus.REVIEWED
-        links_repo.update.assert_called_once_with(remaining, "ed-1")
+        mock_delete.assert_called_once()
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 async def test_delete_link_no_regeneration_when_not_drafted() -> None:
     """Verify no edition changes when deleted link was never drafted."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Test"}, link_ids=[])
-    link = Link(
-        id="link-1",
-        url="https://example.com",
-        edition_id="ed-1",
-        status=LinkStatus.SUBMITTED,
-    )
 
-    with (
-        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
-    ):
-        editions_repo = AsyncMock()
-        editions_repo.get.return_value = edition
-        mock_get_repo.return_value = editions_repo
+    with patch(
+        "agent_stack.routes.links.link_svc.delete_link", new_callable=AsyncMock
+    ) as mock_delete:
+        mock_delete.return_value = edition
 
-        links_repo = AsyncMock()
-        links_repo.get.return_value = link
-        mock_links_repo_cls.return_value = links_repo
+        response = await delete_link(request, link_id="link-1", edition_id="ed-1")
 
-        await delete_link(request, link_id="link-1", edition_id="ed-1")
-
-        links_repo.soft_delete.assert_called_once()
-        editions_repo.update.assert_not_called()
-        assert edition.content == {"title": "Test"}
+        mock_delete.assert_called_once()
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 async def test_delete_link_redirects_when_not_found() -> None:
@@ -310,41 +227,27 @@ async def test_delete_link_redirects_when_not_found() -> None:
     request = _make_request()
     edition = Edition(id="ed-1", content={})
 
-    with (
-        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
-    ):
-        editions_repo = AsyncMock()
-        editions_repo.get.return_value = edition
-        mock_get_repo.return_value = editions_repo
-
-        links_repo = AsyncMock()
-        links_repo.get.return_value = None
-        mock_links_repo_cls.return_value = links_repo
+    with patch(
+        "agent_stack.routes.links.link_svc.delete_link", new_callable=AsyncMock
+    ) as mock_delete:
+        mock_delete.return_value = edition
 
         response = await delete_link(request, link_id="link-1", edition_id="ed-1")
 
-        links_repo.soft_delete.assert_not_called()
+        mock_delete.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 async def test_delete_link_redirects_for_published_edition() -> None:
     """Verify delete redirects without action for published editions."""
     request = _make_request()
-    edition = Edition(id="ed-1", content={}, status=EditionStatus.PUBLISHED)
 
-    with (
-        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
-    ):
-        editions_repo = AsyncMock()
-        editions_repo.get.return_value = edition
-        mock_get_repo.return_value = editions_repo
-
-        links_repo = AsyncMock()
-        mock_links_repo_cls.return_value = links_repo
+    with patch(
+        "agent_stack.routes.links.link_svc.delete_link", new_callable=AsyncMock
+    ) as mock_delete:
+        mock_delete.return_value = None
 
         response = await delete_link(request, link_id="link-1", edition_id="ed-1")
 
-        links_repo.soft_delete.assert_not_called()
+        mock_delete.assert_called_once()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS

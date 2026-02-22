@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
-from agent_stack.models.edition import Edition
+from agent_stack.services import editions as edition_svc
 
 router = APIRouter(prefix="/editions", tags=["editions"])
 
@@ -34,15 +34,7 @@ async def create_edition(request: Request) -> RedirectResponse:
     """Create a new edition with an auto-generated issue number and title."""
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    issue_number = await repo.next_issue_number()
-    edition = Edition(
-        content={
-            "title": f"Issue #{issue_number}",
-            "issue_number": issue_number,
-            "sections": [],
-        }
-    )
-    await repo.create(edition)
+    await edition_svc.create_edition(repo)
     return RedirectResponse("/editions/", status_code=303)
 
 
@@ -55,23 +47,13 @@ async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
     links_repo = LinkRepository(cosmos.database)
     runs_repo = AgentRunRepository(cosmos.database)
 
-    edition = await editions_repo.get(edition_id, edition_id)
-    links = await links_repo.get_by_edition(edition_id) if edition else []
-
-    trigger_ids = [link.id for link in links]
-    agent_runs = await runs_repo.get_by_triggers(trigger_ids) if trigger_ids else []
-    links_by_id = {link.id: link for link in links}
+    detail = await edition_svc.get_edition_detail(
+        edition_id, editions_repo, links_repo, runs_repo
+    )
 
     return templates.TemplateResponse(
         "edition_detail.html",
-        {
-            "request": request,
-            "edition": edition,
-            "links": links,
-            "editing": False,
-            "agent_runs": agent_runs,
-            "links_by_id": links_by_id,
-        },
+        {"request": request, "editing": False, **detail},
     )
 
 
@@ -92,7 +74,7 @@ async def preview_edition(request: Request, edition_id: str) -> HTMLResponse:
 async def publish_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Trigger the publish pipeline for an edition via the orchestrator agent."""
     orchestrator = request.app.state.processor.orchestrator
-    task = asyncio.create_task(orchestrator.handle_publish(edition_id))
+    task = asyncio.create_task(edition_svc.publish_edition(edition_id, orchestrator))
     if not hasattr(request.app.state, "background_tasks"):
         request.app.state.background_tasks = []
     request.app.state.background_tasks.append(task)
@@ -104,9 +86,7 @@ async def delete_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Soft-delete an edition and redirect to the editions list."""
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    edition = await repo.get(edition_id, edition_id)
-    if edition:
-        await repo.soft_delete(edition, edition_id)
+    await edition_svc.delete_edition(edition_id, repo)
     return RedirectResponse("/editions/", status_code=303)
 
 
@@ -144,10 +124,7 @@ async def update_title(
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    edition = await repo.get(edition_id, edition_id)
-    if edition:
-        edition.content["title"] = title.strip()
-        await repo.update(edition, edition_id)
+    edition = await edition_svc.update_title(edition_id, title, repo)
     return templates.TemplateResponse(
         "partials/edition_title.html",
         {"request": request, "edition": edition, "editing": False},
