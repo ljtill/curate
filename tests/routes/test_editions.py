@@ -15,6 +15,7 @@ from agent_stack.routes.editions import (
 )
 
 _EXPECTED_REDIRECT_STATUS = 303
+_NEXT_ISSUE_NUMBER = 3
 
 
 def _make_request(_app_state: object | None = None) -> MagicMock:
@@ -34,14 +35,14 @@ async def test_create_edition_auto_numbers() -> None:
         repo = AsyncMock()
         mock_repo_cls.return_value = repo
         repo.create.return_value = None
-        repo.next_issue_number.return_value = 3
+        repo.next_issue_number.return_value = _NEXT_ISSUE_NUMBER
 
         await create_edition(request)
 
         repo.create.assert_called_once()
         created_edition = repo.create.call_args[0][0]
-        assert created_edition.content["title"] == "Issue #3"
-        assert created_edition.content["issue_number"] == 3
+        assert created_edition.content["title"] == f"Issue #{_NEXT_ISSUE_NUMBER}"
+        assert created_edition.content["issue_number"] == _NEXT_ISSUE_NUMBER
         assert created_edition.content["sections"] == []
 
 
