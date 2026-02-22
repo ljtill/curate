@@ -5,14 +5,23 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from azure.identity.aio import DefaultAzureCredential
 from azure.storage.blob import ContentSettings
 from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 
 if TYPE_CHECKING:
+    from azure.core.credentials_async import AsyncTokenCredential
+
     from agent_stack.config import StorageConfig
 
 logger = logging.getLogger(__name__)
+
+_AZURITE_CONNECTION_STRING = (
+    "DefaultEndpointsProtocol=http;"
+    "AccountName=devstoreaccount1;"
+    "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq"
+    "/K1SZFPTOtr/KBHBeksoGMGw==;"
+    "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1"
+)
 
 
 class BlobStorageClient:
@@ -22,14 +31,21 @@ class BlobStorageClient:
         """Initialize the blob storage client with connection config."""
         self._config = config
         self._service_client: BlobServiceClient | None = None
-        self._credential: DefaultAzureCredential | None = None
+        self._credential: AsyncTokenCredential | None = None
 
     async def initialize(self) -> None:
         """Create the blob service client and ensure the target container exists."""
-        self._credential = DefaultAzureCredential()
-        self._service_client = BlobServiceClient(
-            self._config.account_url, credential=self._credential
-        )
+        if self._config.account_url.startswith("https://"):
+            from azure.identity.aio import DefaultAzureCredential  # noqa: PLC0415
+
+            self._credential = DefaultAzureCredential()
+            self._service_client = BlobServiceClient(
+                self._config.account_url, credential=self._credential
+            )
+        else:
+            self._service_client = BlobServiceClient.from_connection_string(
+                _AZURITE_CONNECTION_STRING
+            )
         container = self._service_client.get_container_client(self._config.container)
         if not await container.exists():
             await container.create_container()

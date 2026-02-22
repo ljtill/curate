@@ -30,7 +30,7 @@ class TestBlobStorageClient:
         """Verify initialize creates service client."""
         with (
             patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls,
-            patch("agent_stack.storage.blob.DefaultAzureCredential") as mock_cred_cls,
+            patch("azure.identity.aio.DefaultAzureCredential") as mock_cred_cls,
         ):
             mock_service = MagicMock()
             mock_container = AsyncMock()
@@ -52,7 +52,7 @@ class TestBlobStorageClient:
         """Verify initialize creates container if missing."""
         with (
             patch("agent_stack.storage.blob.BlobServiceClient") as mock_bsc_cls,
-            patch("agent_stack.storage.blob.DefaultAzureCredential"),
+            patch("azure.identity.aio.DefaultAzureCredential"),
         ):
             mock_service = MagicMock()
             mock_container = AsyncMock()

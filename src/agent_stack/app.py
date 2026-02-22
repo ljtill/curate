@@ -7,7 +7,9 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
+import httpx
 import uvicorn
 from azure.core.exceptions import AzureError, HttpResponseError
 from azure.monitor.opentelemetry import configure_azure_monitor
@@ -17,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from agent_stack.agents.llm import create_chat_client
-from agent_stack.config import load_settings
+from agent_stack.config import Settings, load_settings
 from agent_stack.database.client import CosmosClient
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
@@ -47,10 +49,44 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 
 
+async def _check_emulators(settings: Settings) -> None:
+    """Verify local emulators are reachable. Exit with a clear message if not."""
+    failures: list[str] = []
+    async with httpx.AsyncClient(timeout=3) as client:
+        cosmos_url = settings.cosmos.endpoint
+        if not cosmos_url.startswith("https://"):
+            try:
+                await client.get(f"{cosmos_url.rstrip('/')}/")
+            except httpx.ConnectError:
+                parsed = urlparse(cosmos_url)
+                failures.append(f"Cosmos DB emulator is not running at {parsed.netloc}")
+
+        storage_url = settings.storage.account_url
+        if storage_url and not storage_url.startswith("https://"):
+            try:
+                parsed = urlparse(storage_url)
+                await client.get(f"{parsed.scheme}://{parsed.netloc}/")
+            except httpx.ConnectError:
+                parsed = urlparse(storage_url)
+                failures.append(
+                    f"Azurite storage emulator is not running at {parsed.netloc}"
+                )
+
+    if failures:
+        for msg in failures:
+            logger.error(msg)
+        logger.error("Start the emulators with: docker compose up -d")
+        msg = "Local emulators are not running"
+        raise SystemExit(msg)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle — initialize DB, start change feed."""
     settings = load_settings()
+
+    if settings.app.is_development:
+        await _check_emulators(settings)
 
     if settings.monitor.connection_string:
         configure_azure_monitor(connection_string=settings.monitor.connection_string)

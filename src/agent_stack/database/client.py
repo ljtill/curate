@@ -8,12 +8,18 @@ from typing import TYPE_CHECKING, ClassVar, cast
 from azure.cosmos import PartitionKey
 from azure.cosmos.aio import CosmosClient as AzureCosmosClient
 from azure.cosmos.aio import DatabaseProxy
-from azure.identity.aio import DefaultAzureCredential
 
 if TYPE_CHECKING:
+    from azure.core.credentials_async import AsyncTokenCredential
+
     from agent_stack.config import CosmosConfig
 
 logger = logging.getLogger(__name__)
+
+_EMULATOR_KEY = (
+    "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM"
+    "+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+)
 
 
 class CosmosClient:
@@ -23,7 +29,7 @@ class CosmosClient:
         """Initialize the Cosmos DB client wrapper with connection config."""
         self._config = config
         self._client: AzureCosmosClient | None = None
-        self._credential: DefaultAzureCredential | None = None
+        self._credential: AsyncTokenCredential | None = None
         self._database: DatabaseProxy | None = None
 
     _CONTAINERS: ClassVar[list[tuple[str, str]]] = [
@@ -36,10 +42,17 @@ class CosmosClient:
 
     async def initialize(self) -> None:
         """Create the client and ensure the database and containers exist."""
-        self._credential = DefaultAzureCredential()
-        self._client = AzureCosmosClient(
-            self._config.endpoint, credential=self._credential
-        )
+        if self._config.endpoint.startswith("https://"):
+            from azure.identity.aio import DefaultAzureCredential  # noqa: PLC0415
+
+            self._credential = DefaultAzureCredential()
+            self._client = AzureCosmosClient(
+                self._config.endpoint, credential=self._credential
+            )
+        else:
+            self._client = AzureCosmosClient(
+                self._config.endpoint, credential=_EMULATOR_KEY
+            )
         db = cast(
             "DatabaseProxy",
             await self._client.create_database_if_not_exists(self._config.database),
