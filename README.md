@@ -6,6 +6,55 @@ The system orchestrates five specialized agents — **Fetch**, **Review**, **Dra
 
 Built on [Microsoft Agent Framework](https://github.com/microsoft/agent-framework), FastAPI, HTMX, and Azure Cosmos DB. See [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) for the full project specification — architecture, data model, component design, and tech stack. For visual architecture diagrams, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Agentic Loop
+
+The system implements a nested two-loop architecture — an **outer orchestrator loop** that coordinates agents as tool calls, and an **inner agentic loop** where each agent iterates with the LLM until its task is complete.
+
+```mermaid
+flowchart TB
+    %% Entry points
+    CFP["Change Feed Processor"]
+
+    subgraph Outer["Outer Loop — Pipeline Orchestrator (Agent)"]
+        direction TB
+        ORC_LLM["Orchestrator LLM"]
+        ORC_DECIDE{"Select next\nagent stage"}
+        ORC_RESULT["Evaluate result"]
+
+        ORC_LLM --> ORC_DECIDE
+        ORC_RESULT -->|"more stages needed"| ORC_LLM
+    end
+
+    subgraph Inner["Inner Loop — Sub-Agent (×5)"]
+        direction TB
+        AGENT_LLM["Agent LLM"]
+        TOOL_CALL{"Tool call?"}
+        TOOLS["Execute Tool\n(DB read/write, HTTP fetch,\nrender HTML)"]
+        DONE["Return result\nto orchestrator"]
+
+        AGENT_LLM --> TOOL_CALL
+        TOOL_CALL -->|yes| TOOLS
+        TOOLS -->|"tool result"| AGENT_LLM
+        TOOL_CALL -->|"no — task complete"| DONE
+    end
+
+    %% Connections
+    CFP -->|"link submitted /\neditor feedback"| ORC_LLM
+    ORC_DECIDE -->|"invoke agent\nas tool call"| AGENT_LLM
+    DONE --> ORC_RESULT
+    ORC_RESULT -->|"pipeline complete"| DB[("Cosmos DB")]
+
+    %% Human-in-the-loop
+    Editor([Editor]) -->|"submit feedback"| CFP
+    DB -.->|"change feed"| CFP
+```
+
+> **Outer loop** — the orchestrator's LLM decides which agent to invoke next (Fetch → Review → Draft, or Edit/Publish), treating each sub-agent as a callable tool. After each agent returns, the orchestrator re-evaluates and either continues to the next stage or completes the pipeline.
+>
+> **Inner loop** — each sub-agent runs its own LLM session, iteratively calling tools (database reads/writes, HTTP fetches, HTML rendering) until the task is done. The LLM autonomously decides which tools to call and when to stop.
+>
+> **Human-in-the-loop** — editor feedback creates a new Cosmos DB change feed event, re-entering the outer loop through the Edit agent for content refinement.
+
 ## Project Structure
 
 ```
