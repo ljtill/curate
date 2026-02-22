@@ -8,6 +8,7 @@
     <div style="display: flex; gap: 0.5rem; align-items: center;">
         <span class="badge badge-{{ edition.status }}">{{ edition.status }}</span>
         {% if edition.status != 'published' %}
+        <a href="/editions/{{ edition.id }}/preview" target="_blank" class="btn" style="background: var(--surface); color: var(--text);">Preview</a>
         <form method="post" action="/editions/{{ edition.id }}/publish" style="display: inline;">
             <button type="submit" class="btn">Approve &amp; Publish</button>
         </form>
@@ -29,13 +30,57 @@
 
 <div class="card">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Content</h2>
-    {% if edition.content.get('sections') %}
-        {% for section in edition.content.sections %}
+    {% set has_content = edition.content.get('editors_note') or edition.content.get('signals') or edition.content.get('deep_dive') or edition.content.get('toolkit') or edition.content.get('one_more_thing') %}
+    {% if has_content %}
+        {% if edition.content.get('editors_note') %}
         <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
-            <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">{{ section.get('title', 'Section') }}</h3>
-            <div style="color: var(--text-muted); font-size: 0.9rem;">{{ section.get('body', '') }}</div>
+            <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Editor's Note</h3>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">{{ edition.content.editors_note }}</div>
         </div>
-        {% endfor %}
+        {% endif %}
+
+        {% if edition.content.get('signals') %}
+        <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Signals ({{ edition.content.signals | length }})</h3>
+            {% for signal in edition.content.signals %}
+            <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border-radius: 6px;">
+                <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">{{ signal.get('headline', '') }}</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">{{ signal.get('body', '') }}</div>
+                {% if signal.get('url') %}
+                <a href="{{ signal.url }}" target="_blank" style="font-size: 0.8rem; color: var(--accent);">{{ signal.get('domain', signal.url) }}</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if edition.content.get('deep_dive') %}
+        <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Deep Dive: {{ edition.content.deep_dive.get('title', '') }}</h3>
+            {% for para in edition.content.deep_dive.get('paragraphs', []) %}
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">{{ para }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if edition.content.get('toolkit') %}
+        <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Toolkit ({{ edition.content.toolkit | length }})</h3>
+            {% for tool in edition.content.toolkit %}
+            <div style="margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; background: var(--surface); border-radius: 6px;">
+                <div style="font-weight: 600; font-size: 0.9rem;">{{ tool.get('name', '') }}</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">{{ tool.get('description', '') }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if edition.content.get('one_more_thing') %}
+        <div>
+            <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">One More Thing</h3>
+            <div style="color: var(--text-muted); font-size: 0.9rem; font-style: italic;">{{ edition.content.one_more_thing }}</div>
+        </div>
+        {% endif %}
     {% else %}
         <p style="color: var(--text-muted);">No content yet. Submit links and let the agents draft content.</p>
     {% endif %}

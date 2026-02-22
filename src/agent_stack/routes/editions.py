@@ -71,6 +71,19 @@ async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
     )
 
 
+@router.get("/{edition_id}/preview", response_class=HTMLResponse)
+async def preview_edition(request: Request, edition_id: str) -> HTMLResponse:
+    """Render the newsletter preview using the public template."""
+    templates = request.app.state.templates
+    cosmos = request.app.state.cosmos
+    repo = EditionRepository(cosmos.database)
+    edition = await repo.get(edition_id, edition_id)
+    return templates.TemplateResponse(
+        "newsletter/edition.html",
+        {"request": request, "edition": edition},
+    )
+
+
 @router.post("/{edition_id}/publish")
 async def publish_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Trigger the publish pipeline for an edition via the orchestrator agent."""
