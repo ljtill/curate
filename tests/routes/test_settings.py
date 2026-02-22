@@ -1,5 +1,6 @@
 """Tests for the settings routes."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -15,12 +16,17 @@ from agent_stack.routes.settings import (
 
 
 def _make_request(
-    *, memory_service: MagicMock | None = None, user: dict | None = None
+    *,
+    memory_service: MagicMock | None = None,
+    user: dict | None = None,
+    settings: SimpleNamespace | None = None,
 ) -> MagicMock:
     """Create a mock request with app state."""
     request = MagicMock()
     request.app.state.memory_service = memory_service
     request.app.state.templates = MagicMock()
+    if settings is not None:
+        request.app.state.settings = settings
     if user is not None:
         request.session = {"user": user}
     else:
@@ -40,6 +46,7 @@ class TestSettingsPage:
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][0] == "settings.html"
         assert call_args[0][1]["memory_configured"] is False
+        assert call_args[0][1]["memory_disabled_by_config"] is False
 
     async def test_renders_with_memory_service(self) -> None:
         """Verify rendering with memory service present."""
@@ -54,7 +61,23 @@ class TestSettingsPage:
         await settings_page(request)
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][1]["memory_configured"] is True
+        assert call_args[0][1]["memory_disabled_by_config"] is False
         assert call_args[0][1]["memory_enabled"] is True
+
+    async def test_renders_when_memory_disabled_by_config(self) -> None:
+        """Verify rendering state when memory is disabled via environment config."""
+        request = _make_request(
+            settings=SimpleNamespace(
+                foundry=SimpleNamespace(
+                    project_endpoint="https://test.services.ai.azure.com"
+                ),
+                memory=SimpleNamespace(enabled=False),
+            )
+        )
+        await settings_page(request)
+        call_args = request.app.state.templates.TemplateResponse.call_args
+        assert call_args[0][1]["memory_configured"] is False
+        assert call_args[0][1]["memory_disabled_by_config"] is True
 
 
 @pytest.mark.unit

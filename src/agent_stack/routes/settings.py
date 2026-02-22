@@ -29,9 +29,13 @@ async def settings_page(request: Request) -> HTMLResponse:
     """Render the settings page with memory status and management controls."""
     memory_service = request.app.state.memory_service
     templates = request.app.state.templates
+    settings = getattr(request.app.state, "settings", None)
 
     memory_enabled = memory_service.enabled if memory_service else False
     store_name = memory_service.store_name if memory_service else "—"
+    memory_disabled_by_config = bool(
+        settings and settings.foundry.project_endpoint and not settings.memory.enabled
+    )
 
     project_memories: list = []
     personal_memories: list = []
@@ -48,6 +52,7 @@ async def settings_page(request: Request) -> HTMLResponse:
             "request": request,
             "memory_enabled": memory_enabled,
             "memory_configured": memory_service is not None,
+            "memory_disabled_by_config": memory_disabled_by_config,
             "store_name": store_name,
             "project_memories": project_memories,
             "personal_memories": personal_memories,
