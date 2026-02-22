@@ -221,12 +221,15 @@ async def test_publish_edition_calls_orchestrator() -> None:
     orchestrator = MagicMock()
     orchestrator.handle_publish = AsyncMock()
     request.app.state.processor.orchestrator = orchestrator
+    # Ensure background_tasks doesn't exist yet so the route creates it
+    del request.app.state.background_tasks
 
     response = await publish_edition(request, edition_id="ed-1")
 
     assert response.status_code == _EXPECTED_REDIRECT_STATUS
     # Background task was created for the orchestrator
-    assert len(request.app.state.setdefault.call_args_list) > 0
+    assert isinstance(request.app.state.background_tasks, list)
+    assert len(request.app.state.background_tasks) > 0
 
 
 async def test_publish_edition_redirects() -> None:
@@ -235,6 +238,7 @@ async def test_publish_edition_redirects() -> None:
     orchestrator = MagicMock()
     orchestrator.handle_publish = AsyncMock()
     request.app.state.processor.orchestrator = orchestrator
+    del request.app.state.background_tasks
 
     response = await publish_edition(request, edition_id="ed-1")
 

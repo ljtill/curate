@@ -94,7 +94,9 @@ async def publish_edition(request: Request, edition_id: str) -> RedirectResponse
     """Trigger the publish pipeline for an edition via the orchestrator agent."""
     orchestrator = request.app.state.processor.orchestrator
     task = asyncio.create_task(orchestrator.handle_publish(edition_id))
-    request.app.state.setdefault("_background_tasks", []).append(task)
+    if not hasattr(request.app.state, "background_tasks"):
+        request.app.state.background_tasks = []
+    request.app.state.background_tasks.append(task)
     return RedirectResponse(f"/editions/{edition_id}", status_code=303)
 
 
