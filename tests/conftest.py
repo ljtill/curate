@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack.config import CosmosConfig, EntraConfig, OpenAIConfig, StorageConfig
+from agent_stack.config import CosmosConfig, EntraConfig, FoundryConfig, StorageConfig
 from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 from agent_stack.models.edition import Edition, EditionStatus
 from agent_stack.models.feedback import Feedback
@@ -109,9 +109,12 @@ def cosmos_config() -> tuple[CosmosConfig, object, object]:
 
 
 @pytest.fixture
-def openai_config() -> tuple[OpenAIConfig, object]:
-    """Create a openai config for testing."""
-    return OpenAIConfig(endpoint="https://test.openai.azure.com", deployment="gpt-test")
+def foundry_config() -> FoundryConfig:
+    """Create a Foundry config for testing."""
+    return FoundryConfig(
+        project_endpoint="https://test.services.ai.azure.com/api/projects/test",
+        model="gpt-test",
+    )
 
 
 @pytest.fixture

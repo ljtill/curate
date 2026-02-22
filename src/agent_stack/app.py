@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
+import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,7 +17,7 @@ import uvicorn
 from azure.core.exceptions import HttpResponseError
 from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -44,13 +46,107 @@ from agent_stack.storage.blob import BlobStorageClient
 from agent_stack.storage.renderer import StaticSiteRenderer
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
 logger = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
+_REQUEST_ID_HEADER = "x-request-id"
+_FEED_RANGE_FILTER_ADDED = False
+
+
+class _FeedRangeFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "'feed_range' empty" not in record.getMessage()
+
+
+def _configure_logging(settings: Settings, *, include_file_handler: bool) -> None:
+    """Configure logging for both factory and CLI startup modes."""
+    global _FEED_RANGE_FILTER_ADDED
+
+    log_level = getattr(logging, settings.app.log_level.upper(), logging.INFO)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    if not root_logger.handlers:
+        root_logger.addHandler(logging.StreamHandler())
+
+    if include_file_handler:
+        log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        log_path = (log_dir / "server.log").resolve()
+        has_file_handler = False
+        for handler in root_logger.handlers:
+            if not isinstance(handler, logging.FileHandler):
+                continue
+            if Path(handler.baseFilename).resolve() == log_path:
+                has_file_handler = True
+                break
+        if not has_file_handler:
+            file_handler = logging.FileHandler(log_path, mode="w")
+            file_handler.setLevel(log_level)
+            file_handler.setFormatter(
+                logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+            )
+            root_logger.addHandler(file_handler)
+
+    logging.getLogger("azure").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("sse_starlette").setLevel(logging.WARNING)
+    logging.getLogger("openai").setLevel(logging.WARNING)
+    logging.getLogger("agent_framework").setLevel(logging.WARNING)
+    logging.getLogger("python_multipart").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+
+    if not _FEED_RANGE_FILTER_ADDED:
+        root_logger.addFilter(_FeedRangeFilter())
+        _FEED_RANGE_FILTER_ADDED = True
+
+
+def _install_request_diagnostics_middleware(app: FastAPI, settings: Settings) -> None:
+    """Install middleware that logs request timings and slow responses."""
+    app.state.inflight_requests = 0
+    slow_request_ms = settings.app.slow_request_ms
+
+    @app.middleware("http")
+    async def _request_diagnostics(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        request_id = request.headers.get(_REQUEST_ID_HEADER) or uuid.uuid4().hex[:12]
+        request.state.request_id = request_id
+        app.state.inflight_requests += 1
+        inflight_at_start = app.state.inflight_requests
+        started_at = time.monotonic()
+        response: Response | None = None
+
+        try:
+            response = await call_next(request)
+            response.headers.setdefault(_REQUEST_ID_HEADER, request_id)
+            return response
+        finally:
+            elapsed_ms = (time.monotonic() - started_at) * 1000
+            app.state.inflight_requests = max(app.state.inflight_requests - 1, 0)
+            status_code = response.status_code if response else 500
+            message = (
+                "Request handled — request_id=%s method=%s path=%s status=%d "
+                "duration_ms=%.0f inflight_start=%d inflight_now=%d"
+            )
+            args = (
+                request_id,
+                request.method,
+                request.url.path,
+                status_code,
+                elapsed_ms,
+                inflight_at_start,
+                app.state.inflight_requests,
+            )
+            if request.url.path != "/events" and elapsed_ms >= slow_request_ms:
+                logger.warning(message, *args)
+            else:
+                logger.debug(message, *args)
 
 
 async def _check_emulators(settings: Settings) -> bool:
@@ -108,7 +204,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.settings = settings
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-    chat_client = create_chat_client(settings.openai)
+    chat_client = create_chat_client(settings.foundry)
     editions_repo = EditionRepository(cosmos.database)
 
     storage = BlobStorageClient(settings.storage)
@@ -123,13 +219,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Initialize Foundry Memory (optional — gracefully disabled when unconfigured)
     context_providers: list | None = None
     memory_service: MemoryService | None = None
-    if settings.memory.project_endpoint and settings.memory.enabled:
+    if settings.foundry.project_endpoint and settings.memory.enabled:
         try:
             from azure.ai.projects import AIProjectClient  # noqa: PLC0415
             from azure.identity import DefaultAzureCredential  # noqa: PLC0415
 
             project_client = AIProjectClient(
-                endpoint=settings.memory.project_endpoint,
+                endpoint=settings.foundry.project_endpoint,
                 credential=DefaultAzureCredential(),
             )
             memory_service = MemoryService(project_client, settings.memory)
@@ -184,10 +280,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
+    settings = load_settings()
+    _configure_logging(settings, include_file_handler=False)
     app = FastAPI(
         title="The Agent Stack — Editorial Dashboard",
         lifespan=lifespan,
     )
+    _install_request_diagnostics_middleware(app, settings)
 
     @app.exception_handler(HttpResponseError)
     async def _azure_error_handler(
@@ -219,34 +318,7 @@ def create_app() -> FastAPI:
 def main() -> None:
     """Entry point for running the application."""
     settings = load_settings()
-    log_level = getattr(logging, settings.app.log_level.upper(), logging.INFO)
-
-    log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
-    log_dir.mkdir(exist_ok=True)
-
-    file_handler = logging.FileHandler(log_dir / "server.log", mode="w")
-    file_handler.setLevel(log_level)
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
-    )
-
-    logging.basicConfig(
-        level=log_level, handlers=[logging.StreamHandler(), file_handler]
-    )
-    logging.getLogger("azure").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-    logging.getLogger("sse_starlette").setLevel(logging.WARNING)
-    logging.getLogger("openai").setLevel(logging.WARNING)
-    logging.getLogger("agent_framework").setLevel(logging.WARNING)
-    logging.getLogger("python_multipart").setLevel(logging.WARNING)
-    logging.getLogger("asyncio").setLevel(logging.WARNING)
-
-    class _FeedRangeFilter(logging.Filter):
-        def filter(self, record: logging.LogRecord) -> bool:
-            return "'feed_range' empty" not in record.getMessage()
-
-    logging.getLogger().addFilter(_FeedRangeFilter())
+    _configure_logging(settings, include_file_handler=True)
 
     if settings.app.is_development and not asyncio.run(_check_emulators(settings)):
         return

@@ -14,7 +14,6 @@ from agent_stack.services.memory import MemoryService
 def memory_config() -> FoundryMemoryConfig:
     """Create a test memory config."""
     return FoundryMemoryConfig(
-        project_endpoint="https://test.services.ai.azure.com/api/projects/test",
         memory_store_name="test-store",
         chat_model="gpt-4.1-mini",
         embedding_model="text-embedding-3-small",
@@ -25,7 +24,6 @@ def memory_config() -> FoundryMemoryConfig:
 def disabled_config() -> FoundryMemoryConfig:
     """Create a disabled memory config."""
     return FoundryMemoryConfig(
-        project_endpoint="https://test.services.ai.azure.com/api/projects/test",
         memory_store_name="test-store",
         chat_model="gpt-4.1-mini",
         embedding_model="text-embedding-3-small",

@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock
 
-from agent_stack.config import CosmosConfig, OpenAIConfig, StorageConfig
+from agent_stack.config import CosmosConfig, FoundryConfig, StorageConfig
 from agent_stack.pipeline.change_feed import ChangeFeedProcessor
 from agent_stack.services.health import (
     StorageHealthConfig,
@@ -46,8 +46,8 @@ async def test_check_cosmos_unhealthy() -> None:
     assert "Connection refused" in result.error
 
 
-_openai_config = OpenAIConfig(
-    endpoint="https://myoai.openai.azure.com", deployment="gpt-4o"
+_foundry_config = FoundryConfig(
+    project_endpoint="https://myoai.openai.azure.com", model="gpt-4o"
 )
 
 
@@ -56,7 +56,7 @@ async def test_check_openai_healthy() -> None:
     client = AsyncMock()
     client.get_response = AsyncMock(return_value=MagicMock())
 
-    result = await check_openai(client, _openai_config)
+    result = await check_openai(client, _foundry_config)
 
     assert result.healthy is True
     assert result.name == "Azure OpenAI"
@@ -72,7 +72,7 @@ async def test_check_openai_unhealthy() -> None:
         side_effect=ConnectionError("nodename nor servname provided")
     )
 
-    result = await check_openai(client, _openai_config)
+    result = await check_openai(client, _foundry_config)
 
     assert result.healthy is False
     assert "nodename" in result.error
@@ -175,7 +175,7 @@ async def test_check_openai_healthy_on_max_tokens_error() -> None:
     client = AsyncMock()
     client.get_response = AsyncMock(side_effect=ValueError("max_tokens is too large"))
 
-    result = await check_openai(client, _openai_config)
+    result = await check_openai(client, _foundry_config)
 
     assert result.healthy is True
 
@@ -185,7 +185,7 @@ def test_clean_openai_error_connection_error() -> None:
     result = _clean_openai_error("Connection error to https://example.com")
 
     assert "Connection error" in result
-    assert "AZURE_OPENAI_ENDPOINT" in result
+    assert "FOUNDRY_PROJECT_ENDPOINT" in result
 
 
 def test_clean_openai_error_class_repr_prefix() -> None:
@@ -243,7 +243,7 @@ async def test_check_all_without_storage() -> None:
         openai_client,
         processor,
         _cosmos_config,
-        _openai_config,
+        _foundry_config,
     )
 
     names = [r.name for r in results]
@@ -269,7 +269,7 @@ async def test_check_all_with_storage() -> None:
         openai_client,
         processor,
         _cosmos_config,
-        _openai_config,
+        _foundry_config,
         storage_health=storage_health,
     )
 

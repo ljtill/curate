@@ -24,11 +24,13 @@ class CosmosConfig:
 
 
 @dataclass(frozen=True)
-class OpenAIConfig:
-    """Hold Azure OpenAI endpoint and deployment settings."""
+class FoundryConfig:
+    """Hold Microsoft Foundry project and model settings."""
 
-    endpoint: str = field(default_factory=lambda: _env("AZURE_OPENAI_ENDPOINT"))
-    deployment: str = field(default_factory=lambda: _env("AZURE_OPENAI_DEPLOYMENT"))
+    project_endpoint: str = field(
+        default_factory=lambda: _env("FOUNDRY_PROJECT_ENDPOINT")
+    )
+    model: str = field(default_factory=lambda: _env("FOUNDRY_MODEL"))
 
 
 @dataclass(frozen=True)
@@ -73,9 +75,6 @@ class MonitorConfig:
 class FoundryMemoryConfig:
     """Hold Azure AI Foundry Memory settings."""
 
-    project_endpoint: str = field(
-        default_factory=lambda: _env("FOUNDRY_PROJECT_ENDPOINT")
-    )
     memory_store_name: str = field(
         default_factory=lambda: _env("FOUNDRY_MEMORY_STORE_NAME", "editorial-memory")
     )
@@ -105,6 +104,12 @@ class AppConfig:
         default_factory=lambda: _env("APP_CONFIG_ENDPOINT")
     )
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
+    slow_request_ms: int = field(
+        default_factory=lambda: int(_env("APP_SLOW_REQUEST_MS", "800"))
+    )
+    slow_repository_ms: int = field(
+        default_factory=lambda: int(_env("APP_SLOW_REPOSITORY_MS", "250"))
+    )
 
     @property
     def is_development(self) -> bool:
@@ -117,7 +122,7 @@ class Settings:
     """Aggregate all configuration sections into a single settings object."""
 
     cosmos: CosmosConfig = field(default_factory=CosmosConfig)
-    openai: OpenAIConfig = field(default_factory=OpenAIConfig)
+    foundry: FoundryConfig = field(default_factory=FoundryConfig)
     storage: StorageConfig = field(default_factory=StorageConfig)
     entra: EntraConfig = field(default_factory=EntraConfig)
     monitor: MonitorConfig = field(default_factory=MonitorConfig)

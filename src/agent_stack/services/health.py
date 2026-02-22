@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from agent_framework.azure import AzureOpenAIChatClient
     from azure.cosmos.aio import DatabaseProxy
 
-    from agent_stack.config import CosmosConfig, OpenAIConfig, StorageConfig
+    from agent_stack.config import CosmosConfig, FoundryConfig, StorageConfig
     from agent_stack.pipeline.change_feed import ChangeFeedProcessor
     from agent_stack.storage.blob import BlobStorageClient
 
@@ -58,10 +58,10 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
 
 
 async def check_openai(
-    client: AzureOpenAIChatClient, config: OpenAIConfig
+    client: AzureOpenAIChatClient, config: FoundryConfig
 ) -> ServiceHealth:
     """Probe Azure OpenAI with a minimal completion request."""
-    detail = f"{config.endpoint} · {config.deployment}"
+    detail = f"{config.project_endpoint} · {config.model}"
     start = time.monotonic()
     try:
         await client.get_response(
@@ -99,7 +99,7 @@ async def check_openai(
 def _clean_openai_error(raw: str) -> str:
     """Extract a human-readable message from an Azure OpenAI exception."""
     if "Connection error" in raw:
-        return "Connection error — check AZURE_OPENAI_ENDPOINT is reachable"
+        return "Connection error — check FOUNDRY_PROJECT_ENDPOINT is reachable"
 
     if raw.startswith("<class "):
         idx = raw.find(">")
@@ -191,14 +191,14 @@ async def check_all(
     openai_client: AzureOpenAIChatClient,
     processor: ChangeFeedProcessor,
     cosmos_config: CosmosConfig,
-    openai_config: OpenAIConfig,
+    foundry_config: FoundryConfig,
     storage_health: StorageHealthConfig | None = None,
 ) -> list[ServiceHealth]:
     """Run all health probes and return results."""
     coros: list = [check_cosmos(database, cosmos_config)]
     if storage_health is not None:
         coros.append(check_storage(storage_health.client, storage_health.config))
-    coros.append(check_openai(openai_client, openai_config))
+    coros.append(check_openai(openai_client, foundry_config))
     network_results = await asyncio.gather(*coros, return_exceptions=False)
     feed_result = check_change_feed(processor)
     return [*network_results, feed_result]

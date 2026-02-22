@@ -6,7 +6,7 @@ from agent_stack.config import (
     AppConfig,
     CosmosConfig,
     EntraConfig,
-    OpenAIConfig,
+    FoundryConfig,
     Settings,
     StorageConfig,
     _env,
@@ -61,13 +61,13 @@ def test_cosmos_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.database == "agent-stack"
 
 
-def test_openai_config(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify openai config."""
-    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://oai.example.com")
-    monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
-    config = OpenAIConfig()
-    assert config.endpoint == "https://oai.example.com"
-    assert config.deployment == "gpt-4"
+def test_foundry_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify Foundry config reads env vars."""
+    monkeypatch.setenv("FOUNDRY_PROJECT_ENDPOINT", "https://test.services.ai.azure.com")
+    monkeypatch.setenv("FOUNDRY_MODEL", "gpt-4.1")
+    config = FoundryConfig()
+    assert config.project_endpoint == "https://test.services.ai.azure.com"
+    assert config.model == "gpt-4.1"
 
 
 def test_storage_config_default_container(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -84,8 +84,8 @@ def test_settings_creates_all_sub_configs(monkeypatch: pytest.MonkeyPatch) -> No
     """Verify settings creates all sub configs."""
     for key in [
         "COSMOS_ENDPOINT",
-        "AZURE_OPENAI_ENDPOINT",
-        "AZURE_OPENAI_DEPLOYMENT",
+        "FOUNDRY_PROJECT_ENDPOINT",
+        "FOUNDRY_MODEL",
         "AZURE_STORAGE_ACCOUNT_URL",
         "ENTRA_TENANT_ID",
         "ENTRA_CLIENT_ID",
@@ -94,7 +94,7 @@ def test_settings_creates_all_sub_configs(monkeypatch: pytest.MonkeyPatch) -> No
         monkeypatch.setenv(key, "test")
     settings = Settings()
     assert isinstance(settings.cosmos, CosmosConfig)
-    assert isinstance(settings.openai, OpenAIConfig)
+    assert isinstance(settings.foundry, FoundryConfig)
     assert isinstance(settings.storage, StorageConfig)
     assert isinstance(settings.entra, EntraConfig)
     assert isinstance(settings.app, AppConfig)
