@@ -13,6 +13,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from agent_framework import BaseContextProvider
+from azure.core.exceptions import HttpResponseError
 
 if TYPE_CHECKING:
     from agent_framework import AgentSession
@@ -60,6 +61,55 @@ class FoundryMemoryProvider(BaseContextProvider):
         self._scope = scope
         self.enabled = enabled
         self._max_memories = max_memories
+        self._circuit_open = False
+
+    # -- Internals ---------------------------------------------------------
+
+    def _handle_http_error(self, exc: HttpResponseError, operation: str) -> None:
+        """Handle an HTTP error from the Foundry Memory service.
+
+        For authentication errors (401/403) the circuit is tripped so no
+        further calls are attempted.  Other HTTP errors are logged with the
+        full traceback to aid debugging.
+        """
+        if exc.status_code in (401, 403):
+            self._circuit_open = True
+            logger.warning(
+                "Foundry Memory authentication failed (scope=%s, status=%s) "
+                "— memory disabled for remaining lifetime of this provider",
+                self._scope,
+                exc.status_code,
+            )
+        else:
+            logger.warning(
+                "Failed to %s Foundry Memory (scope=%s, status=%s), "
+                "continuing without memory",
+                operation,
+                self._scope,
+                exc.status_code,
+                exc_info=exc,
+            )
+
+    @staticmethod
+    def _build_conversation_items(context: SessionContext) -> list:
+        """Build conversation items from input and response messages."""
+        from azure.ai.projects.models import (  # noqa: PLC0415
+            ResponsesAssistantMessageItemParam,
+            ResponsesUserMessageItemParam,
+        )
+
+        items: list = []
+        for msg in context.input_messages:
+            text = msg.text if hasattr(msg, "text") else ""
+            if text:
+                items.append(ResponsesUserMessageItemParam(content=text))
+
+        if context.response and context.response.messages:
+            for msg in context.response.messages:
+                text = msg.text if hasattr(msg, "text") else ""
+                if text:
+                    items.append(ResponsesAssistantMessageItemParam(content=text))
+        return items
 
     # -- Lifecycle hooks ---------------------------------------------------
 
@@ -72,7 +122,7 @@ class FoundryMemoryProvider(BaseContextProvider):
         state: dict[str, Any],  # noqa: ARG002
     ) -> None:
         """Search the memory store and inject relevant memories as instructions."""
-        if not self.enabled:
+        if not self.enabled or self._circuit_open:
             return
 
         try:
@@ -124,6 +174,8 @@ class FoundryMemoryProvider(BaseContextProvider):
                         len(memory_lines),
                         self._scope,
                     )
+        except HttpResponseError as exc:
+            self._handle_http_error(exc, "search")
         except Exception:  # noqa: BLE001
             logger.warning(
                 "Failed to search Foundry Memory (scope=%s), continuing without memory",
@@ -140,7 +192,7 @@ class FoundryMemoryProvider(BaseContextProvider):
         state: dict[str, Any],
     ) -> None:
         """Send conversation to the memory store for extraction."""
-        if not self.enabled:
+        if not self.enabled or self._circuit_open:
             return
 
         # Allow per-run opt-out (e.g. feedback with "Learn from this" disabled)
@@ -149,23 +201,7 @@ class FoundryMemoryProvider(BaseContextProvider):
             return
 
         try:
-            from azure.ai.projects.models import (  # noqa: PLC0415
-                ResponsesAssistantMessageItemParam,
-                ResponsesUserMessageItemParam,
-            )
-
-            # Build conversation items from input + response messages
-            items: list = []
-            for msg in context.input_messages:
-                text = msg.text if hasattr(msg, "text") else ""
-                if text:
-                    items.append(ResponsesUserMessageItemParam(content=text))
-
-            if context.response and context.response.messages:
-                for msg in context.response.messages:
-                    text = msg.text if hasattr(msg, "text") else ""
-                    if text:
-                        items.append(ResponsesAssistantMessageItemParam(content=text))
+            items = self._build_conversation_items(context)
 
             if items:
                 # Fire and forget — don't block the pipeline on memory indexing
@@ -180,6 +216,8 @@ class FoundryMemoryProvider(BaseContextProvider):
                     len(items),
                     self._scope,
                 )
+        except HttpResponseError as exc:
+            self._handle_http_error(exc, "update")
         except Exception:  # noqa: BLE001
             logger.warning(
                 "Failed to update Foundry Memory (scope=%s), "
