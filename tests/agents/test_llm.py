@@ -14,13 +14,15 @@ class TestCreateChatClient:
     ) -> None:
         """Verify creates client with DefaultAzureCredential."""
         with (
-            patch("agent_stack.agents.llm.AzureOpenAIChatClient") as mock_client_cls,
+            patch(
+                "agent_stack.agents.llm.AzureOpenAIResponsesClient"
+            ) as mock_client_cls,
             patch("agent_stack.agents.llm.DefaultAzureCredential") as mock_cred_cls,
         ):
             client = create_chat_client(foundry_config)
 
             mock_client_cls.assert_called_once_with(
-                endpoint=foundry_config.project_endpoint,
+                project_endpoint=foundry_config.project_endpoint,
                 deployment_name=foundry_config.model,
                 credential=mock_cred_cls.return_value,
             )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from agent_framework.azure import AzureOpenAIChatClient
+from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity import DefaultAzureCredential
 
 if TYPE_CHECKING:
@@ -21,8 +21,8 @@ def create_chat_client(config: FoundryConfig) -> BaseChatClient:
 
     When ``config.is_local`` is True, starts Microsoft Foundry Local via the
     ``foundry-local-sdk`` and returns an ``OpenAIChatClient`` pointed at the
-    local service.  Otherwise, returns an ``AzureOpenAIChatClient``
-    authenticated via ``DefaultAzureCredential``.
+    local service.  Otherwise, returns an ``AzureOpenAIResponsesClient``
+    connected via the Foundry project endpoint.
     """
     if config.is_local:
         return _create_local_client(config)
@@ -32,8 +32,8 @@ def create_chat_client(config: FoundryConfig) -> BaseChatClient:
         config.project_endpoint,
         config.model,
     )
-    return AzureOpenAIChatClient(
-        endpoint=config.project_endpoint,
+    return AzureOpenAIResponsesClient(
+        project_endpoint=config.project_endpoint,
         deployment_name=config.model,
         credential=DefaultAzureCredential(),
     )

@@ -35,6 +35,11 @@ class FoundryConfig:
     local_model: str = field(
         default_factory=lambda: _env("FOUNDRY_LOCAL_MODEL", "phi-4-mini")
     )
+    token_endpoint: str = field(
+        default_factory=lambda: _env(
+            "FOUNDRY_TOKEN_ENDPOINT", "https://ai.azure.com/.default"
+        )
+    )
 
     @property
     def is_local(self) -> bool:

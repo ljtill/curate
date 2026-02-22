@@ -17,7 +17,6 @@ from agent_framework import BaseContextProvider
 if TYPE_CHECKING:
     from agent_framework import AgentSession
     from agent_framework._sessions import SessionContext
-    from agent_framework._types import SupportsAgentRun
     from azure.ai.projects import AIProjectClient
 
 
@@ -67,7 +66,7 @@ class FoundryMemoryProvider(BaseContextProvider):
     async def before_run(
         self,
         *,
-        agent: SupportsAgentRun,  # noqa: ARG002
+        agent: object,  # noqa: ARG002
         session: AgentSession,  # noqa: ARG002
         context: SessionContext,
         state: dict[str, Any],  # noqa: ARG002
@@ -135,7 +134,7 @@ class FoundryMemoryProvider(BaseContextProvider):
     async def after_run(
         self,
         *,
-        agent: SupportsAgentRun,  # noqa: ARG002
+        agent: object,  # noqa: ARG002
         session: AgentSession,  # noqa: ARG002
         context: SessionContext,
         state: dict[str, Any],

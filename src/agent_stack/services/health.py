@@ -14,7 +14,6 @@ from azure.core.exceptions import AzureError
 
 if TYPE_CHECKING:
     from agent_framework import BaseChatClient
-    from agent_framework.azure import AzureOpenAIChatClient
     from azure.cosmos.aio import DatabaseProxy
 
     from agent_stack.config import CosmosConfig, FoundryConfig, StorageConfig
@@ -58,16 +57,13 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
         )
 
 
-async def check_openai(
-    client: AzureOpenAIChatClient | BaseChatClient, config: FoundryConfig
-) -> ServiceHealth:
+async def check_openai(client: BaseChatClient, config: FoundryConfig) -> ServiceHealth:
     """Probe Microsoft Foundry with a minimal completion request."""
     detail = f"{config.project_endpoint} · {config.model}"
     start = time.monotonic()
     try:
         await client.get_response(
             messages=[Message(role="user", text="ping")],
-            options={"max_tokens": 1},
         )
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
@@ -79,7 +75,11 @@ async def check_openai(
     except (ChatClientException, OSError, RuntimeError, ValueError) as exc:
         latency = (time.monotonic() - start) * 1000
         raw = str(exc)
-        if "max_tokens" in raw or "model output limit" in raw:
+        if (
+            "max_tokens" in raw
+            or "max_output_tokens" in raw
+            or "model output limit" in raw
+        ):
             return ServiceHealth(
                 name="Foundry",
                 healthy=True,
