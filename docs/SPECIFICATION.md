@@ -81,7 +81,7 @@ uv add agent-framework-core --prerelease=allow
 
 ### 1. Link Ingestion
 
-Links are submitted through the Editorial Dashboard (Links view). Submitting a link writes a document to Cosmos DB, which triggers the agent pipeline via the change feed.
+Links are submitted to the global Store (independent of any edition). From the Edition Workspace, editors browse and associate store links with an edition. Associating a link sets its `edition_id` field, which triggers the agent pipeline via the Cosmos DB change feed.
 
 ### 2. Agent Pipeline
 
@@ -113,15 +113,19 @@ FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft En
 
 **Views:**
 
-- **Dashboard** — overview of pipeline status, current edition, recent activity. Includes recent agent runs via `/runs/recent`.
-- **Links** — submit new links, view agent processing status per link (`submitted` → `fetching` → `reviewed` → `drafted`), retry failed links, delete links. HTMX updates status in-place.
-- **Editions** — list of all editions with status (`created` → `drafting` → `in_review` → `published`).
-- **Edition Detail** — review agent-generated content, per-section structured feedback interface for comments back to agents (bidirectional), inline title editing, newsletter preview, publish and delete actions.
-- **Agents** — read-only view of the agent pipeline topology showing each stage's configuration, registered tools, middleware, system prompt preview, and recent run history.
-- **Settings** — agent memory management: toggle memory on/off, view and clear project-level and personal memory stores via Foundry Memory integration.
-- **Status** — dependency health checks (Cosmos DB, Foundry, Storage) with latency metrics, probed on page load.
+- **Dashboard** — edition hub showing the current active edition with quick actions, a chronological list of all editions with status badges, and recent agent activity. Entry point for creating new editions and opening edition workspaces.
+- **Store** — global links library where links are submitted independently (not tied to any edition). Links can be browsed, searched, retried, and deleted. Links are associated with editions from within the Edition Workspace.
+- **Edition Workspace** — split-view workspace for curating an edition. Left panel shows content preview (editor's note, signals, deep dive, toolkit, one-more-thing) with inline title editing and publish/delete actions. Right panel has a tabbed interface with three tabs:
+  - **Links** — attached links with status, plus browse/add unattached links from the store
+  - **Agents** — agent pipeline run history scoped to this edition, with real-time SSE updates
+  - **Feedback** — per-section feedback form with "learn from feedback" toggle, plus feedback history
+- **Settings** — agent memory management (toggle, view, clear project/personal memories), plus system health checks (Cosmos DB, Foundry, Storage) and app info (version, uptime).
 
-**Edition model:** Single active edition — all submitted links feed into the current draft. The editor creates a new edition when ready to start the next one.
+**Navigation:** Minimal top-level nav with three items: Dashboard, Store, Settings.
+
+**Link model:** Links exist independently in a global store and can be associated with editions. When a link is associated with an edition, the agent pipeline is triggered via the Cosmos DB change feed.
+
+**Edition model:** Single active edition — associated links feed into the current draft. The editor creates a new edition when ready to start the next one.
 
 ### 4. Public Newsletter Site
 
@@ -137,28 +141,28 @@ Cosmos DB (NoSQL API), leveraging the change feed as the event backbone for agen
 
 | Container      | Partition Key   | Rationale                                                        |
 |----------------|-----------------|------------------------------------------------------------------|
-| `links`        | `/edition_id`   | Links are queried per edition; co-locates related links          |
+| `links`        | `/id`           | Links exist independently; each link is its own partition        |
 | `editions`     | `/id`           | Each edition is accessed individually; single-document partition |
 | `feedback`     | `/edition_id`   | Feedback is queried per edition alongside content review         |
-| `agent_runs`   | `/trigger_id`   | Runs are queried by the document that triggered them             |
+| `agent_runs`   | `/edition_id`   | Runs are queried per edition; co-locates all activity for an edition |
 
 ### Document Types
 
 #### Links
 
-Container: `links` · Partition key: `/edition_id`
+Container: `links` · Partition key: `/id`
 
-Submitted URLs with metadata, agent processing status, and extracted content.
+Submitted URLs with metadata, agent processing status, and extracted content. Links exist independently in a global store and can be associated with editions.
 
 | Field              | Description                                              |
 |--------------------|----------------------------------------------------------|
-| `id`               | Unique identifier                                        |
+| `id`               | Unique identifier (partition key)                        |
 | `url`              | Submitted URL                                            |
 | `title`            | Page title (populated by Fetch agent)                    |
 | `status`           | Processing status: `submitted` → `fetching` → `reviewed` → `drafted` (or `failed`) |
 | `content`          | Extracted/parsed content (populated by Fetch agent)      |
 | `review`           | Agent review output — relevance, insights, category      |
-| `edition_id`       | Associated edition (partition key)                       |
+| `edition_id`       | Associated edition (optional — null when unattached)     |
 | `created_at`       | Creation timestamp                                       |
 | `updated_at`       | Last update timestamp                                    |
 | `deleted_at`       | Soft-delete timestamp (absent if active)                 |
@@ -215,15 +219,16 @@ Structured per-section editor comments, linked to editions.
 
 #### Agent Runs
 
-Container: `agent_runs` · Partition key: `/trigger_id`
+Container: `agent_runs` · Partition key: `/edition_id`
 
-Execution logs, decisions, and state per pipeline stage.
+Execution logs, decisions, and state per pipeline stage. Partitioned by edition so all agent activity for an edition is co-located and queryable without cross-partition queries.
 
 | Field              | Description                                              |
 |--------------------|----------------------------------------------------------|
 | `id`               | Unique identifier                                        |
 | `stage`            | Pipeline stage (`orchestrator`, `fetch`, `review`, `draft`, `edit`, `publish`) |
-| `trigger_id`       | ID of the document that triggered the run (partition key)|
+| `edition_id`       | Associated edition (partition key)                       |
+| `trigger_id`       | ID of the document that triggered the run                |
 | `status`           | Run status (`running`, `completed`, `failed`)            |
 | `input`            | Input data/context for the agent                         |
 | `output`           | Agent output/decisions                                   |
