@@ -32,6 +32,11 @@ def _make_settings_namespace() -> SimpleNamespace:
             container="content",
         ),
         memory=SimpleNamespace(enabled=True),
+        servicebus=SimpleNamespace(
+            connection_string="",
+            topic="events",
+            subscription="web",
+        ),
     )
 
 

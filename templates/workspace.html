@@ -4,10 +4,9 @@
 {% block content %}
 {% if edition %}
 <style>
-    .workspace { display: flex; gap: 1.5rem; align-items: stretch; }
+    .workspace { display: flex; gap: 1.5rem; align-items: flex-start; }
     .workspace-left { flex: 3; min-width: 0; }
-    .workspace-right { flex: 2; min-width: 0; }
-    .workspace-right > .card { height: 100%; }
+    .workspace-right { flex: 2; min-width: 0; position: sticky; top: 1rem; }
     .tab-bar { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
     .tab-btn {
         background: none; border: none; border-bottom: 2px solid transparent;
@@ -21,7 +20,6 @@
     @media (max-width: 900px) {
         .workspace { flex-direction: column; }
         .workspace-left, .workspace-right { flex: 1 1 100%; }
-        .workspace-right > .card { height: auto; }
     }
 </style>
 

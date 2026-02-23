@@ -12,7 +12,12 @@ from azure.core.exceptions import AzureError
 if TYPE_CHECKING:
     from azure.cosmos.aio import DatabaseProxy
 
-    from curate_common.config import CosmosConfig, FoundryConfig, StorageConfig
+    from curate_common.config import (
+        CosmosConfig,
+        FoundryConfig,
+        ServiceBusConfig,
+        StorageConfig,
+    )
     from curate_common.storage.blob import BlobStorageClient
 
 
@@ -123,6 +128,48 @@ async def check_storage(
         )
 
 
+async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
+    """Probe Service Bus with a lightweight management operation."""
+    detail = f"{config.topic_name} · {config.subscription_name}"
+    if not config.connection_string:
+        return ServiceHealth(
+            name="Service Bus",
+            healthy=False,
+            error="AZURE_SERVICEBUS_CONNECTION_STRING is not set",
+            detail=detail,
+        )
+    start = time.monotonic()
+    try:
+        from azure.servicebus.aio import ServiceBusClient  # noqa: PLC0415
+
+        async with ServiceBusClient.from_connection_string(
+            config.connection_string
+        ) as client:
+            receiver = client.get_subscription_receiver(
+                topic_name=config.topic_name,
+                subscription_name=config.subscription_name,
+                max_wait_time=1,
+            )
+            async with receiver:
+                pass
+        latency = (time.monotonic() - start) * 1000
+        return ServiceHealth(
+            name="Service Bus",
+            healthy=True,
+            latency_ms=round(latency, 1),
+            detail=detail,
+        )
+    except (AzureError, OSError, RuntimeError) as exc:
+        latency = (time.monotonic() - start) * 1000
+        return ServiceHealth(
+            name="Service Bus",
+            healthy=False,
+            latency_ms=round(latency, 1),
+            error=str(exc),
+            detail=detail,
+        )
+
+
 @dataclass
 class StorageHealthConfig:
     """Optional storage health check configuration."""
@@ -136,11 +183,14 @@ async def check_all(
     cosmos_config: CosmosConfig,
     foundry_config: FoundryConfig,
     storage_health: StorageHealthConfig | None = None,
+    servicebus_config: ServiceBusConfig | None = None,
 ) -> list[ServiceHealth]:
     """Run all health probes and return results."""
     coros: list = [check_cosmos(database, cosmos_config)]
     if storage_health is not None:
         coros.append(check_storage(storage_health.client, storage_health.config))
+    if servicebus_config is not None:
+        coros.append(check_servicebus(servicebus_config))
     network_results = await asyncio.gather(*coros, return_exceptions=False)
 
     foundry_result = _check_foundry_config(foundry_config)

@@ -67,6 +67,7 @@ async def settings_page(request: Request) -> HTMLResponse:
         cosmos_config=settings.cosmos,
         foundry_config=settings.foundry,
         storage_health=StorageHealthConfig(client=storage, config=settings.storage),
+        servicebus_config=settings.servicebus,
     )
     logger.debug(
         "Settings health checks duration_ms=%.0f",
