@@ -13,6 +13,13 @@ def _env(key: str, default: str = "") -> str:
     return os.environ.get(key, default)
 
 
+SERVICEBUS_TOPIC_NAME = "pipeline-events"
+SERVICEBUS_COMMAND_TOPIC_NAME = "pipeline-commands"
+SERVICEBUS_EVENT_TOPIC_NAME = "pipeline-events"
+SERVICEBUS_SUBSCRIPTION_NAME = "web-consumer"
+SERVICEBUS_WORKER_SUBSCRIPTION_NAME = "worker-consumer"
+
+
 @dataclass(frozen=True)
 class CosmosConfig:
     """Hold Microsoft Azure Cosmos DB connection settings."""
@@ -107,19 +114,11 @@ class ServiceBusConfig:
     connection_string: str = field(
         default_factory=lambda: _env("AZURE_SERVICEBUS_CONNECTION_STRING")
     )
-    topic_name: str = field(
-        default_factory=lambda: _env("AZURE_SERVICEBUS_TOPIC_NAME", "pipeline-events")
-    )
-    subscription_name: str = field(
-        default_factory=lambda: _env(
-            "AZURE_SERVICEBUS_SUBSCRIPTION_NAME", "web-consumer"
-        )
-    )
-    worker_subscription_name: str = field(
-        default_factory=lambda: _env(
-            "AZURE_SERVICEBUS_WORKER_SUBSCRIPTION_NAME", "worker-consumer"
-        )
-    )
+    topic_name: str = SERVICEBUS_TOPIC_NAME
+    command_topic_name: str = SERVICEBUS_COMMAND_TOPIC_NAME
+    event_topic_name: str = SERVICEBUS_EVENT_TOPIC_NAME
+    subscription_name: str = SERVICEBUS_SUBSCRIPTION_NAME
+    worker_subscription_name: str = SERVICEBUS_WORKER_SUBSCRIPTION_NAME
 
 
 @dataclass(frozen=True)

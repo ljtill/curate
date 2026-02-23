@@ -7,6 +7,7 @@ from curate_common.config import (
     CosmosConfig,
     EntraConfig,
     FoundryConfig,
+    ServiceBusConfig,
     Settings,
     StorageConfig,
     _env,
@@ -98,3 +99,34 @@ def test_settings_creates_all_sub_configs(monkeypatch: pytest.MonkeyPatch) -> No
     assert isinstance(settings.storage, StorageConfig)
     assert isinstance(settings.entra, EntraConfig)
     assert isinstance(settings.app, AppConfig)
+
+
+def test_servicebus_names_ignore_env_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify Service Bus names are centrally defined and not env-overridable."""
+    monkeypatch.setenv("AZURE_SERVICEBUS_CONNECTION_STRING", "Endpoint=sb://test")
+    monkeypatch.setenv("AZURE_SERVICEBUS_TOPIC_NAME", "legacy-topic")
+    monkeypatch.setenv("AZURE_SERVICEBUS_COMMAND_TOPIC_NAME", "override-commands")
+    monkeypatch.setenv("AZURE_SERVICEBUS_EVENT_TOPIC_NAME", "override-events")
+    monkeypatch.setenv("AZURE_SERVICEBUS_SUBSCRIPTION_NAME", "override-web")
+    monkeypatch.setenv("AZURE_SERVICEBUS_WORKER_SUBSCRIPTION_NAME", "override-worker")
+
+    config = ServiceBusConfig()
+
+    assert config.topic_name == "pipeline-events"
+    assert config.command_topic_name == "pipeline-commands"
+    assert config.event_topic_name == "pipeline-events"
+    assert config.subscription_name == "web-consumer"
+    assert config.worker_subscription_name == "worker-consumer"
+
+
+def test_servicebus_connection_string_reads_from_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify Service Bus connection string remains env-configurable."""
+    monkeypatch.setenv("AZURE_SERVICEBUS_CONNECTION_STRING", "Endpoint=sb://test")
+
+    config = ServiceBusConfig()
+
+    assert config.connection_string == "Endpoint=sb://test"

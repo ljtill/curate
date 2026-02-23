@@ -22,10 +22,8 @@ docker compose up -d
 # Configure environment
 cp .env.example .env
 # Edit .env — set MSSQL_SA_PASSWORD and optionally configure cloud credentials
-# Service Bus defaults:
-#   AZURE_SERVICEBUS_TOPIC_NAME=pipeline-events
-#   AZURE_SERVICEBUS_SUBSCRIPTION_NAME=web-consumer
-#   AZURE_SERVICEBUS_WORKER_SUBSCRIPTION_NAME=worker-consumer
+# Service Bus entity names are centrally managed project configuration
+# (pipeline-commands / pipeline-events with worker-consumer / web-consumer).
 
 # Run the web dashboard (with hot reload)
 uv run python -m curate_web.app
@@ -48,14 +46,14 @@ The project uses three local emulators via Docker Compose:
 | Azurite | `mcr.microsoft.com/azure-storage/azurite` | 10000–10002 | Blob storage for static site |
 | Service Bus | `mcr.microsoft.com/azure-messaging/servicebus-emulator` | 5672 | Event bridge between web and worker |
 
-The Service Bus emulator requires an Azure SQL Edge container as its backend. Both are configured in `docker-compose.yml` and use `MSSQL_SA_PASSWORD` from `.env`. The emulator is pre-configured with a `pipeline-events` topic plus `web-consumer` and `worker-consumer` subscriptions via `servicebus-config.json`.
+The Service Bus emulator requires an Azure SQL Edge container as its backend. Both are configured in `docker-compose.yml` and use `MSSQL_SA_PASSWORD` from `.env`. The emulator is pre-configured with `pipeline-commands` and `pipeline-events` topics plus the `worker-consumer` and `web-consumer` subscriptions via `servicebus-config.json`. These names are fixed project configuration, not user-overridable `.env` values.
 
 ### Service Bus routing in local dev
 
-- The **web service** publishes `publish-request` commands to the topic.
+- The **web service** publishes `publish-request` commands to the `pipeline-commands` topic.
 - The **worker service** consumes commands from `worker-consumer`.
-- The **worker service** publishes pipeline progress events to the topic.
-- The **web service** consumes pipeline events from `web-consumer` and forwards them to SSE clients.
+- The **worker service** publishes pipeline progress events to the `pipeline-events` topic.
+- The **web service** consumes pipeline events from `web-consumer` on `pipeline-events` and forwards them to SSE clients.
 
 ## Fully Local Development (Foundry Local)
 
