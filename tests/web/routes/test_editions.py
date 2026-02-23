@@ -2,8 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_common.models.edition import Edition
-from agent_stack_web.routes.editions import (
+from curate_common.models.edition import Edition
+from curate_web.routes.editions import (
     create_edition,
     delete_edition,
     edition_detail,
@@ -37,7 +37,7 @@ async def test_create_edition_auto_numbers() -> None:
     )
 
     with patch(
-        "agent_stack_web.routes.editions.edition_svc.create_edition",
+        "curate_web.routes.editions.edition_svc.create_edition",
         new_callable=AsyncMock,
     ) as mock_create:
         mock_create.return_value = created
@@ -56,7 +56,7 @@ async def test_delete_edition_soft_deletes() -> None:
     request = _make_request()
 
     with patch(
-        "agent_stack_web.routes.editions.edition_svc.delete_edition",
+        "curate_web.routes.editions.edition_svc.delete_edition",
         new_callable=AsyncMock,
     ) as mock_delete:
         response = await delete_edition(request, edition_id="ed-1")
@@ -70,7 +70,7 @@ async def test_delete_edition_not_found() -> None:
     request = _make_request()
 
     with patch(
-        "agent_stack_web.routes.editions.edition_svc.delete_edition",
+        "curate_web.routes.editions.edition_svc.delete_edition",
         new_callable=AsyncMock,
     ) as mock_delete:
         response = await delete_edition(request, edition_id="missing")
@@ -84,7 +84,7 @@ async def test_list_editions_renders_template() -> None:
     request = _make_request()
     editions = [Edition(id="ed-1", content={"title": "Issue #1", "sections": []})]
 
-    with patch("agent_stack_web.routes.editions.EditionRepository") as mock_repo_cls:
+    with patch("curate_web.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
         mock_repo_cls.return_value = repo
         repo.list_all.return_value = editions
@@ -104,7 +104,7 @@ async def test_edition_detail_renders_template() -> None:
     edition = Edition(id="ed-1", content={"title": "Issue #1", "sections": []})
 
     with patch(
-        "agent_stack_web.routes.editions.edition_svc.get_edition_detail",
+        "curate_web.routes.editions.edition_svc.get_edition_detail",
         new_callable=AsyncMock,
     ) as mock_detail:
         mock_detail.return_value = {

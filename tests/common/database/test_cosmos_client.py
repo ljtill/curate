@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agent_stack_common.config import CosmosConfig
-from agent_stack_common.database.client import CosmosClient
+from curate_common.config import CosmosConfig
+from curate_common.database.client import CosmosClient
 
 _EXPECTED_CONTAINER_COUNT = 5
 
@@ -27,9 +27,7 @@ class TestCosmosClient:
         self, client: CosmosClient
     ) -> None:
         """Verify initialize creates db and containers."""
-        with patch(
-            "agent_stack_common.database.client.AzureCosmosClient"
-        ) as mock_azure_cls:
+        with patch("curate_common.database.client.AzureCosmosClient") as mock_azure_cls:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()
             mock_azure.create_database_if_not_exists.return_value = mock_db
@@ -45,9 +43,7 @@ class TestCosmosClient:
 
     async def test_close_cleans_up(self, client: CosmosClient) -> None:
         """Verify close cleans up."""
-        with patch(
-            "agent_stack_common.database.client.AzureCosmosClient"
-        ) as mock_azure_cls:
+        with patch("curate_common.database.client.AzureCosmosClient") as mock_azure_cls:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()
             mock_azure.create_database_if_not_exists.return_value = mock_db
@@ -75,9 +71,7 @@ class TestCosmosClient:
         self, client: CosmosClient
     ) -> None:
         """Verify database property returns after init."""
-        with patch(
-            "agent_stack_common.database.client.AzureCosmosClient"
-        ) as mock_azure_cls:
+        with patch("curate_common.database.client.AzureCosmosClient") as mock_azure_cls:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()
             mock_azure.create_database_if_not_exists.return_value = mock_db

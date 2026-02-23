@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent_stack_worker.agents.memory import FoundryMemoryProvider
+from curate_worker.agents.memory import FoundryMemoryProvider
 
 
 @pytest.fixture

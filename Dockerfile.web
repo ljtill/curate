@@ -5,10 +5,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
-COPY packages/agent-stack-common/ packages/agent-stack-common/
-COPY packages/agent-stack-web/ packages/agent-stack-web/
+COPY packages/curate-common/ packages/curate-common/
+COPY packages/curate-web/ packages/curate-web/
 
-RUN uv sync --frozen --no-dev --package agent-stack-web
+RUN uv sync --frozen --no-dev --package curate-web
 
 COPY templates/ templates/
 
@@ -24,4 +24,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
-CMD ["python", "-m", "agent_stack_web.app"]
+CMD ["python", "-m", "curate_web.app"]

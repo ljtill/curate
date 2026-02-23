@@ -74,8 +74,8 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
     template: {
       containers: [
         {
-          name: 'agent-stack-worker'
-          image: '${acrLoginServer}/agent-stack-worker:${imageTag}'
+          name: 'curate-worker'
+          image: '${acrLoginServer}/curate-worker:${imageTag}'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'

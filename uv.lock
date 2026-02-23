@@ -7,10 +7,10 @@ prerelease-mode = "allow"
 
 [manifest]
 members = [
-    "agent-stack",
-    "agent-stack-common",
-    "agent-stack-web",
-    "agent-stack-worker",
+    "curate",
+    "curate-common",
+    "curate-web",
+    "curate-worker",
 ]
 
 [[package]]
@@ -33,116 +33,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ac/25/f43b9253e5534d812bb80b2a1a0ceb21c63f60df26c1f77104ab9756b493/agent_framework_core-1.0.0rc1.tar.gz", hash = "sha256:3684b219675f161a67b396d07c862b90ae9978bf56c7863fd1e7bdd189646e98", size = 262786, upload-time = "2026-02-20T02:59:27.215Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1a/71/c3803d1bc94c955118ded70ac502f92186b3a61b1f3404c47175f8f80adc/agent_framework_core-1.0.0rc1-py3-none-any.whl", hash = "sha256:d3ee2f752f2fc7e41e23d998df74638302b251659deaf36041b37173fd65a6c4", size = 306254, upload-time = "2026-02-20T02:58:54.035Z" },
-]
-
-[[package]]
-name = "agent-stack"
-version = "0.1.0"
-source = { virtual = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "agent-stack-common" },
-    { name = "agent-stack-web" },
-    { name = "agent-stack-worker" },
-    { name = "foundry-local-sdk" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "ty" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "agent-stack-common", editable = "packages/agent-stack-common" },
-    { name = "agent-stack-web", editable = "packages/agent-stack-web" },
-    { name = "agent-stack-worker", editable = "packages/agent-stack-worker" },
-    { name = "foundry-local-sdk", specifier = ">=0.5.1" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest-asyncio", specifier = ">=1.3.0" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-    { name = "ruff", specifier = ">=0.15.2" },
-    { name = "ty", specifier = ">=0.0.18" },
-]
-
-[[package]]
-name = "agent-stack-common"
-version = "0.1.0"
-source = { editable = "packages/agent-stack-common" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "azure-cosmos" },
-    { name = "azure-identity" },
-    { name = "azure-storage-blob" },
-    { name = "jinja2" },
-    { name = "python-dotenv" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", specifier = ">=3.11.0" },
-    { name = "azure-cosmos", specifier = ">=4.14.6" },
-    { name = "azure-identity", specifier = ">=1.25.2" },
-    { name = "azure-storage-blob", specifier = ">=12.28.0" },
-    { name = "jinja2", specifier = ">=3.1.6" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-]
-
-[[package]]
-name = "agent-stack-web"
-version = "0.1.0"
-source = { editable = "packages/agent-stack-web" }
-dependencies = [
-    { name = "agent-stack-common" },
-    { name = "azure-monitor-opentelemetry" },
-    { name = "azure-servicebus" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "itsdangerous" },
-    { name = "jinja2" },
-    { name = "msal" },
-    { name = "sse-starlette" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agent-stack-common", editable = "packages/agent-stack-common" },
-    { name = "azure-monitor-opentelemetry", specifier = ">=1.8.6" },
-    { name = "azure-servicebus", specifier = ">=7.14.0" },
-    { name = "fastapi", specifier = ">=0.129.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "itsdangerous", specifier = ">=2.2.0" },
-    { name = "jinja2", specifier = ">=3.1.6" },
-    { name = "msal", specifier = ">=1.34.0" },
-    { name = "sse-starlette", specifier = ">=3.2.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.41.0" },
-]
-
-[[package]]
-name = "agent-stack-worker"
-version = "0.1.0"
-source = { editable = "packages/agent-stack-worker" }
-dependencies = [
-    { name = "agent-framework-core" },
-    { name = "agent-stack-common" },
-    { name = "azure-ai-projects" },
-    { name = "azure-monitor-opentelemetry" },
-    { name = "azure-servicebus" },
-    { name = "httpx" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agent-framework-core", specifier = ">=1.0.0rc1" },
-    { name = "agent-stack-common", editable = "packages/agent-stack-common" },
-    { name = "azure-ai-projects", specifier = ">=2.0.0b3" },
-    { name = "azure-monitor-opentelemetry", specifier = ">=1.8.6" },
-    { name = "azure-servicebus", specifier = ">=7.14.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
 ]
 
 [[package]]
@@ -658,6 +548,116 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/96/93/682d2b43c1d5f1406ed048f377c0fc9fc8f7b0447a478d5c65ab3d3a66eb/cryptography-46.0.5-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:ced80795227d70549a411a4ab66e8ce307899fad2220ce5ab2f296e687eacde9", size = 4667123, upload-time = "2026-02-10T19:18:15.886Z" },
     { url = "https://files.pythonhosted.org/packages/45/2d/9c5f2926cb5300a8eefc3f4f0b3f3df39db7f7ce40c8365444c49363cbda/cryptography-46.0.5-cp38-abi3-win32.whl", hash = "sha256:02f547fce831f5096c9a567fd41bc12ca8f11df260959ecc7c3202555cc47a72", size = 3010220, upload-time = "2026-02-10T19:18:17.361Z" },
     { url = "https://files.pythonhosted.org/packages/48/ef/0c2f4a8e31018a986949d34a01115dd057bf536905dca38897bacd21fac3/cryptography-46.0.5-cp38-abi3-win_amd64.whl", hash = "sha256:556e106ee01aa13484ce9b0239bca667be5004efb0aabbed28d353df86445595", size = 3467050, upload-time = "2026-02-10T19:18:18.899Z" },
+]
+
+[[package]]
+name = "curate"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "curate-common" },
+    { name = "curate-web" },
+    { name = "curate-worker" },
+    { name = "foundry-local-sdk" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "ty" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "curate-common", editable = "packages/curate-common" },
+    { name = "curate-web", editable = "packages/curate-web" },
+    { name = "curate-worker", editable = "packages/curate-worker" },
+    { name = "foundry-local-sdk", specifier = ">=0.5.1" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.15.2" },
+    { name = "ty", specifier = ">=0.0.18" },
+]
+
+[[package]]
+name = "curate-common"
+version = "0.1.0"
+source = { editable = "packages/curate-common" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "azure-cosmos" },
+    { name = "azure-identity" },
+    { name = "azure-storage-blob" },
+    { name = "jinja2" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.11.0" },
+    { name = "azure-cosmos", specifier = ">=4.14.6" },
+    { name = "azure-identity", specifier = ">=1.25.2" },
+    { name = "azure-storage-blob", specifier = ">=12.28.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+]
+
+[[package]]
+name = "curate-web"
+version = "0.1.0"
+source = { editable = "packages/curate-web" }
+dependencies = [
+    { name = "azure-monitor-opentelemetry" },
+    { name = "azure-servicebus" },
+    { name = "curate-common" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "itsdangerous" },
+    { name = "jinja2" },
+    { name = "msal" },
+    { name = "sse-starlette" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "azure-monitor-opentelemetry", specifier = ">=1.8.6" },
+    { name = "azure-servicebus", specifier = ">=7.14.0" },
+    { name = "curate-common", editable = "packages/curate-common" },
+    { name = "fastapi", specifier = ">=0.129.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "itsdangerous", specifier = ">=2.2.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "msal", specifier = ">=1.34.0" },
+    { name = "sse-starlette", specifier = ">=3.2.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.41.0" },
+]
+
+[[package]]
+name = "curate-worker"
+version = "0.1.0"
+source = { editable = "packages/curate-worker" }
+dependencies = [
+    { name = "agent-framework-core" },
+    { name = "azure-ai-projects" },
+    { name = "azure-monitor-opentelemetry" },
+    { name = "azure-servicebus" },
+    { name = "curate-common" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agent-framework-core", specifier = ">=1.0.0rc1" },
+    { name = "azure-ai-projects", specifier = ">=2.0.0b3" },
+    { name = "azure-monitor-opentelemetry", specifier = ">=1.8.6" },
+    { name = "azure-servicebus", specifier = ">=7.14.0" },
+    { name = "curate-common", editable = "packages/curate-common" },
+    { name = "httpx", specifier = ">=0.28.1" },
 ]
 
 [[package]]

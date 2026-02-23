@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from agent_stack_web.routes.auth import callback, login, logout
+from curate_web.routes.auth import callback, login, logout
 
 _EXPECTED_REDIRECT_STATUS = 307
 
@@ -16,7 +16,7 @@ class TestAuthRoutes:
         request.app.state.settings.entra = MagicMock()
         request.session = {}
 
-        with patch("agent_stack_web.routes.auth.MSALAuth") as mock_auth_cls:
+        with patch("curate_web.routes.auth.MSALAuth") as mock_auth_cls:
             mock_auth_cls.return_value.get_auth_flow.return_value = {
                 "auth_uri": "https://login.microsoftonline.com/auth"
             }
@@ -33,7 +33,7 @@ class TestAuthRoutes:
         request.session = {"auth_flow": {"state": "test"}}
         request.query_params = {"code": "auth-code"}
 
-        with patch("agent_stack_web.routes.auth.MSALAuth") as mock_auth_cls:
+        with patch("curate_web.routes.auth.MSALAuth") as mock_auth_cls:
             mock_auth_cls.return_value.complete_auth.return_value = {
                 "id_token_claims": {
                     "name": "Test User",
@@ -54,7 +54,7 @@ class TestAuthRoutes:
         request.session = {"auth_flow": {}}
         request.query_params = {}
 
-        with patch("agent_stack_web.routes.auth.MSALAuth") as mock_auth_cls:
+        with patch("curate_web.routes.auth.MSALAuth") as mock_auth_cls:
             mock_auth_cls.return_value.complete_auth.return_value = None
 
             response = await callback(request)

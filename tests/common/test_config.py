@@ -2,7 +2,7 @@
 
 import pytest
 
-from agent_stack_common.config import (
+from curate_common.config import (
     AppConfig,
     CosmosConfig,
     EntraConfig,
@@ -58,7 +58,7 @@ def test_cosmos_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("AZURE_COSMOS_DATABASE", raising=False)
     config = CosmosConfig()
     assert config.endpoint == "https://cosmos.example.com"
-    assert config.database == "agent-stack"
+    assert config.database == "curate"
 
 
 def test_foundry_config(monkeypatch: pytest.MonkeyPatch) -> None:

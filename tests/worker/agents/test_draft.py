@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_common.models.edition import Edition
-from agent_stack_common.models.link import Link, LinkStatus
-from agent_stack_worker.agents.draft import DraftAgent
+from curate_common.models.edition import Edition
+from curate_common.models.link import Link, LinkStatus
+from curate_worker.agents.draft import DraftAgent
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def draft_agent(
     """Create a draft agent for testing."""
     links_repo, editions_repo = repos
     client = MagicMock()
-    with patch("agent_stack_worker.agents.draft.Agent"):
+    with patch("curate_worker.agents.draft.Agent"):
         return DraftAgent(client, links_repo, editions_repo)
 
 

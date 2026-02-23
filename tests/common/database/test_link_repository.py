@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_common.database.repositories.links import LinkRepository
-from agent_stack_common.models.link import Link, LinkStatus
+from curate_common.database.repositories.links import LinkRepository
+from curate_common.models.link import Link, LinkStatus
 
 
 class TestLinkRepository:

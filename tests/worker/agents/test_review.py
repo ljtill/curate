@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_common.models.link import Link, LinkStatus
-from agent_stack_worker.agents.review import ReviewAgent
+from curate_common.models.link import Link, LinkStatus
+from curate_worker.agents.review import ReviewAgent
 
 _EXPECTED_RELEVANCE_SCORE = 8
 
@@ -21,7 +21,7 @@ def links_repo() -> AsyncMock:
 def review_agent(links_repo: AsyncMock) -> tuple[ReviewAgent, object]:
     """Create a review agent for testing."""
     client = MagicMock()
-    with patch("agent_stack_worker.agents.review.Agent"):
+    with patch("curate_worker.agents.review.Agent"):
         return ReviewAgent(client, links_repo)
 
 

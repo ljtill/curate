@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_web.startup import (
+from curate_web.startup import (
     MemoryComponents,
     StorageComponents,
     init_database,
@@ -14,7 +14,7 @@ from agent_stack_web.startup import (
 async def test_init_database_initializes_and_returns_client() -> None:
     """Verify init_database creates and initializes a CosmosClient."""
     settings = MagicMock()
-    with patch("agent_stack_web.startup.CosmosClient") as mock_cls:
+    with patch("curate_web.startup.CosmosClient") as mock_cls:
         mock_cls.return_value.initialize = AsyncMock()
         result = await init_database(settings)
 
@@ -28,8 +28,8 @@ async def test_init_storage_returns_components() -> None:
     settings = MagicMock()
     editions_repo = MagicMock()
     with (
-        patch("agent_stack_web.startup.BlobStorageClient") as mock_blob,
-        patch("agent_stack_web.startup.StaticSiteRenderer") as mock_renderer,
+        patch("curate_web.startup.BlobStorageClient") as mock_blob,
+        patch("curate_web.startup.StaticSiteRenderer") as mock_renderer,
     ):
         mock_blob.return_value.initialize = AsyncMock()
         result = await init_storage(settings, editions_repo)

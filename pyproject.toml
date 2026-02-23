@@ -1,15 +1,15 @@
 [project]
-name = "agent-stack"
+name = "curate"
 version = "0.1.0"
-description = "An event-driven, agent-powered editorial pipeline for The Agent Stack newsletter."
+description = "An event-driven, agent-powered editorial pipeline."
 readme = "README.md"
 requires-python = ">=3.13"
 
 [dependency-groups]
 dev = [
-    "agent-stack-common",
-    "agent-stack-web",
-    "agent-stack-worker",
+    "curate-common",
+    "curate-web",
+    "curate-worker",
     "foundry-local-sdk>=0.5.1",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
@@ -25,12 +25,12 @@ prerelease = "allow"
 members = ["packages/*"]
 
 [tool.uv.sources]
-agent-stack-common = { workspace = true }
-agent-stack-web = { workspace = true }
-agent-stack-worker = { workspace = true }
+curate-common = { workspace = true }
+curate-web = { workspace = true }
+curate-worker = { workspace = true }
 
 [tool.ruff]
-src = ["packages/agent-stack-common/src", "packages/agent-stack-web/src", "packages/agent-stack-worker/src"]
+src = ["packages/curate-common/src", "packages/curate-web/src", "packages/curate-worker/src"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -58,8 +58,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["agent_stack_common", "agent_stack_web", "agent_stack_worker"]
-omit = ["packages/agent-stack-web/src/agent_stack_web/app.py"]
+source = ["curate_common", "curate_web", "curate_worker"]
+omit = ["packages/curate-web/src/curate_web/app.py"]
 
 [tool.coverage.report]
 show_missing = true

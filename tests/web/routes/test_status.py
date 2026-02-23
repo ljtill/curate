@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_web.routes.status import status
+from curate_web.routes.status import status
 
 
 class TestStatusRoute:
@@ -19,7 +19,7 @@ class TestStatusRoute:
         mock_results = [{"name": "cosmos", "status": "healthy"}]
 
         with patch(
-            "agent_stack_web.routes.status.check_all",
+            "curate_web.routes.status.check_all",
             new_callable=AsyncMock,
             return_value=mock_results,
         ):
@@ -42,7 +42,7 @@ class TestStatusRoute:
         mock_results = [{"name": "Foundry", "healthy": False}]
 
         with patch(
-            "agent_stack_web.routes.status.check_all",
+            "curate_web.routes.status.check_all",
             new_callable=AsyncMock,
             return_value=mock_results,
         ):

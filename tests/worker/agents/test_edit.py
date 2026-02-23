@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_common.models.edition import Edition
-from agent_stack_common.models.feedback import Feedback
-from agent_stack_worker.agents.edit import EditAgent
+from curate_common.models.edition import Edition
+from curate_common.models.feedback import Feedback
+from curate_worker.agents.edit import EditAgent
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def edit_agent(repos: tuple[AsyncMock, AsyncMock]) -> tuple[EditAgent, object, o
     """Create a edit agent for testing."""
     editions_repo, feedback_repo = repos
     client = MagicMock()
-    with patch("agent_stack_worker.agents.edit.Agent"):
+    with patch("curate_worker.agents.edit.Agent"):
         return EditAgent(client, editions_repo, feedback_repo)
 
 

@@ -2,11 +2,11 @@
 
 from unittest.mock import MagicMock, patch
 
-from agent_stack_common.config import EntraConfig
-from agent_stack_web.auth.msal_auth import MSALAuth
+from curate_common.config import EntraConfig
+from curate_web.auth.msal_auth import MSALAuth
 
 
-@patch("agent_stack_web.auth.msal_auth.msal.ConfidentialClientApplication")
+@patch("curate_web.auth.msal_auth.msal.ConfidentialClientApplication")
 def test_get_auth_flow_returns_flow_dict(mock_msal_class: MagicMock) -> None:
     """Verify get auth flow returns flow dict."""
     mock_app = MagicMock()
@@ -26,7 +26,7 @@ def test_get_auth_flow_returns_flow_dict(mock_msal_class: MagicMock) -> None:
     assert result == flow
 
 
-@patch("agent_stack_web.auth.msal_auth.msal.ConfidentialClientApplication")
+@patch("curate_web.auth.msal_auth.msal.ConfidentialClientApplication")
 def test_complete_auth_returns_none_on_error(mock_msal_class: MagicMock) -> None:
     """Verify complete auth returns none on error."""
     mock_app = MagicMock()
@@ -45,7 +45,7 @@ def test_complete_auth_returns_none_on_error(mock_msal_class: MagicMock) -> None
     assert result is None
 
 
-@patch("agent_stack_web.auth.msal_auth.msal.ConfidentialClientApplication")
+@patch("curate_web.auth.msal_auth.msal.ConfidentialClientApplication")
 def test_complete_auth_returns_result_on_success(mock_msal_class: MagicMock) -> None:
     """Verify complete auth returns result on success."""
     mock_app = MagicMock()

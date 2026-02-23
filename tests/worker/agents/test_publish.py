@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_common.models.edition import Edition, EditionStatus
-from agent_stack_worker.agents.publish import PublishAgent
+from curate_common.models.edition import Edition, EditionStatus
+from curate_worker.agents.publish import PublishAgent
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def publish_agent(
 ) -> tuple[PublishAgent, object, object, object]:
     """Create a publish agent for testing."""
     client = MagicMock()
-    with patch("agent_stack_worker.agents.publish.Agent"):
+    with patch("curate_worker.agents.publish.Agent"):
         return PublishAgent(
             client, editions_repo, render_fn=AsyncMock(), upload_fn=AsyncMock()
         )
@@ -31,7 +31,7 @@ def publish_agent(
 def publish_agent_no_fns(editions_repo: AsyncMock) -> tuple[PublishAgent, object]:
     """Create a publish agent no fns for testing."""
     client = MagicMock()
-    with patch("agent_stack_worker.agents.publish.Agent"):
+    with patch("curate_worker.agents.publish.Agent"):
         return PublishAgent(client, editions_repo)
 
 

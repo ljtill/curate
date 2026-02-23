@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from agent_stack_common.models.link import Link, LinkStatus
-from agent_stack_worker.agents.fetch import FetchAgent
+from curate_common.models.link import Link, LinkStatus
+from curate_worker.agents.fetch import FetchAgent
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def links_repo() -> AsyncMock:
 def fetch_agent(links_repo: AsyncMock) -> tuple[FetchAgent, object]:
     """Create a fetch agent for testing."""
     client = MagicMock()
-    with patch("agent_stack_worker.agents.fetch.Agent"):
+    with patch("curate_worker.agents.fetch.Agent"):
         return FetchAgent(client, links_repo)
 
 
@@ -60,7 +60,7 @@ async def test_save_fetched_content_link_not_found(
 
 async def test_fetch_url_returns_error_on_connect_error() -> None:
     """Verify fetch url returns error on connect error."""
-    with patch("agent_stack_worker.agents.fetch.httpx.AsyncClient") as mock_client_cls:
+    with patch("curate_worker.agents.fetch.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.ConnectError("Connection refused")
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -77,7 +77,7 @@ async def test_fetch_url_returns_error_on_connect_error() -> None:
 
 async def test_fetch_url_returns_error_on_http_status_error() -> None:
     """Verify fetch url returns error on http status error."""
-    with patch("agent_stack_worker.agents.fetch.httpx.AsyncClient") as mock_client_cls:
+    with patch("curate_worker.agents.fetch.httpx.AsyncClient") as mock_client_cls:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Not Found", request=MagicMock(), response=MagicMock(status_code=404)
@@ -98,7 +98,7 @@ async def test_fetch_url_returns_error_on_http_status_error() -> None:
 
 async def test_fetch_url_sets_user_agent_header() -> None:
     """Verify fetch_url sends a User-Agent header."""
-    with patch("agent_stack_worker.agents.fetch.httpx.AsyncClient") as mock_client_cls:
+    with patch("curate_worker.agents.fetch.httpx.AsyncClient") as mock_client_cls:
         mock_response = MagicMock()
         mock_response.text = "<html>OK</html>"
         mock_response.raise_for_status = MagicMock()
@@ -113,7 +113,7 @@ async def test_fetch_url_sets_user_agent_header() -> None:
         call_kwargs = mock_client_cls.call_args
         headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
         assert "User-Agent" in headers
-        assert "AgentStack" in headers["User-Agent"]
+        assert "Curate" in headers["User-Agent"]
 
 
 async def test_mark_link_failed_updates_status(

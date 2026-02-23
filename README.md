@@ -1,6 +1,6 @@
-# The Agent Stack
+# Curate
 
-An event-driven, agent-powered editorial pipeline that transforms curated links into polished newsletter editions — entirely through LLM-driven agents. While it currently powers "The Agent Stack" (a newsletter about Agentic Engineering), the pipeline is a general-purpose editorial automation engine that can be adapted for any newsletter or content curation workflow.
+An event-driven, agent-powered editorial pipeline that transforms curated links into polished newsletter editions — entirely through LLM-driven agents. The pipeline is a general-purpose editorial automation engine that can be adapted for any newsletter or content curation workflow.
 
 The system orchestrates five specialized agents — **Fetch**, **Review**, **Draft**, **Edit**, and **Publish** — coordinated by a pipeline orchestrator. An editor submits links through a private dashboard; the Cosmos DB change feed triggers the agent pipeline, which fetches and parses content, evaluates relevance, composes structured newsletter sections, refines tone and coherence, and renders the final edition as a static site. The dashboard provides real-time progress via SSE and supports per-section editorial feedback that agents incorporate in subsequent iterations.
 
@@ -42,18 +42,18 @@ flowchart LR
 
 ```
 packages/
-├── agent-stack-common/      # Shared library (config, models, database, storage)
-│   └── src/agent_stack_common/
-├── agent-stack-web/         # FastAPI editorial dashboard
-│   └── src/agent_stack_web/
+├── curate-common/      # Shared library (config, models, database, storage)
+│   └── src/curate_common/
+├── curate-web/         # FastAPI editorial dashboard
+│   └── src/curate_web/
 │       ├── auth/            # Microsoft Entra ID authentication (MSAL)
 │       ├── events/          # SSE event manager + Service Bus consumer
 │       ├── routes/          # FastAPI route handlers
 │       ├── services/        # Domain services, health checks, status
 │       ├── app.py           # FastAPI application factory
 │       └── startup.py       # Web initialization helpers
-└── agent-stack-worker/      # Agent pipeline worker
-    └── src/agent_stack_worker/
+└── curate-worker/      # Agent pipeline worker
+    └── src/curate_worker/
         ├── agents/          # Agent implementations, LLM client, middleware, prompts
         ├── pipeline/        # Orchestrator, change feed processor, run manager
         ├── events.py        # Service Bus event publisher
@@ -66,9 +66,9 @@ templates/
 └── partials/                # HTMX partial fragments
 infra/                       # Bicep infrastructure modules
 tests/
-├── common/                  # Tests for agent_stack_common
-├── web/                     # Tests for agent_stack_web
-└── worker/                  # Tests for agent_stack_worker
+├── common/                  # Tests for curate_common
+├── web/                     # Tests for curate_web
+└── worker/                  # Tests for curate_worker
 ```
 
 ## Local Development
@@ -83,9 +83,9 @@ docker compose up -d
 cp .env.example .env
 # Edit .env — set FOUNDRY_PROVIDER=local for fully local, or configure cloud credentials
 # Run the web dashboard
-uv run uvicorn agent_stack_web.app:create_app --factory --reload --reload-dir packages
+uv run uvicorn curate_web.app:create_app --factory --reload --reload-dir packages
 # Run the worker (in a separate terminal)
-uv run python -m agent_stack_worker.app
+uv run python -m curate_worker.app
 ```
 
 ### Tests

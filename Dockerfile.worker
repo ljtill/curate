@@ -5,10 +5,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
-COPY packages/agent-stack-common/ packages/agent-stack-common/
-COPY packages/agent-stack-worker/ packages/agent-stack-worker/
+COPY packages/curate-common/ packages/curate-common/
+COPY packages/curate-worker/ packages/curate-worker/
 
-RUN uv sync --frozen --no-dev --package agent-stack-worker
+RUN uv sync --frozen --no-dev --package curate-worker
 
 COPY prompts/ prompts/
 
@@ -22,4 +22,4 @@ COPY --from=builder /app/prompts /app/prompts
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["python", "-m", "agent_stack_worker.app"]
+CMD ["python", "-m", "curate_worker.app"]

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_web.services.agent_runs import (
+from curate_web.services.agent_runs import (
     get_agents_page_data,
     group_runs_by_invocation,
 )
@@ -86,7 +86,7 @@ class TestGetAgentsPageData:
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(
-                "agent_stack_common.agents.registry.get_agent_metadata",
+                "curate_common.agents.registry.get_agent_metadata",
                 lambda: fake_metadata,
             )
             result = await get_agents_page_data(runs_repo)

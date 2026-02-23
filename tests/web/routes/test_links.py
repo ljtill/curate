@@ -2,9 +2,9 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_common.models.edition import Edition
-from agent_stack_common.models.link import Link
-from agent_stack_web.routes.links import (
+from curate_common.models.edition import Edition
+from curate_common.models.link import Link
+from curate_web.routes.links import (
     delete_link,
     list_links,
     retry_link,
@@ -29,9 +29,9 @@ async def test_list_links_with_editions() -> None:
     links = [Link(id="link-1", url="https://example.com", edition_id="ed-1")]
 
     with (
-        patch("agent_stack_web.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack_web.routes.links.LinkRepository") as mock_links_repo_cls,
-        patch("agent_stack_web.routes.links.AgentRunRepository") as mock_runs_repo_cls,
+        patch("curate_web.routes.links._get_editions_repo") as mock_get_repo,
+        patch("curate_web.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch("curate_web.routes.links.AgentRunRepository") as mock_runs_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = [edition]
@@ -61,9 +61,9 @@ async def test_list_links_selects_edition_by_query_param() -> None:
     ed2 = Edition(id="ed-2", content={})
 
     with (
-        patch("agent_stack_web.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack_web.routes.links.LinkRepository") as mock_links_repo_cls,
-        patch("agent_stack_web.routes.links.AgentRunRepository") as mock_runs_repo_cls,
+        patch("curate_web.routes.links._get_editions_repo") as mock_get_repo,
+        patch("curate_web.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch("curate_web.routes.links.AgentRunRepository") as mock_runs_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = [ed1, ed2]
@@ -87,9 +87,9 @@ async def test_list_links_without_editions() -> None:
     request = _make_request()
 
     with (
-        patch("agent_stack_web.routes.links._get_editions_repo") as mock_get_repo,
-        patch("agent_stack_web.routes.links.LinkRepository") as mock_links_repo_cls,
-        patch("agent_stack_web.routes.links.AgentRunRepository") as mock_runs_repo_cls,
+        patch("curate_web.routes.links._get_editions_repo") as mock_get_repo,
+        patch("curate_web.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch("curate_web.routes.links.AgentRunRepository") as mock_runs_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = []
@@ -113,7 +113,7 @@ async def test_submit_link_creates_link() -> None:
     link = Link(id="link-new", url="https://example.com", edition_id="ed-1")
 
     with patch(
-        "agent_stack_web.routes.links.link_svc.submit_link", new_callable=AsyncMock
+        "curate_web.routes.links.link_svc.submit_link", new_callable=AsyncMock
     ) as mock_submit:
         mock_submit.return_value = link
 
@@ -130,7 +130,7 @@ async def test_submit_link_redirects_when_no_edition() -> None:
     request = _make_request()
 
     with patch(
-        "agent_stack_web.routes.links.link_svc.submit_link", new_callable=AsyncMock
+        "curate_web.routes.links.link_svc.submit_link", new_callable=AsyncMock
     ) as mock_submit:
         mock_submit.return_value = None
 
@@ -148,9 +148,9 @@ async def test_retry_link_resets_to_submitted() -> None:
     edition = Edition(id="ed-1", content={})
 
     with (
-        patch("agent_stack_web.routes.links._get_editions_repo") as mock_get_repo,
+        patch("curate_web.routes.links._get_editions_repo") as mock_get_repo,
         patch(
-            "agent_stack_web.routes.links.link_svc.retry_link", new_callable=AsyncMock
+            "curate_web.routes.links.link_svc.retry_link", new_callable=AsyncMock
         ) as mock_retry,
     ):
         editions_repo = AsyncMock()
@@ -171,9 +171,9 @@ async def test_retry_link_ignores_non_failed() -> None:
     edition = Edition(id="ed-1", content={})
 
     with (
-        patch("agent_stack_web.routes.links._get_editions_repo") as mock_get_repo,
+        patch("curate_web.routes.links._get_editions_repo") as mock_get_repo,
         patch(
-            "agent_stack_web.routes.links.link_svc.retry_link", new_callable=AsyncMock
+            "curate_web.routes.links.link_svc.retry_link", new_callable=AsyncMock
         ) as mock_retry,
     ):
         editions_repo = AsyncMock()
@@ -194,7 +194,7 @@ async def test_delete_link_soft_deletes() -> None:
     edition = Edition(id="ed-1", content={"title": "Test"}, link_ids=["link-1"])
 
     with patch(
-        "agent_stack_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
+        "curate_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
     ) as mock_delete:
         mock_delete.return_value = edition
 
@@ -214,7 +214,7 @@ async def test_delete_link_triggers_regeneration() -> None:
     )
 
     with patch(
-        "agent_stack_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
+        "curate_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
     ) as mock_delete:
         mock_delete.return_value = edition
 
@@ -230,7 +230,7 @@ async def test_delete_link_no_regeneration_when_not_drafted() -> None:
     edition = Edition(id="ed-1", content={"title": "Test"}, link_ids=[])
 
     with patch(
-        "agent_stack_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
+        "curate_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
     ) as mock_delete:
         mock_delete.return_value = edition
 
@@ -246,7 +246,7 @@ async def test_delete_link_redirects_when_not_found() -> None:
     edition = Edition(id="ed-1", content={})
 
     with patch(
-        "agent_stack_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
+        "curate_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
     ) as mock_delete:
         mock_delete.return_value = edition
 
@@ -261,7 +261,7 @@ async def test_delete_link_redirects_for_published_edition() -> None:
     request = _make_request()
 
     with patch(
-        "agent_stack_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
+        "curate_web.routes.links.link_svc.delete_link", new_callable=AsyncMock
     ) as mock_delete:
         mock_delete.return_value = None
 

@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock
 
-from agent_stack_web.services.dashboard import get_dashboard_data
+from curate_web.services.dashboard import get_dashboard_data
 
 
 async def test_get_dashboard_data_returns_recent_runs() -> None:

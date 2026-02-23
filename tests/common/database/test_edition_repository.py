@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_common.database.repositories.editions import EditionRepository
-from agent_stack_common.models.edition import Edition, EditionStatus
+from curate_common.database.repositories.editions import EditionRepository
+from curate_common.models.edition import Edition, EditionStatus
 
 _EXPECTED_EDITION_COUNT = 2
 

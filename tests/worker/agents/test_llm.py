@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from agent_stack_common.config import FoundryConfig
-from agent_stack_worker.agents.llm import create_chat_client
+from curate_common.config import FoundryConfig
+from curate_worker.agents.llm import create_chat_client
 
 
 class TestCreateChatClient:
@@ -15,11 +15,9 @@ class TestCreateChatClient:
         """Verify creates client with DefaultAzureCredential."""
         with (
             patch(
-                "agent_stack_worker.agents.llm.AzureOpenAIResponsesClient"
+                "curate_worker.agents.llm.AzureOpenAIResponsesClient"
             ) as mock_client_cls,
-            patch(
-                "agent_stack_worker.agents.llm.DefaultAzureCredential"
-            ) as mock_cred_cls,
+            patch("curate_worker.agents.llm.DefaultAzureCredential") as mock_cred_cls,
         ):
             client = create_chat_client(foundry_config)
 

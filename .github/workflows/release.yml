@@ -12,7 +12,7 @@ permissions:
   actions: read
 
 env:
-  RESOURCE_GROUP: agentstack-prod-rg
+  RESOURCE_GROUP: curate-prod-rg
 
 jobs:
   release:

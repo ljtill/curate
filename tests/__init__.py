@@ -1,1 +1,1 @@
-"""Tests for the agent-stack project."""
+"""Tests for the curate project."""

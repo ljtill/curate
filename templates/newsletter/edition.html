@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Agent Stack — Issue #{{ edition.content.get('issue_number', '') }}</title>
+  <title>Curate — Issue #{{ edition.content.get('issue_number', '') }}</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -186,7 +186,7 @@
 
   <header class="header">
     <div class="header-top">
-      <a class="logo" href="../index.html">The Agent Stack</a>
+      <a class="logo" href="../index.html">Curate</a>
       <div style="display: flex; align-items: center; gap: 20px;">
         <a class="nav-link" href="../index.html">All Issues ←</a>
         <div class="issue-meta">Issue #{{ edition.content.get('issue_number', '') }}{% if edition.published_at %} · {{ edition.published_at.strftime('%b %d, %Y') }}{% endif %}</div>
@@ -291,7 +291,7 @@
   {% endif %}
 
   <footer class="footer">
-    <div class="footer-line">The Agent Stack · Agentic Engineering, Distilled</div>
+    <div class="footer-line">Curate · Editorial automation, powered by agents</div>
     <div class="footer-line">Curated by Lyon · Published bi-weekly</div>
     <div class="footer-cta" style="margin-bottom: 12px;">
       <a href="../index.html">Browse all issues →</a>

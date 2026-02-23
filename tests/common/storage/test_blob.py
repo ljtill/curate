@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_common.config import StorageConfig
-from agent_stack_common.storage.blob import BlobStorageClient
+from curate_common.config import StorageConfig
+from curate_common.storage.blob import BlobStorageClient
 
 
 class TestBlobStorageClient:
@@ -29,7 +29,7 @@ class TestBlobStorageClient:
     ) -> None:
         """Verify initialize creates service client."""
         with (
-            patch("agent_stack_common.storage.blob.BlobServiceClient") as mock_bsc_cls,
+            patch("curate_common.storage.blob.BlobServiceClient") as mock_bsc_cls,
             patch("azure.identity.aio.DefaultAzureCredential") as mock_cred_cls,
         ):
             mock_service = MagicMock()
@@ -51,7 +51,7 @@ class TestBlobStorageClient:
     ) -> None:
         """Verify initialize creates container if missing."""
         with (
-            patch("agent_stack_common.storage.blob.BlobServiceClient") as mock_bsc_cls,
+            patch("curate_common.storage.blob.BlobServiceClient") as mock_bsc_cls,
             patch("azure.identity.aio.DefaultAzureCredential"),
         ):
             mock_service = MagicMock()

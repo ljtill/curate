@@ -2,8 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock
 
-from agent_stack_common.config import CosmosConfig, FoundryConfig, StorageConfig
-from agent_stack_web.services.health import (
+from curate_common.config import CosmosConfig, FoundryConfig, StorageConfig
+from curate_web.services.health import (
     StorageHealthConfig,
     _check_foundry_config,
     _storage_account_name,
@@ -12,7 +12,7 @@ from agent_stack_web.services.health import (
     check_storage,
 )
 
-_cosmos_config = CosmosConfig(endpoint="https://localhost:8081", database="agent-stack")
+_cosmos_config = CosmosConfig(endpoint="https://localhost:8081", database="curate")
 
 
 async def test_check_cosmos_healthy() -> None:
@@ -27,7 +27,7 @@ async def test_check_cosmos_healthy() -> None:
     assert result.name == "Cosmos DB"
     assert result.latency_ms is not None
     assert result.error is None
-    assert result.detail == "https://localhost:8081 · agent-stack"
+    assert result.detail == "https://localhost:8081 · curate"
 
 
 async def test_check_cosmos_unhealthy() -> None:

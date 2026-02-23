@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_web.routes.feedback import submit_feedback
+from curate_web.routes.feedback import submit_feedback
 
 _EXPECTED_REDIRECT_STATUS = 303
 
@@ -18,7 +18,7 @@ async def test_submit_feedback_creates_feedback() -> None:
     request = _make_request()
 
     with patch(
-        "agent_stack_web.routes.feedback.feedback_svc.submit_feedback",
+        "curate_web.routes.feedback.feedback_svc.submit_feedback",
         new_callable=AsyncMock,
     ) as mock_submit:
         fb = MagicMock()
@@ -47,7 +47,7 @@ async def test_submit_feedback_with_learn_enabled() -> None:
     request = _make_request()
 
     with patch(
-        "agent_stack_web.routes.feedback.feedback_svc.submit_feedback",
+        "curate_web.routes.feedback.feedback_svc.submit_feedback",
         new_callable=AsyncMock,
     ) as mock_submit:
         fb = MagicMock()

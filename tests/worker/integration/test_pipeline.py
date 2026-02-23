@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_common.models.link import Link, LinkStatus
-from agent_stack_worker.pipeline.orchestrator import PipelineOrchestrator
+from curate_common.models.link import Link, LinkStatus
+from curate_worker.pipeline.orchestrator import PipelineOrchestrator
 
 pytestmark = pytest.mark.integration
 
@@ -33,12 +33,12 @@ def orchestrator(
     mock_events.publish = AsyncMock()
 
     with (
-        patch("agent_stack_worker.pipeline.orchestrator.FetchAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.ReviewAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.DraftAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.EditAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.PublishAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.Agent"),
+        patch("curate_worker.pipeline.orchestrator.FetchAgent"),
+        patch("curate_worker.pipeline.orchestrator.ReviewAgent"),
+        patch("curate_worker.pipeline.orchestrator.DraftAgent"),
+        patch("curate_worker.pipeline.orchestrator.EditAgent"),
+        patch("curate_worker.pipeline.orchestrator.PublishAgent"),
+        patch("curate_worker.pipeline.orchestrator.Agent"),
     ):
         orch = PipelineOrchestrator(
             client,

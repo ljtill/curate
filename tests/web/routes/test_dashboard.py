@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_web.routes.dashboard import dashboard
+from curate_web.routes.dashboard import dashboard
 
 
 async def test_dashboard_renders_template() -> None:
@@ -13,7 +13,7 @@ async def test_dashboard_renders_template() -> None:
     request.app.state.cosmos = MagicMock()
     request.app.state.cosmos.database = MagicMock()
 
-    with patch("agent_stack_web.routes.dashboard.AgentRunRepository") as mock_repo_cls:
+    with patch("curate_web.routes.dashboard.AgentRunRepository") as mock_repo_cls:
         mock_repo_cls.return_value.list_recent = AsyncMock(return_value=[])
         await dashboard(request)
 

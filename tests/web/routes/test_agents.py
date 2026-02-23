@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_web.routes.agents import agents_page
+from curate_web.routes.agents import agents_page
 
 
 async def test_agents_page_renders_template() -> None:
@@ -32,11 +32,11 @@ async def test_agents_page_renders_template() -> None:
 
     with (
         patch(
-            "agent_stack_web.routes.agents.get_agents_page_data",
+            "curate_web.routes.agents.get_agents_page_data",
             new_callable=AsyncMock,
             return_value={"agents": fake_metadata, "running_stages": set()},
         ),
-        patch("agent_stack_web.routes.agents.AgentRunRepository") as _mock_repo_cls,
+        patch("curate_web.routes.agents.AgentRunRepository") as _mock_repo_cls,
     ):
         await agents_page(request)
 
@@ -95,11 +95,11 @@ async def test_agents_page_with_runs() -> None:
 
     with (
         patch(
-            "agent_stack_web.routes.agents.get_agents_page_data",
+            "curate_web.routes.agents.get_agents_page_data",
             new_callable=AsyncMock,
             return_value={"agents": fake_metadata, "running_stages": set()},
         ),
-        patch("agent_stack_web.routes.agents.AgentRunRepository") as _mock_repo_cls,
+        patch("curate_web.routes.agents.AgentRunRepository") as _mock_repo_cls,
     ):
         await agents_page(request)
 
@@ -125,9 +125,7 @@ async def test_agents_page_shows_static_metadata() -> None:
     mock_repo = AsyncMock()
     mock_repo.list_recent_by_stage = AsyncMock(return_value=[])
 
-    with patch(
-        "agent_stack_web.routes.agents.AgentRunRepository", return_value=mock_repo
-    ):
+    with patch("curate_web.routes.agents.AgentRunRepository", return_value=mock_repo):
         await agents_page(request)
 
     call_args = request.app.state.templates.TemplateResponse.call_args

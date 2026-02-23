@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_web.routes.settings import (
+from curate_web.routes.settings import (
     clear_personal_memories,
     clear_project_memories,
     list_personal_memories,

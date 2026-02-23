@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from azure.core.exceptions import ServiceResponseError
 
-from agent_stack_worker.pipeline.change_feed import ChangeFeedProcessor
+from curate_worker.pipeline.change_feed import ChangeFeedProcessor
 
 _TEST_CONTINUATION_TOKEN = "token-abc"  # noqa: S105
 _TEST_CONTINUATION_TOKEN_SHORT = "token"  # noqa: S105

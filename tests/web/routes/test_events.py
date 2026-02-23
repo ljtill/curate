@@ -2,7 +2,7 @@
 
 import pytest
 
-from agent_stack_web.events import EventManager
+from curate_web.events import EventManager
 
 
 @pytest.fixture(autouse=True)

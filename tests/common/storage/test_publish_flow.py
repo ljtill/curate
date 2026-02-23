@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from agent_stack_common.models.edition import Edition, EditionStatus
-from agent_stack_common.storage.renderer import StaticSiteRenderer
+from curate_common.models.edition import Edition, EditionStatus
+from curate_common.storage.renderer import StaticSiteRenderer
 
 _EXPECTED_ADJACENT_UPLOAD_COUNT = 4
 _EXPECTED_SINGLE_UPLOAD_COUNT = 2

@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_common.database.repositories.agent_runs import AgentRunRepository
-from agent_stack_common.models.agent_run import AgentRun, AgentRunStatus, AgentStage
+from curate_common.database.repositories.agent_runs import AgentRunRepository
+from curate_common.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 
 _EXPECTED_TRIGGER_COUNT = 2
 

@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC
 
-from agent_stack_common.models import (
+from curate_common.models import (
     AgentRun,
     AgentRunStatus,
     AgentStage,
@@ -13,7 +13,7 @@ from agent_stack_common.models import (
     Link,
     LinkStatus,
 )
-from agent_stack_common.models.base import DocumentBase, _new_id, _utcnow
+from curate_common.models.base import DocumentBase, _new_id, _utcnow
 
 
 def test_new_id_generates_valid_uuid() -> None:

@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agent_stack_common.config import FoundryMemoryConfig
-from agent_stack_web.services.memory import MemoryService
+from curate_common.config import FoundryMemoryConfig
+from curate_web.services.memory import MemoryService
 
 
 @pytest.fixture

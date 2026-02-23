@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agent_stack_common.agents.registry import get_agent_metadata
+from curate_common.agents.registry import get_agent_metadata
 
 EXPECTED_AGENT_COUNT = 6
 

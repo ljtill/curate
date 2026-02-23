@@ -26,10 +26,10 @@ cp .env.example .env
 # Edit .env with your credentials (see below for local vs cloud options)
 
 # Run the web dashboard (with hot reload)
-uv run uvicorn agent_stack_web.app:create_app --factory --reload --reload-dir packages
+uv run uvicorn curate_web.app:create_app --factory --reload --reload-dir packages
 
 # Run the worker (in a separate terminal)
-uv run python -m agent_stack_worker.app
+uv run python -m curate_worker.app
 ```
 
 The web service runs the editorial dashboard (FastAPI + HTMX) and the worker runs the agent pipeline (change feed processor + orchestrator). Both connect to the same Cosmos DB and communicate via Azure Service Bus for real-time SSE updates.
@@ -89,5 +89,5 @@ For intermittent UI lock-up diagnostics in local development, run with verbose t
 
 ```bash
 LOG_LEVEL=DEBUG APP_SLOW_REQUEST_MS=400 APP_SLOW_REPOSITORY_MS=150 \
-uv run uvicorn agent_stack_web.app:create_app --factory --reload --reload-dir packages
+uv run uvicorn curate_web.app:create_app --factory --reload --reload-dir packages
 ```

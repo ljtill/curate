@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 
 from jinja2 import Environment, FileSystemLoader
 
-from agent_stack_common.models.edition import Edition, EditionStatus
-from agent_stack_common.storage.renderer import NEWSLETTER_TEMPLATES
+from curate_common.models.edition import Edition, EditionStatus
+from curate_common.storage.renderer import NEWSLETTER_TEMPLATES
 
 
 def _sample_content() -> None:
@@ -159,7 +159,7 @@ async def test_render_index_produces_html() -> None:
     assert "<!DOCTYPE html>" in html
     assert "Archive" in html
     assert "Test Edition Title" in html
-    assert "The Agent Stack" in html
+    assert "Curate" in html
     assert "2026" in html
     assert "Latest" in html
     assert "2 signals" in html

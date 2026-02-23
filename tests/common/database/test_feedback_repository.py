@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_common.database.repositories.feedback import FeedbackRepository
-from agent_stack_common.models.feedback import Feedback
+from curate_common.database.repositories.feedback import FeedbackRepository
+from curate_common.models.feedback import Feedback
 
 
 class TestFeedbackRepository:

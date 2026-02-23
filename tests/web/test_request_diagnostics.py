@@ -10,8 +10,8 @@ from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
 
-from agent_stack_common.config import Settings
-from agent_stack_web.app import _install_request_diagnostics_middleware
+from curate_common.config import Settings
+from curate_web.app import _install_request_diagnostics_middleware
 
 if TYPE_CHECKING:
     from _pytest.logging import LogCaptureFixture
@@ -55,7 +55,7 @@ def test_request_diagnostics_warns_for_slow_requests(
         return PlainTextResponse("ok")
 
     with (
-        caplog.at_level(logging.WARNING, logger="agent_stack_web.app"),
+        caplog.at_level(logging.WARNING, logger="curate_web.app"),
         TestClient(app) as client,
     ):
         client.get("/slow")
@@ -80,7 +80,7 @@ def test_request_diagnostics_does_not_warn_for_events(
         return PlainTextResponse("ok")
 
     with (
-        caplog.at_level(logging.WARNING, logger="agent_stack_web.app"),
+        caplog.at_level(logging.WARNING, logger="curate_web.app"),
         TestClient(app) as client,
     ):
         client.get("/events")

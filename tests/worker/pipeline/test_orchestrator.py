@@ -9,15 +9,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_common.models.link import LinkStatus
-from agent_stack_worker.pipeline.orchestrator import PipelineOrchestrator
-from agent_stack_worker.pipeline.runs import RunManager
+from curate_common.models.link import LinkStatus
+from curate_worker.pipeline.orchestrator import PipelineOrchestrator
+from curate_worker.pipeline.runs import RunManager
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from agent_stack_common.models.agent_run import AgentRun
-    from agent_stack_common.models.link import Link
+    from curate_common.models.agent_run import AgentRun
+    from curate_common.models.link import Link
 
 
 @pytest.fixture
@@ -34,13 +34,13 @@ def orchestrator(
     links, editions, feedback, runs = mock_repos
     client = MagicMock()
     with (
-        patch("agent_stack_worker.pipeline.orchestrator.Agent"),
-        patch("agent_stack_worker.pipeline.orchestrator.FetchAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.ReviewAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.DraftAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.EditAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.PublishAgent"),
-        patch("agent_stack_worker.pipeline.orchestrator.load_prompt", return_value=""),
+        patch("curate_worker.pipeline.orchestrator.Agent"),
+        patch("curate_worker.pipeline.orchestrator.FetchAgent"),
+        patch("curate_worker.pipeline.orchestrator.ReviewAgent"),
+        patch("curate_worker.pipeline.orchestrator.DraftAgent"),
+        patch("curate_worker.pipeline.orchestrator.EditAgent"),
+        patch("curate_worker.pipeline.orchestrator.PublishAgent"),
+        patch("curate_worker.pipeline.orchestrator.load_prompt", return_value=""),
     ):
         mock_publisher = MagicMock()
         mock_publisher.publish = AsyncMock()
@@ -294,7 +294,7 @@ class TestHandleLinkChangeRetry:
             side_effect=[RuntimeError("transient"), response],
         )
 
-        sleep_patch = "agent_stack_worker.pipeline.orchestrator.asyncio.sleep"
+        sleep_patch = "curate_worker.pipeline.orchestrator.asyncio.sleep"
         with patch(sleep_patch, new_callable=AsyncMock):
             await orchestrator.handle_link_change(
                 {"id": "l-retry", "edition_id": "ed-1", "status": "submitted"}
@@ -318,7 +318,7 @@ class TestHandleLinkChangeRetry:
             side_effect=RuntimeError("persistent error"),
         )
 
-        sleep_patch = "agent_stack_worker.pipeline.orchestrator.asyncio.sleep"
+        sleep_patch = "curate_worker.pipeline.orchestrator.asyncio.sleep"
         with patch(sleep_patch, new_callable=AsyncMock):
             await orchestrator.handle_link_change(
                 {"id": "l-fail", "edition_id": "ed-1", "status": "submitted"}

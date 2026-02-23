@@ -1,6 +1,6 @@
 """Tests for the prompt loader."""
 
-from agent_stack_worker.agents.prompts import PROMPTS_DIR, load_prompt
+from curate_worker.agents.prompts import PROMPTS_DIR, load_prompt
 
 _MIN_PROMPT_LENGTH = 50
 

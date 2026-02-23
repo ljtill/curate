@@ -1,6 +1,6 @@
 # Architecture
 
-This document provides a visual overview of The Agent Stack — an event-driven, agent-powered editorial pipeline for a newsletter about Agentic Engineering. Each section includes a diagram and a brief explanation of the components involved.
+This document provides a visual overview of Curate — an event-driven, agent-powered editorial pipeline for a newsletter about Agentic Engineering. Each section includes a diagram and a brief explanation of the components involved.
 
 ## System Overview
 

@@ -1,4 +1,4 @@
-"""Shared test fixtures for the agent-stack test suite."""
+"""Shared test fixtures for the curate test suite."""
 
 from collections.abc import Callable
 from typing import Any
@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_common.config import (
+from curate_common.config import (
     CosmosConfig,
     EntraConfig,
     FoundryConfig,
     StorageConfig,
 )
-from agent_stack_common.models.agent_run import AgentRun, AgentRunStatus, AgentStage
-from agent_stack_common.models.edition import Edition, EditionStatus
-from agent_stack_common.models.feedback import Feedback
-from agent_stack_common.models.link import Link, LinkStatus
+from curate_common.models.agent_run import AgentRun, AgentRunStatus, AgentStage
+from curate_common.models.edition import Edition, EditionStatus
+from curate_common.models.feedback import Feedback
+from curate_common.models.link import Link, LinkStatus
 
 _TEST_CLIENT_SECRET = "test-secret"  # noqa: S105
 

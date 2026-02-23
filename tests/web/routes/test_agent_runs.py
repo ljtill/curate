@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agent_stack_web.routes.agent_runs import recent_runs
+from curate_web.routes.agent_runs import recent_runs
 
 
 class TestRecentRunsRoute:
@@ -18,7 +18,7 @@ class TestRecentRunsRoute:
         mock_repo.list_recent.return_value = []
 
         with patch(
-            "agent_stack_web.routes.agent_runs.AgentRunRepository",
+            "curate_web.routes.agent_runs.AgentRunRepository",
             return_value=mock_repo,
         ):
             await recent_runs(request)

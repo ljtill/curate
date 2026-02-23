@@ -11,9 +11,9 @@ permissions:
   contents: read
 
 env:
-  ACR_NAME: agentstackprodacr
-  IMAGE_NAME: agent-stack
-  RESOURCE_GROUP: agentstack-prod-rg
+  ACR_NAME: curateprodacr
+  IMAGE_NAME: curate
+  RESOURCE_GROUP: curate-prod-rg
 
 jobs:
   deploy:
@@ -25,9 +25,9 @@ jobs:
       matrix:
         include:
           - service: web
-            app_name: agentstack-prod-web
+            app_name: curate-prod-web
           - service: worker
-            app_name: agentstack-prod-worker
+            app_name: curate-prod-worker
     steps:
       - name: Azure login
         uses: azure/login@v2
@@ -41,4 +41,4 @@ jobs:
           az containerapp update \
             --name ${{ matrix.app_name }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/agent-stack-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}
+            --image ${{ env.ACR_NAME }}.azurecr.io/curate-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}

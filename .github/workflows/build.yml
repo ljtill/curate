@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 env:
-  ACR_NAME: agentstackprodacr
-  IMAGE_NAME: agent-stack
+  ACR_NAME: curateprodacr
+  IMAGE_NAME: curate
 
 jobs:
   bicep:
@@ -56,5 +56,5 @@ jobs:
       - name: Build and push container image
         run: |
           az acr login --name ${{ env.ACR_NAME }}
-          docker build -f Dockerfile.${{ matrix.service }} -t ${{ env.ACR_NAME }}.azurecr.io/agent-stack-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }} .
-          docker push ${{ env.ACR_NAME }}.azurecr.io/agent-stack-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}
+          docker build -f Dockerfile.${{ matrix.service }} -t ${{ env.ACR_NAME }}.azurecr.io/curate-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }} .
+          docker push ${{ env.ACR_NAME }}.azurecr.io/curate-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}

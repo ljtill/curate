@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack_worker.agents.middleware import TokenTrackingMiddleware
+from curate_worker.agents.middleware import TokenTrackingMiddleware
 
 _EXPECTED_INPUT_TOKENS = 100
 _EXPECTED_OUTPUT_TOKENS = 50

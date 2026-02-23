@@ -7,7 +7,7 @@ param location string
 @description('Principal ID for role assignment')
 param principalId string
 
-var databaseName = 'agent-stack'
+var databaseName = 'curate'
 
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
   name: name

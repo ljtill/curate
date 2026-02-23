@@ -7,7 +7,7 @@ param environment string
 param location string = resourceGroup().location
 
 @description('Base name for resources')
-param baseName string = 'agentstack'
+param baseName string = 'curate'
 
 @description('Container image tag')
 param imageTag string = 'latest'

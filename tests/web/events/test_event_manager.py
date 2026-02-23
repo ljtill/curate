@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_stack_web.events import EventManager
+from curate_web.events import EventManager
 
 
 @pytest.fixture(autouse=True)
@@ -85,7 +85,7 @@ class TestEventManagerEventGenerator:
         gen = manager.event_generator(request)
 
         with (
-            patch("agent_stack_web.events.asyncio.wait_for", side_effect=TimeoutError),
+            patch("curate_web.events.asyncio.wait_for", side_effect=TimeoutError),
             pytest.raises(StopAsyncIteration),
         ):
             await gen.__anext__()
@@ -111,7 +111,7 @@ class TestEventManagerCreateResponse:
         manager = EventManager.get_instance()
         request = MagicMock()
 
-        with patch("agent_stack_web.events.EventSourceResponse") as mock_sse_cls:
+        with patch("curate_web.events.EventSourceResponse") as mock_sse_cls:
             result = manager.create_response(request)
             mock_sse_cls.assert_called_once()
             assert result == mock_sse_cls.return_value

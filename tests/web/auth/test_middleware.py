@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from agent_stack_web.auth.middleware import get_user
+from curate_web.auth.middleware import get_user
 
 
 def test_get_user_returns_none_without_session() -> None:

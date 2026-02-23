@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 
-from agent_stack_web.auth.middleware import require_auth, require_authenticated_user
+from curate_web.auth.middleware import require_auth, require_authenticated_user
 
 _EXPECTED_UNAUTHORIZED_STATUS = 401
 

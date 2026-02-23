@@ -1,6 +1,6 @@
-# The Agent Stack — Project Specification
+# Curate — Project Specification
 
-> A platform for "The Agent Stack", a newsletter about Agentic Engineering. The system comprises an event-driven, agent-powered editorial pipeline with a private admin UI, and a statically generated public newsletter site.
+> An event-driven, agent-powered editorial pipeline with a private admin UI, and a statically generated public newsletter site.
 
 ## Table of Contents
 
@@ -39,7 +39,7 @@
 
 ## Architecture Decisions
 
-- **Package layout**: `packages/` — uv workspace monorepo with three packages: `agent-stack-common` (shared library), `agent-stack-web` (FastAPI dashboard), and `agent-stack-worker` (agent pipeline). Each package has its own `pyproject.toml` and `src/` layout.
+- **Package layout**: `packages/` — uv workspace monorepo with three packages: `curate-common` (shared library), `curate-web` (FastAPI dashboard), and `curate-worker` (agent pipeline). Each package has its own `pyproject.toml` and `src/` layout.
 - **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge between worker and web for real-time SSE updates.
 - **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. [Microsoft Foundry Local](https://github.com/microsoft/foundry-local) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
 
@@ -66,7 +66,7 @@ uv add agent-framework-core --prerelease=allow
 | `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) |
 | `FunctionMiddleware`     | Tool execution pipeline hooks — used for tool invocation logging (`ToolLoggingMiddleware`)                                            |
 
-**Agent registry:** A data-driven registry (`agents/registry.py` in `agent-stack-common`) provides static metadata — agent names, descriptions, tools, and middleware — for display on the Agents dashboard page. The registry uses pre-defined metadata dicts rather than live introspection, allowing the web service to render the Agents page without access to agent instances.
+**Agent registry:** A data-driven registry (`agents/registry.py` in `curate-common`) provides static metadata — agent names, descriptions, tools, and middleware — for display on the Agents dashboard page. The registry uses pre-defined metadata dicts rather than live introspection, allowing the web service to render the Agents page without access to agent instances.
 
 **References:**
 

@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from azure.cosmos.exceptions import CosmosHttpResponseError
 
-from agent_stack_common.database.repositories.base import BaseRepository
-from agent_stack_common.models.link import Link
+from curate_common.database.repositories.base import BaseRepository
+from curate_common.models.link import Link
 
 
 class ConcreteRepo(BaseRepository[Link]):
@@ -168,7 +168,7 @@ async def test_query_logs_warning_when_slow(
     mock_container.query_items = mock_query_items
 
     with patch(
-        "agent_stack_common.database.repositories.base.logger.warning"
+        "curate_common.database.repositories.base.logger.warning"
     ) as mock_warning:
         await repo.query("SELECT * FROM c")
 
