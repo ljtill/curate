@@ -105,13 +105,15 @@ class ServiceBusConfig:
     """Hold Azure Service Bus connection settings."""
 
     connection_string: str = field(
-        default_factory=lambda: _env("SERVICEBUS_CONNECTION_STRING")
+        default_factory=lambda: _env("AZURE_SERVICEBUS_CONNECTION_STRING")
     )
     topic_name: str = field(
-        default_factory=lambda: _env("SERVICEBUS_TOPIC_NAME", "pipeline-events")
+        default_factory=lambda: _env("AZURE_SERVICEBUS_TOPIC_NAME", "pipeline-events")
     )
     subscription_name: str = field(
-        default_factory=lambda: _env("SERVICEBUS_SUBSCRIPTION_NAME", "web-consumer")
+        default_factory=lambda: _env(
+            "AZURE_SERVICEBUS_SUBSCRIPTION_NAME", "web-consumer"
+        )
     )
 
 

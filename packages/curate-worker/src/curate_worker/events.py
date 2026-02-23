@@ -29,7 +29,7 @@ class ServiceBusPublisher:
         self._disabled = not config.connection_string
         if self._disabled:
             logger.warning(
-                "SERVICEBUS_CONNECTION_STRING is not set — "
+                "AZURE_SERVICEBUS_CONNECTION_STRING is not set — "
                 "pipeline events will not be published"
             )
 

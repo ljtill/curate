@@ -102,7 +102,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
               value: foundryEmbeddingModel
             }
             {
-              name: 'SERVICEBUS_CONNECTION_STRING'
+              name: 'AZURE_SERVICEBUS_CONNECTION_STRING'
               value: serviceBusConnectionString
             }
           ]
