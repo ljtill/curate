@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_common.database.repositories.editions import EditionRepository
@@ -27,3 +27,12 @@ async def dashboard(request: Request) -> HTMLResponse:
         "dashboard.html",
         {"request": request, **data},
     )
+
+
+@router.post("/activity/clear")
+async def clear_activity(request: Request) -> RedirectResponse:
+    """Clear all recent agent activity."""
+    cosmos = request.app.state.cosmos
+    runs_repo = AgentRunRepository(cosmos.database)
+    await runs_repo.clear_all()
+    return RedirectResponse(url="/", status_code=303)

@@ -59,7 +59,14 @@
 </div>
 
 <div class="card" style="margin-top: 1rem;">
-    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Recent Agent Activity</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h2 style="font-size: 1rem; margin: 0;">Recent Agent Activity</h2>
+        {% if recent_runs %}
+        <form method="post" action="/activity/clear" style="margin: 0;">
+            <button type="submit" class="btn" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Clear</button>
+        </form>
+        {% endif %}
+    </div>
     {{ render_activity_list(recent_runs) }}
 </div>
 {% endblock %}

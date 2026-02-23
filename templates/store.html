@@ -49,9 +49,17 @@
                         <button type="submit" class="btn" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Retry</button>
                     </form>
                     {% endif %}
-                    <form method="post" action="/store/{{ link.id }}/delete" style="display: inline;">
-                        <button type="submit" class="btn btn-danger" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="return confirm('Delete this link?')">Delete</button>
-                    </form>
+                    <span class="delete-inline" style="white-space: nowrap;">
+                        <button type="button" class="btn btn-danger" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"
+                                onclick="this.style.display='none'; this.nextElementSibling.style.display='inline';">Delete</button>
+                        <span style="display: none; white-space: nowrap;">
+                            <form method="post" action="/store/{{ link.id }}/delete" style="display: inline;">
+                                <button type="submit" class="btn btn-danger" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Confirm</button>
+                            </form>
+                            <button type="button" class="btn" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-left: 0.15rem;"
+                                    onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline';">Cancel</button>
+                        </span>
+                    </span>
                 </td>
             </tr>
             {% endfor %}

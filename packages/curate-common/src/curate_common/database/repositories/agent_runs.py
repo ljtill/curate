@@ -124,6 +124,16 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             await self.update(run, run.edition_id)
         return len(orphaned)
 
+    async def clear_all(self) -> int:
+        """Soft-delete all non-deleted agent runs. Return count cleared."""
+        runs = await self.query(
+            "SELECT * FROM c WHERE NOT IS_DEFINED(c.deleted_at)",
+            [],
+        )
+        for run in runs:
+            await self.soft_delete(run, run.edition_id)
+        return len(runs)
+
     async def list_recent_failures(self, limit: int = 5) -> list[AgentRun]:
         """Fetch the most recent failed agent runs."""
         return await self.query(
