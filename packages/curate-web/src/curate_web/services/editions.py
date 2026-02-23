@@ -98,9 +98,13 @@ async def get_workspace_data(
     feedback = await feedback_repo.get_by_edition(edition_id)
     links_by_id = {link.id: link for link in links}
 
-    # Group agent runs by trigger (link) ID, then by invocation
+    # Group agent runs by trigger (link) ID, then by invocation.
+    # Runs must be in chronological order for grouping (oldest first).
+    runs_chronological = sorted(
+        agent_runs, key=lambda r: r.started_at or r.created_at
+    )
     runs_by_trigger: dict[str, list[Any]] = {}
-    for run in agent_runs:
+    for run in runs_chronological:
         runs_by_trigger.setdefault(run.trigger_id, []).append(run)
 
     link_run_groups = {
