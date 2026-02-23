@@ -9,6 +9,26 @@ from typing import TYPE_CHECKING
 
 from azure.core.exceptions import AzureError
 
+_EMULATOR_HOSTS = {"localhost", "127.0.0.1", "host.docker.internal"}
+
+
+def _is_emulator_url(url: str) -> bool:
+    """Return True if the URL points to a local emulator."""
+    from urllib.parse import urlparse  # noqa: PLC0415
+
+    try:
+        hostname = urlparse(url).hostname or ""
+    except Exception:  # noqa: BLE001
+        return False
+    return hostname in _EMULATOR_HOSTS
+
+
+def _is_emulator_conn_str(connection_string: str) -> bool:
+    """Return True if the connection string targets a local emulator."""
+    lower = connection_string.lower()
+    return any(host in lower for host in _EMULATOR_HOSTS)
+
+
 if TYPE_CHECKING:
     from azure.cosmos.aio import DatabaseProxy
 
@@ -31,11 +51,13 @@ class ServiceHealth:
     latency_ms: float | None = None
     error: str | None = None
     detail: str | None = None
+    source: str | None = None
 
 
 async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> ServiceHealth:
     """Probe Cosmos DB with a lightweight read."""
     detail = f"{config.endpoint} · {config.database}"
+    source = "Emulator" if _is_emulator_url(config.endpoint) else "Cloud"
     start = time.monotonic()
     try:
         container = database.get_container_client("editions")
@@ -46,6 +68,7 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
             healthy=True,
             latency_ms=round(latency, 1),
             detail=detail,
+            source=source,
         )
     except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
@@ -55,6 +78,7 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
             latency_ms=round(latency, 1),
             error=str(exc),
             detail=detail,
+            source=source,
         )
 
 
@@ -107,6 +131,7 @@ async def check_storage(
     """Probe Microsoft Azure Storage with a lightweight container existence check."""
     account = _storage_account_name(config.account_url)
     detail = f"{account} · {config.container}"
+    source = "Emulator" if _is_emulator_url(config.account_url) else "Cloud"
     start = time.monotonic()
     try:
         container = storage.get_container()
@@ -117,6 +142,7 @@ async def check_storage(
             healthy=True,
             latency_ms=round(latency, 1),
             detail=detail,
+            source=source,
         )
     except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
@@ -126,6 +152,7 @@ async def check_storage(
             latency_ms=round(latency, 1),
             error=str(exc),
             detail=detail,
+            source=source,
         )
 
 
@@ -139,6 +166,7 @@ async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
             error="AZURE_SERVICEBUS_CONNECTION_STRING is not set",
             detail=detail,
         )
+    source = "Emulator" if _is_emulator_conn_str(config.connection_string) else "Cloud"
     start = time.monotonic()
     try:
         from azure.servicebus.aio import ServiceBusClient  # noqa: PLC0415
@@ -159,6 +187,7 @@ async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
             healthy=True,
             latency_ms=round(latency, 1),
             detail=detail,
+            source=source,
         )
     except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
@@ -168,6 +197,7 @@ async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
             latency_ms=round(latency, 1),
             error=str(exc),
             detail=detail,
+            source=source,
         )
 
 

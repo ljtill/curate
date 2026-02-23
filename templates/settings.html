@@ -144,6 +144,9 @@
             {% if check.latency_ms is not none %}
             <span style="color: var(--text-muted); font-size: 0.8rem;">{{ check.latency_ms }} ms</span>
             {% endif %}
+            {% if check.source %}
+            <span class="badge" style="font-size: 0.65rem; padding: 0.15em 0.5em; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border);">{{ check.source }}</span>
+            {% endif %}
         </div>
         {% if check.detail %}
         <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">{{ check.detail }}</div>
