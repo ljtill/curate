@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from curate_web.routes.feedback import submit_feedback
+from tests.web.routes.runtime_helpers import make_runtime
 
 _EXPECTED_REDIRECT_STATUS = 303
 
@@ -10,6 +11,7 @@ _EXPECTED_REDIRECT_STATUS = 303
 def _make_request() -> None:
     request = MagicMock()
     request.app.state.cosmos.database = MagicMock()
+    request.app.state.runtime = make_runtime(cosmos=request.app.state.cosmos)
     return request
 
 

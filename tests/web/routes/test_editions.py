@@ -2,6 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from fastapi import BackgroundTasks
+
 from curate_common.models.edition import Edition
 from curate_web.routes.editions import (
     create_edition,
@@ -10,6 +12,7 @@ from curate_web.routes.editions import (
     list_editions,
     publish_edition,
 )
+from tests.web.routes.runtime_helpers import make_runtime
 
 _EXPECTED_REDIRECT_STATUS = 303
 _NEXT_ISSUE_NUMBER = 3
@@ -21,6 +24,10 @@ def _make_request(_app_state: object | None = None) -> MagicMock:
     request.app.state.cosmos.database = MagicMock()
     request.app.state.templates = MagicMock()
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
+    request.app.state.runtime = make_runtime(
+        cosmos=request.app.state.cosmos,
+        templates=request.app.state.templates,
+    )
     return request
 
 
@@ -114,30 +121,40 @@ async def test_edition_detail_renders_template() -> None:
         assert call_args[0][0] == "workspace.html"
 
 
-async def test_publish_edition_calls_orchestrator() -> None:
-    """POST /editions/{id}/publish invokes the orchestrator and redirects."""
+async def test_publish_edition_schedules_background_publish() -> None:
+    """POST /editions/{id}/publish schedules publish and redirects."""
     request = _make_request()
-    orchestrator = MagicMock()
-    orchestrator.handle_publish = AsyncMock()
-    request.app.state.processor.orchestrator = orchestrator
-    del request.app.state.background_tasks
+    background_tasks = BackgroundTasks()
+    event_publisher = MagicMock()
+    request.app.state.runtime.event_publisher = event_publisher
 
-    response = await publish_edition(request, edition_id="ed-1")
+    with patch(
+        "curate_web.routes.editions.edition_svc.publish_edition",
+        new_callable=AsyncMock,
+    ) as mock_publish:
+        response = await publish_edition(
+            request,
+            edition_id="ed-1",
+            background_tasks=background_tasks,
+        )
+        await background_tasks()
 
     assert response.status_code == _EXPECTED_REDIRECT_STATUS
-    assert isinstance(request.app.state.background_tasks, list)
-    assert len(request.app.state.background_tasks) > 0
+    assert len(background_tasks.tasks) == 1
+    mock_publish.assert_awaited_once_with("ed-1", event_publisher)
 
 
 async def test_publish_edition_redirects() -> None:
     """POST /editions/{id}/publish redirects to the edition detail page."""
     request = _make_request()
-    orchestrator = MagicMock()
-    orchestrator.handle_publish = AsyncMock()
-    request.app.state.processor.orchestrator = orchestrator
-    del request.app.state.background_tasks
+    background_tasks = BackgroundTasks()
+    request.app.state.runtime.event_publisher = MagicMock()
 
-    response = await publish_edition(request, edition_id="ed-1")
+    response = await publish_edition(
+        request,
+        edition_id="ed-1",
+        background_tasks=background_tasks,
+    )
 
     assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
@@ -145,8 +162,14 @@ async def test_publish_edition_redirects() -> None:
 async def test_publish_edition_skips_when_pipeline_unavailable() -> None:
     """POST /editions/{id}/publish safely redirects when pipeline is unavailable."""
     request = _make_request()
-    request.app.state.processor = None
+    background_tasks = BackgroundTasks()
+    request.app.state.runtime.event_publisher = None
 
-    response = await publish_edition(request, edition_id="ed-1")
+    response = await publish_edition(
+        request,
+        edition_id="ed-1",
+        background_tasks=background_tasks,
+    )
 
     assert response.status_code == _EXPECTED_REDIRECT_STATUS
+    assert background_tasks.tasks == []

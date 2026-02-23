@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from curate_web.routes.agent_runs import recent_runs
+from tests.web.routes.runtime_helpers import make_runtime
 
 
 class TestRecentRunsRoute:
@@ -13,12 +14,16 @@ class TestRecentRunsRoute:
         request = MagicMock()
         request.app.state.templates = MagicMock()
         request.app.state.cosmos = MagicMock()
+        request.app.state.runtime = make_runtime(
+            cosmos=request.app.state.cosmos,
+            templates=request.app.state.templates,
+        )
 
         mock_repo = AsyncMock()
         mock_repo.list_recent.return_value = []
 
         with patch(
-            "curate_web.routes.agent_runs.AgentRunRepository",
+            "curate_web.routes.agent_runs.get_agent_run_repository",
             return_value=mock_repo,
         ):
             await recent_runs(request)

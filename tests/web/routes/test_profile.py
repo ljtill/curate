@@ -6,6 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from curate_web.routes.profile import profile
+from tests.web.routes.runtime_helpers import make_runtime
 
 _UNAUTHORIZED_STATUS = 401
 
@@ -14,6 +15,12 @@ def _make_request(*, user: dict | None = None) -> MagicMock:
     """Create a mock request with app state."""
     request = MagicMock()
     request.app.state.templates = MagicMock()
+    request.app.state.settings = MagicMock()
+    request.app.state.settings.app.is_development = False
+    request.app.state.runtime = make_runtime(
+        templates=request.app.state.templates,
+        settings=request.app.state.settings,
+    )
     if user is not None:
         request.session = {"user": user}
     else:

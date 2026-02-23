@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from curate_web.routes.status import status
+from tests.web.routes.runtime_helpers import make_runtime
 
 
 class TestStatusRoute:
@@ -15,6 +16,13 @@ class TestStatusRoute:
         request.app.state.settings = MagicMock()
         request.app.state.storage = MagicMock()
         request.app.state.templates = MagicMock()
+        request.app.state.runtime = make_runtime(
+            cosmos=request.app.state.cosmos,
+            settings=request.app.state.settings,
+            storage=request.app.state.storage,
+            templates=request.app.state.templates,
+            start_time=MagicMock(),
+        )
 
         mock_results = [{"name": "cosmos", "status": "healthy"}]
 
@@ -38,6 +46,13 @@ class TestStatusRoute:
         request.app.state.settings.foundry.project_endpoint = ""
         request.app.state.storage = MagicMock()
         request.app.state.templates = MagicMock()
+        request.app.state.runtime = make_runtime(
+            cosmos=request.app.state.cosmos,
+            settings=request.app.state.settings,
+            storage=request.app.state.storage,
+            templates=request.app.state.templates,
+            start_time=MagicMock(),
+        )
 
         mock_results = [{"name": "Foundry", "healthy": False}]
 

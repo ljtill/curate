@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 import curate_web.services.editions as edition_svc
 import curate_web.services.revisions as revision_svc
-from curate_common.database.repositories.agent_runs import AgentRunRepository
-from curate_common.database.repositories.editions import EditionRepository
-from curate_common.database.repositories.feedback import FeedbackRepository
-from curate_common.database.repositories.links import LinkRepository
-from curate_common.database.repositories.revisions import RevisionRepository
 from curate_web.auth.middleware import require_authenticated_user
+from curate_web.dependencies import (
+    get_agent_run_repository,
+    get_edition_repository,
+    get_feedback_repository,
+    get_link_repository,
+    get_revision_repository,
+)
 from curate_web.runtime import get_runtime
 
 router = APIRouter(
@@ -37,7 +38,7 @@ async def list_editions(_request: Request) -> RedirectResponse:
 async def create_edition(request: Request) -> RedirectResponse:
     """Create a new edition with an auto-generated issue number and title."""
     runtime = get_runtime(request)
-    repo = EditionRepository(runtime.cosmos.database)
+    repo = get_edition_repository(runtime)
     await edition_svc.create_edition(repo)
     logger.info("Edition created")
     return RedirectResponse("/editions/", status_code=303)
@@ -47,11 +48,11 @@ async def create_edition(request: Request) -> RedirectResponse:
 async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
     """Render the edition workspace page."""
     runtime = get_runtime(request)
-    editions_repo = EditionRepository(runtime.cosmos.database)
-    links_repo = LinkRepository(runtime.cosmos.database)
-    runs_repo = AgentRunRepository(runtime.cosmos.database)
-    feedback_repo = FeedbackRepository(runtime.cosmos.database)
-    revisions_repo = RevisionRepository(runtime.cosmos.database)
+    editions_repo = get_edition_repository(runtime)
+    links_repo = get_link_repository(runtime)
+    runs_repo = get_agent_run_repository(runtime)
+    feedback_repo = get_feedback_repository(runtime)
+    revisions_repo = get_revision_repository(runtime)
 
     data = await edition_svc.get_workspace_data(
         edition_id, editions_repo, links_repo, runs_repo, feedback_repo, revisions_repo
@@ -67,7 +68,7 @@ async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
 async def preview_edition(request: Request, edition_id: str) -> HTMLResponse:
     """Render the newsletter preview using the public template."""
     runtime = get_runtime(request)
-    repo = EditionRepository(runtime.cosmos.database)
+    repo = get_edition_repository(runtime)
     edition = await edition_svc.get_edition(edition_id, repo)
     return runtime.templates.TemplateResponse(
         "newsletter/edition.html",
@@ -76,7 +77,9 @@ async def preview_edition(request: Request, edition_id: str) -> HTMLResponse:
 
 
 @router.post("/{edition_id}/publish")
-async def publish_edition(request: Request, edition_id: str) -> RedirectResponse:
+async def publish_edition(
+    request: Request, edition_id: str, background_tasks: BackgroundTasks
+) -> RedirectResponse:
     """Request publish for an edition via Service Bus."""
     logger.info("Publish requested — edition=%s", edition_id)
     event_publisher = get_runtime(request).event_publisher
@@ -87,10 +90,7 @@ async def publish_edition(request: Request, edition_id: str) -> RedirectResponse
         )
         return RedirectResponse(f"/editions/{edition_id}", status_code=303)
 
-    task = asyncio.create_task(edition_svc.publish_edition(edition_id, event_publisher))
-    if not hasattr(request.app.state, "background_tasks"):
-        request.app.state.background_tasks = []
-    request.app.state.background_tasks.append(task)
+    background_tasks.add_task(edition_svc.publish_edition, edition_id, event_publisher)
     return RedirectResponse(f"/editions/{edition_id}", status_code=303)
 
 
@@ -98,7 +98,7 @@ async def publish_edition(request: Request, edition_id: str) -> RedirectResponse
 async def delete_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Soft-delete an edition and redirect to the editions list."""
     runtime = get_runtime(request)
-    repo = EditionRepository(runtime.cosmos.database)
+    repo = get_edition_repository(runtime)
     await edition_svc.delete_edition(edition_id, repo)
     logger.info("Edition deleted — edition=%s", edition_id)
     return RedirectResponse("/editions/", status_code=303)
@@ -110,8 +110,8 @@ async def revert_edition(
 ) -> RedirectResponse:
     """Revert edition content to a previous revision (Git-style)."""
     runtime = get_runtime(request)
-    editions_repo = EditionRepository(runtime.cosmos.database)
-    revisions_repo = RevisionRepository(runtime.cosmos.database)
+    editions_repo = get_edition_repository(runtime)
+    revisions_repo = get_revision_repository(runtime)
     await revision_svc.revert_to_revision(
         revision_id, edition_id, editions_repo, revisions_repo
     )

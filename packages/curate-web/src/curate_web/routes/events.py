@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, Request
 
 from curate_web.auth.middleware import require_authenticated_user
-from curate_web.events import EventManager
 from curate_web.runtime import get_runtime
 
 if TYPE_CHECKING:
@@ -20,6 +19,4 @@ router = APIRouter(tags=["events"], dependencies=[Depends(require_authenticated_
 async def events(request: Request) -> EventSourceResponse:
     """SSE endpoint for real-time pipeline status updates."""
     manager = get_runtime(request).event_manager
-    if manager is None:
-        manager = EventManager.get_instance()
     return manager.create_response(request)

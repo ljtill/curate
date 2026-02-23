@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from curate_web.routes.agents import agents_page
+from tests.web.routes.runtime_helpers import make_runtime
 
 
 async def test_agents_page_renders_template() -> None:
@@ -12,6 +13,10 @@ async def test_agents_page_renders_template() -> None:
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
     request.app.state.cosmos = MagicMock()
     request.app.state.cosmos.database = MagicMock()
+    request.app.state.runtime = make_runtime(
+        cosmos=request.app.state.cosmos,
+        templates=request.app.state.templates,
+    )
 
     fake_metadata = [
         {
@@ -36,7 +41,7 @@ async def test_agents_page_renders_template() -> None:
             new_callable=AsyncMock,
             return_value={"agents": fake_metadata, "running_stages": set()},
         ),
-        patch("curate_web.routes.agents.AgentRunRepository") as _mock_repo_cls,
+        patch("curate_web.routes.agents.get_agent_run_repository"),
     ):
         await agents_page(request)
 
@@ -59,6 +64,10 @@ async def test_agents_page_with_runs() -> None:
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
     request.app.state.cosmos = MagicMock()
     request.app.state.cosmos.database = MagicMock()
+    request.app.state.runtime = make_runtime(
+        cosmos=request.app.state.cosmos,
+        templates=request.app.state.templates,
+    )
 
     mock_run = MagicMock()
     mock_run.id = "run-1"
@@ -99,7 +108,7 @@ async def test_agents_page_with_runs() -> None:
             new_callable=AsyncMock,
             return_value={"agents": fake_metadata, "running_stages": set()},
         ),
-        patch("curate_web.routes.agents.AgentRunRepository") as _mock_repo_cls,
+        patch("curate_web.routes.agents.get_agent_run_repository"),
     ):
         await agents_page(request)
 
@@ -121,11 +130,18 @@ async def test_agents_page_shows_static_metadata() -> None:
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
     request.app.state.cosmos = MagicMock()
     request.app.state.cosmos.database = MagicMock()
+    request.app.state.runtime = make_runtime(
+        cosmos=request.app.state.cosmos,
+        templates=request.app.state.templates,
+    )
 
     mock_repo = AsyncMock()
     mock_repo.list_recent_by_stage = AsyncMock(return_value=[])
 
-    with patch("curate_web.routes.agents.AgentRunRepository", return_value=mock_repo):
+    with patch(
+        "curate_web.routes.agents.get_agent_run_repository",
+        return_value=mock_repo,
+    ):
         await agents_page(request)
 
     call_args = request.app.state.templates.TemplateResponse.call_args

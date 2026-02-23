@@ -4,19 +4,15 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 import curate_web.services.links as link_svc
-from curate_common.database.repositories.editions import EditionRepository
-from curate_common.database.repositories.links import LinkRepository
 from curate_web.auth.middleware import require_authenticated_user
+from curate_web.dependencies import get_edition_repository, get_link_repository
 from curate_web.runtime import get_runtime
-
-if TYPE_CHECKING:
-    from curate_common.database.client import CosmosClient
 
 router = APIRouter(
     prefix="/store",
@@ -32,7 +28,7 @@ async def list_store(request: Request) -> HTMLResponse:
     """Render the global links store page."""
     started_at = time.monotonic()
     runtime = get_runtime(request)
-    links_repo = LinkRepository(runtime.cosmos.database)
+    links_repo = get_link_repository(runtime)
 
     links = await links_repo.list_all()
 
@@ -58,7 +54,7 @@ async def submit_link(
 ) -> RedirectResponse:
     """Submit a new link to the global store."""
     runtime = get_runtime(request)
-    links_repo = LinkRepository(runtime.cosmos.database)
+    links_repo = get_link_repository(runtime)
 
     link = await link_svc.submit_link(url, links_repo)
     logger.info("Link submitted to store — link=%s url=%s", link.id, url)
@@ -74,8 +70,8 @@ async def associate_link(
 ) -> RedirectResponse:
     """Associate a store link with an edition."""
     runtime = get_runtime(request)
-    links_repo = LinkRepository(runtime.cosmos.database)
-    editions_repo = _get_editions_repo(runtime.cosmos)
+    links_repo = get_link_repository(runtime)
+    editions_repo = get_edition_repository(runtime)
 
     link = await link_svc.associate_link(link_id, edition_id, links_repo, editions_repo)
     if link:
@@ -92,8 +88,8 @@ async def disassociate_link(
 ) -> RedirectResponse:
     """Remove a link's association with its edition."""
     runtime = get_runtime(request)
-    links_repo = LinkRepository(runtime.cosmos.database)
-    editions_repo = _get_editions_repo(runtime.cosmos)
+    links_repo = get_link_repository(runtime)
+    editions_repo = get_edition_repository(runtime)
 
     link = await link_svc.disassociate_link(link_id, links_repo, editions_repo)
     if link:
@@ -106,7 +102,7 @@ async def disassociate_link(
 async def retry_link(request: Request, link_id: str) -> RedirectResponse:
     """Reset a failed link to submitted so it re-enters the pipeline."""
     runtime = get_runtime(request)
-    links_repo = LinkRepository(runtime.cosmos.database)
+    links_repo = get_link_repository(runtime)
 
     success = await link_svc.retry_link(link_id, links_repo)
     if success:
@@ -121,13 +117,9 @@ async def delete_link(
 ) -> RedirectResponse:
     """Soft-delete a link from the store."""
     runtime = get_runtime(request)
-    links_repo = LinkRepository(runtime.cosmos.database)
-    editions_repo = _get_editions_repo(runtime.cosmos)
+    links_repo = get_link_repository(runtime)
+    editions_repo = get_edition_repository(runtime)
 
     await link_svc.delete_link(link_id, links_repo, editions_repo)
     logger.info("Link deleted — link=%s", link_id)
     return RedirectResponse("/store/", status_code=303)
-
-
-def _get_editions_repo(cosmos: CosmosClient) -> EditionRepository:
-    return EditionRepository(cosmos.database)

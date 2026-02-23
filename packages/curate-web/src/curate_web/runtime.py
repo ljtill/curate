@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -39,6 +39,7 @@ class WebRuntime:
 def get_runtime(request: Request) -> WebRuntime:
     """Return typed runtime dependencies from ``request.app.state``."""
     runtime = getattr(request.app.state, "runtime", None)
-    if isinstance(runtime, WebRuntime):
-        return cast("WebRuntime", runtime)
-    return cast("WebRuntime", request.app.state)
+    if not isinstance(runtime, WebRuntime):
+        msg = "WebRuntime is not initialized on app.state.runtime"
+        raise TypeError(msg)
+    return runtime

@@ -9,8 +9,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
-from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_web.auth.middleware import get_user, require_authenticated_user
+from curate_web.dependencies import get_agent_run_repository
 from curate_web.runtime import get_runtime
 from curate_web.services.health import StorageHealthConfig, check_all
 from curate_web.services.status import AppInfo, TokenUsage, _format_uptime
@@ -59,7 +59,7 @@ async def settings_page(request: Request) -> HTMLResponse:
 
     from curate_common import __version__  # noqa: PLC0415
 
-    runs_repo = AgentRunRepository(runtime.cosmos.database)
+    runs_repo = get_agent_run_repository(runtime)
     token_totals = await runs_repo.aggregate_token_usage()
     token_usage = TokenUsage(
         input_tokens=token_totals["input_tokens"],

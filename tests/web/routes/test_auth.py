@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 from curate_web.routes.auth import callback, login, logout
+from tests.web.routes.runtime_helpers import make_runtime
 
 _EXPECTED_REDIRECT_STATUS = 307
 
@@ -14,6 +15,7 @@ class TestAuthRoutes:
         """Verify login redirects to entra."""
         request = MagicMock()
         request.app.state.settings.entra = MagicMock()
+        request.app.state.runtime = make_runtime(settings=request.app.state.settings)
         request.session = {}
 
         with patch("curate_web.routes.auth.MSALAuth") as mock_auth_cls:
@@ -30,6 +32,7 @@ class TestAuthRoutes:
         """Verify callback success sets session."""
         request = MagicMock()
         request.app.state.settings.entra = MagicMock()
+        request.app.state.runtime = make_runtime(settings=request.app.state.settings)
         request.session = {"auth_flow": {"state": "test"}}
         request.query_params = {"code": "auth-code"}
 
@@ -51,6 +54,7 @@ class TestAuthRoutes:
         """Verify callback failure redirects to login."""
         request = MagicMock()
         request.app.state.settings.entra = MagicMock()
+        request.app.state.runtime = make_runtime(settings=request.app.state.settings)
         request.session = {"auth_flow": {}}
         request.query_params = {}
 

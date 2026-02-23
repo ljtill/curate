@@ -8,8 +8,8 @@ import time
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
-from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_web.auth.middleware import require_authenticated_user
+from curate_web.dependencies import get_agent_run_repository
 from curate_web.runtime import get_runtime
 from curate_web.services.agent_runs import get_agents_page_data
 
@@ -22,7 +22,7 @@ async def agents_page(request: Request) -> HTMLResponse:
     """Render the Agents page showing pipeline topology and agent details."""
     started_at = time.monotonic()
     runtime = get_runtime(request)
-    runs_repo = AgentRunRepository(runtime.cosmos.database)
+    runs_repo = get_agent_run_repository(runtime)
     data = await get_agents_page_data(runs_repo)
 
     logger.info(

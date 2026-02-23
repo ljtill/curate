@@ -9,6 +9,7 @@ from curate_web.routes.links import (
     retry_link,
     submit_link,
 )
+from tests.web.routes.runtime_helpers import make_runtime
 
 _EXPECTED_REDIRECT_STATUS = 303
 
@@ -18,6 +19,10 @@ def _make_request() -> None:
     request.app.state.cosmos.database = MagicMock()
     request.app.state.templates = MagicMock()
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
+    request.app.state.runtime = make_runtime(
+        cosmos=request.app.state.cosmos,
+        templates=request.app.state.templates,
+    )
     return request
 
 
@@ -26,10 +31,10 @@ async def test_list_store_renders_all_links() -> None:
     request = _make_request()
     links = [Link(id="link-1", url="https://example.com")]
 
-    with patch("curate_web.routes.links.LinkRepository") as mock_links_repo_cls:
+    with patch("curate_web.routes.links.get_link_repository") as mock_links_repo:
         links_repo = AsyncMock()
         links_repo.list_all.return_value = links
-        mock_links_repo_cls.return_value = links_repo
+        mock_links_repo.return_value = links_repo
 
         await list_store(request)
 
@@ -43,10 +48,10 @@ async def test_list_store_empty() -> None:
     """Verify store page handles no links."""
     request = _make_request()
 
-    with patch("curate_web.routes.links.LinkRepository") as mock_links_repo_cls:
+    with patch("curate_web.routes.links.get_link_repository") as mock_links_repo:
         links_repo = AsyncMock()
         links_repo.list_all.return_value = []
-        mock_links_repo_cls.return_value = links_repo
+        mock_links_repo.return_value = links_repo
 
         await list_store(request)
 

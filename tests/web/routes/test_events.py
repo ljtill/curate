@@ -1,26 +1,28 @@
-"""Tests for the SSE event manager."""
+"""Tests for the SSE events route."""
+
+from unittest.mock import MagicMock
 
 import pytest
 
-from curate_web.events import EventManager
+from curate_web.routes.events import events
+from tests.web.routes.runtime_helpers import make_runtime
 
 
-@pytest.fixture(autouse=True)
-def reset_event_manager() -> None:
-    """Reset the singleton between tests."""
-    EventManager.instance = None
-    yield
-    EventManager.instance = None
+async def test_events_uses_runtime_manager() -> None:
+    """Verify /events always uses the runtime-managed EventManager."""
+    request = MagicMock()
+    manager = MagicMock()
+    manager.create_response = MagicMock(return_value=MagicMock())
+    request.app.state.runtime = make_runtime(event_manager=manager)
+
+    response = await events(request)
+
+    manager.create_response.assert_called_once_with(request)
+    assert response is manager.create_response.return_value
 
 
-def test_get_instance_returns_singleton() -> None:
-    """Verify get instance returns singleton."""
-    mgr1 = EventManager.get_instance()
-    mgr2 = EventManager.get_instance()
-    assert mgr1 is mgr2
-
-
-async def test_publish_to_empty_queues() -> None:
-    """Verify publish to empty queues."""
-    mgr = EventManager.get_instance()
-    await mgr.publish("test", {"key": "value"})
+async def test_events_requires_runtime() -> None:
+    """Verify /events raises when app runtime is missing."""
+    request = MagicMock()
+    with pytest.raises(TypeError, match="WebRuntime is not initialized"):
+        await events(request)

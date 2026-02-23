@@ -14,6 +14,7 @@ from curate_web.routes.settings import (
     toggle_memory,
 )
 from curate_web.services.health import ServiceHealth
+from tests.web.routes.runtime_helpers import make_runtime
 
 _MOCK_TOKEN_TOTALS = {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150}
 
@@ -57,6 +58,14 @@ def _make_request(
     request.app.state.cosmos = MagicMock()
     request.app.state.storage = MagicMock()
     request.app.state.start_time = MagicMock()
+    request.app.state.runtime = make_runtime(
+        cosmos=request.app.state.cosmos,
+        settings=request.app.state.settings,
+        templates=request.app.state.templates,
+        storage=request.app.state.storage,
+        memory_service=request.app.state.memory_service,
+        start_time=request.app.state.start_time,
+    )
     if user is not None:
         request.session = {"user": user}
     else:
@@ -72,6 +81,8 @@ class TestSettingsPage:
         """Verify rendering when no memory service configured."""
         request = _make_request()
         healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
+        mock_repo = MagicMock()
+        mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
         with (
             patch(
                 "curate_web.routes.settings.check_all",
@@ -79,11 +90,10 @@ class TestSettingsPage:
                 return_value=[healthy],
             ),
             patch(
-                "curate_web.routes.settings.AgentRunRepository",
-            ) as mock_repo_cls,
+                "curate_web.routes.settings.get_agent_run_repository",
+                return_value=mock_repo,
+            ),
         ):
-            mock_repo = mock_repo_cls.return_value
-            mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
             await settings_page(request)
         request.app.state.templates.TemplateResponse.assert_called_once()
         call_args = request.app.state.templates.TemplateResponse.call_args
@@ -105,6 +115,8 @@ class TestSettingsPage:
             user={"oid": "user-123"},
         )
         healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
+        mock_repo = MagicMock()
+        mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
         with (
             patch(
                 "curate_web.routes.settings.check_all",
@@ -112,11 +124,10 @@ class TestSettingsPage:
                 return_value=[healthy],
             ),
             patch(
-                "curate_web.routes.settings.AgentRunRepository",
-            ) as mock_repo_cls,
+                "curate_web.routes.settings.get_agent_run_repository",
+                return_value=mock_repo,
+            ),
         ):
-            mock_repo = mock_repo_cls.return_value
-            mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
             await settings_page(request)
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][1]["memory_configured"] is True
@@ -130,6 +141,8 @@ class TestSettingsPage:
         settings.memory.enabled = False
         request = _make_request(settings=settings)
         healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
+        mock_repo = MagicMock()
+        mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
         with (
             patch(
                 "curate_web.routes.settings.check_all",
@@ -137,11 +150,10 @@ class TestSettingsPage:
                 return_value=[healthy],
             ),
             patch(
-                "curate_web.routes.settings.AgentRunRepository",
-            ) as mock_repo_cls,
+                "curate_web.routes.settings.get_agent_run_repository",
+                return_value=mock_repo,
+            ),
         ):
-            mock_repo = mock_repo_cls.return_value
-            mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
             await settings_page(request)
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][1]["memory_configured"] is False
