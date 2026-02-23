@@ -154,9 +154,6 @@ def create_app() -> FastAPI:
     if not session_secret:
         if settings.app.is_development:
             session_secret = uuid.uuid4().hex
-            logger.warning(
-                "APP_SECRET_KEY is not set — using an ephemeral development session key"
-            )
         else:
             msg = "APP_SECRET_KEY must be set in non-development environments"
             raise RuntimeError(msg)
