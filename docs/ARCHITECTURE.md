@@ -62,83 +62,6 @@ graph TB
     style WorkerService fill:#ede9fe,stroke:#a78bfa,color:#3b0764
 ```
 
-## Azure Infrastructure
-
-All infrastructure is defined as Bicep templates in `infra/`. A single managed identity provides passwordless authentication between services. The web and worker run as separate Container Apps — the web service handles HTTP traffic and SSE, while the worker runs the agent pipeline. Azure Service Bus connects them for real-time event delivery. Application Insights and Log Analytics handle observability, while Static Web Apps serves the public newsletter from blob storage.
-
-```mermaid
-graph TB
-    subgraph Identity["Identity"]
-        MI["Managed Identity"]
-    end
-
-    subgraph Compute["Compute"]
-        ACA_Web["Container Apps<br/>(Web — FastAPI)"]
-        ACA_Worker["Container Apps<br/>(Worker — Pipeline)"]
-        ACR["Container Registry<br/>(Docker Images)"]
-    end
-
-    subgraph Messaging["Messaging"]
-        SB["Service Bus<br/>(Event Bridge)"]
-    end
-
-    subgraph Data["Data"]
-        Cosmos["Cosmos DB<br/>(NoSQL API)"]
-        SA["Storage Account<br/>(Static Assets)"]
-        AppConfig["App Configuration<br/>(Runtime Config)"]
-    end
-
-    subgraph Web["Web"]
-        SWA["Static Web Apps<br/>(Public Site)"]
-    end
-
-    subgraph Observability["Observability"]
-        AppInsights["Application Insights"]
-        LAW["Log Analytics<br/>Workspace"]
-    end
-
-    MI -.->|authenticates| ACA_Web
-    MI -.->|authenticates| ACA_Worker
-    MI -.->|authenticates| Cosmos
-    MI -.->|authenticates| SA
-    MI -.->|authenticates| ACR
-    MI -.->|authenticates| AppConfig
-    MI -.->|authenticates| SB
-
-    ACR -->|pulls image| ACA_Web
-    ACR -->|pulls image| ACA_Worker
-    ACA_Web -->|reads| Cosmos
-    ACA_Worker -->|reads/writes| Cosmos
-    ACA_Worker -->|uploads HTML| SA
-    ACA_Web -->|reads config| AppConfig
-    ACA_Worker -->|reads config| AppConfig
-    ACA_Worker -->|publishes events| SB
-    SB -->|delivers events| ACA_Web
-    SA -->|serves| SWA
-
-    ACA_Web -->|telemetry| AppInsights
-    ACA_Worker -->|telemetry| AppInsights
-    AppInsights -->|backed by| LAW
-
-    classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
-    classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#d97706,stroke:#b45309,color:#fff
-    classDef human fill:#059669,stroke:#047857,color:#fff
-
-    class ACA_Web,ACA_Worker,ACR outer
-    class SWA inner
-    class Cosmos,SA,AppConfig,SB infra
-    class MI human
-    class AppInsights,LAW inner
-
-    style Identity fill:#f1f5f9,stroke:#94a3b8,color:#334155
-    style Compute fill:#f1f5f9,stroke:#94a3b8,color:#334155
-    style Messaging fill:#f1f5f9,stroke:#94a3b8,color:#334155
-    style Data fill:#f1f5f9,stroke:#94a3b8,color:#334155
-    style Web fill:#f1f5f9,stroke:#94a3b8,color:#334155
-    style Observability fill:#f1f5f9,stroke:#94a3b8,color:#334155
-```
-
 ## Agent Pipeline
 
 The pipeline is orchestrated by a central `PipelineOrchestrator` — itself an Agent Framework agent — that coordinates five specialised sub-agents via tool calls. When a link is submitted, it flows sequentially through Fetch (extract content), Review (evaluate relevance), and Draft (compose newsletter copy). The Edit stage runs when an editor provides feedback on an edition, and Publish renders the final HTML and uploads it to storage. Each sub-agent has its own system prompt, registered tools, and middleware (token tracking).
@@ -234,6 +157,146 @@ sequenceDiagram
     ServiceBus-->>Worker: Consume request
     Worker->>Agents: Publish → render HTML
     Agents->>Storage: Upload static files
+```
+
+## Data Model
+
+Four document types persist in Cosmos DB, all extending `DocumentBase` (which provides `id`, `created_at`, `updated_at`, and soft-delete via `deleted_at`). Links and Feedback reference an Edition by `edition_id`, while the Edition holds a list of `link_ids` back to its Links. AgentRun tracks each pipeline stage execution, with `trigger_id` pointing to the document that initiated it. Status enums drive the pipeline — a Link progresses from `submitted` through `fetching`, `reviewed`, and `drafted`, while an Edition moves from `created` through `drafting` and `in_review` to `published`.
+
+```mermaid
+erDiagram
+    Link {
+        str id PK
+        str url
+        str title
+        LinkStatus status
+        str content
+        dict review
+        str edition_id FK
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    Edition {
+        str id PK
+        EditionStatus status
+        dict content
+        list link_ids
+        datetime published_at
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    Feedback {
+        str id PK
+        str edition_id FK
+        str section
+        str comment
+        bool resolved
+        bool learn_from_feedback
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    AgentRun {
+        str id PK
+        AgentStage stage
+        str trigger_id FK
+        AgentRunStatus status
+        dict input
+        dict output
+        dict usage
+        datetime started_at
+        datetime completed_at
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
+    Edition ||--o{ Link : "link_ids / edition_id"
+    Edition ||--o{ Feedback : "edition_id"
+    AgentRun }o--|| Link : "trigger_id"
+    AgentRun }o--|| Edition : "trigger_id"
+```
+
+## Azure Infrastructure
+
+All infrastructure is defined as Bicep templates in `infra/`. A single managed identity provides passwordless authentication between services. The web and worker run as separate Container Apps — the web service handles HTTP traffic and SSE, while the worker runs the agent pipeline. Azure Service Bus connects them for real-time event delivery. Application Insights and Log Analytics handle observability, while Static Web Apps serves the public newsletter from blob storage.
+
+```mermaid
+graph TB
+    subgraph Identity["Identity"]
+        MI["Managed Identity"]
+    end
+
+    subgraph Compute["Compute"]
+        ACA_Web["Container Apps<br/>(Web — FastAPI)"]
+        ACA_Worker["Container Apps<br/>(Worker — Pipeline)"]
+        ACR["Container Registry<br/>(Docker Images)"]
+    end
+
+    subgraph Messaging["Messaging"]
+        SB["Service Bus<br/>(Event Bridge)"]
+    end
+
+    subgraph Data["Data"]
+        Cosmos["Cosmos DB<br/>(NoSQL API)"]
+        SA["Storage Account<br/>(Static Assets)"]
+        AppConfig["App Configuration<br/>(Runtime Config)"]
+    end
+
+    subgraph Web["Web"]
+        SWA["Static Web Apps<br/>(Public Site)"]
+    end
+
+    subgraph Observability["Observability"]
+        AppInsights["Application Insights"]
+        LAW["Log Analytics<br/>Workspace"]
+    end
+
+    MI -.->|authenticates| ACA_Web
+    MI -.->|authenticates| ACA_Worker
+    MI -.->|authenticates| Cosmos
+    MI -.->|authenticates| SA
+    MI -.->|authenticates| ACR
+    MI -.->|authenticates| AppConfig
+    MI -.->|authenticates| SB
+
+    ACR -->|pulls image| ACA_Web
+    ACR -->|pulls image| ACA_Worker
+    ACA_Web -->|reads| Cosmos
+    ACA_Worker -->|reads/writes| Cosmos
+    ACA_Worker -->|uploads HTML| SA
+    ACA_Web -->|reads config| AppConfig
+    ACA_Worker -->|reads config| AppConfig
+    ACA_Worker -->|publishes events| SB
+    SB -->|delivers events| ACA_Web
+    SA -->|serves| SWA
+
+    ACA_Web -->|telemetry| AppInsights
+    ACA_Worker -->|telemetry| AppInsights
+    AppInsights -->|backed by| LAW
+
+    classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef human fill:#059669,stroke:#047857,color:#fff
+
+    class ACA_Web,ACA_Worker,ACR outer
+    class SWA inner
+    class Cosmos,SA,AppConfig,SB infra
+    class MI human
+    class AppInsights,LAW inner
+
+    style Identity fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Compute fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Messaging fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Data fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Web fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Observability fill:#f1f5f9,stroke:#94a3b8,color:#334155
 ```
 
 ## CI/CD Pipeline
