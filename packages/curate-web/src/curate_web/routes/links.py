@@ -13,6 +13,7 @@ import curate_web.services.links as link_svc
 from curate_common.database.repositories.editions import EditionRepository
 from curate_common.database.repositories.links import LinkRepository
 from curate_web.auth.middleware import require_authenticated_user
+from curate_web.runtime import get_runtime
 
 if TYPE_CHECKING:
     from curate_common.database.client import CosmosClient
@@ -30,9 +31,8 @@ logger = logging.getLogger(__name__)
 async def list_store(request: Request) -> HTMLResponse:
     """Render the global links store page."""
     started_at = time.monotonic()
-    templates = request.app.state.templates
-    cosmos = request.app.state.cosmos
-    links_repo = LinkRepository(cosmos.database)
+    runtime = get_runtime(request)
+    links_repo = LinkRepository(runtime.cosmos.database)
 
     links = await links_repo.list_all()
 
@@ -42,7 +42,7 @@ async def list_store(request: Request) -> HTMLResponse:
         (time.monotonic() - started_at) * 1000,
     )
 
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "store.html",
         {
             "request": request,
@@ -57,8 +57,8 @@ async def submit_link(
     url: Annotated[str, Form(...)],
 ) -> RedirectResponse:
     """Submit a new link to the global store."""
-    cosmos = request.app.state.cosmos
-    links_repo = LinkRepository(cosmos.database)
+    runtime = get_runtime(request)
+    links_repo = LinkRepository(runtime.cosmos.database)
 
     link = await link_svc.submit_link(url, links_repo)
     logger.info("Link submitted to store — link=%s url=%s", link.id, url)
@@ -73,9 +73,9 @@ async def associate_link(
     next: Annotated[str | None, Form()] = None,  # noqa: A002
 ) -> RedirectResponse:
     """Associate a store link with an edition."""
-    cosmos = request.app.state.cosmos
-    links_repo = LinkRepository(cosmos.database)
-    editions_repo = _get_editions_repo(cosmos)
+    runtime = get_runtime(request)
+    links_repo = LinkRepository(runtime.cosmos.database)
+    editions_repo = _get_editions_repo(runtime.cosmos)
 
     link = await link_svc.associate_link(link_id, edition_id, links_repo, editions_repo)
     if link:
@@ -91,9 +91,9 @@ async def disassociate_link(
     next: Annotated[str | None, Form()] = None,  # noqa: A002
 ) -> RedirectResponse:
     """Remove a link's association with its edition."""
-    cosmos = request.app.state.cosmos
-    links_repo = LinkRepository(cosmos.database)
-    editions_repo = _get_editions_repo(cosmos)
+    runtime = get_runtime(request)
+    links_repo = LinkRepository(runtime.cosmos.database)
+    editions_repo = _get_editions_repo(runtime.cosmos)
 
     link = await link_svc.disassociate_link(link_id, links_repo, editions_repo)
     if link:
@@ -105,8 +105,8 @@ async def disassociate_link(
 @router.post("/{link_id}/retry")
 async def retry_link(request: Request, link_id: str) -> RedirectResponse:
     """Reset a failed link to submitted so it re-enters the pipeline."""
-    cosmos = request.app.state.cosmos
-    links_repo = LinkRepository(cosmos.database)
+    runtime = get_runtime(request)
+    links_repo = LinkRepository(runtime.cosmos.database)
 
     success = await link_svc.retry_link(link_id, links_repo)
     if success:
@@ -120,9 +120,9 @@ async def delete_link(
     link_id: str,
 ) -> RedirectResponse:
     """Soft-delete a link from the store."""
-    cosmos = request.app.state.cosmos
-    links_repo = LinkRepository(cosmos.database)
-    editions_repo = _get_editions_repo(cosmos)
+    runtime = get_runtime(request)
+    links_repo = LinkRepository(runtime.cosmos.database)
+    editions_repo = _get_editions_repo(runtime.cosmos)
 
     await link_svc.delete_link(link_id, links_repo, editions_repo)
     logger.info("Link deleted — link=%s", link_id)

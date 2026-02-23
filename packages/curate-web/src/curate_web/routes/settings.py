@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse
 
 from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_web.auth.middleware import get_user, require_authenticated_user
+from curate_web.runtime import get_runtime
 from curate_web.services.health import StorageHealthConfig, check_all
 from curate_web.services.status import AppInfo, TokenUsage, _format_uptime
 
@@ -33,14 +34,14 @@ def _get_user_scope(request: Request) -> str | None:
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request) -> HTMLResponse:
     """Render the settings page with memory status and management controls."""
-    memory_service = request.app.state.memory_service
-    templates = request.app.state.templates
-    settings = getattr(request.app.state, "settings", None)
+    runtime = get_runtime(request)
+    memory_service = runtime.memory_service
+    settings = runtime.settings
 
     memory_enabled = memory_service.enabled if memory_service else False
     store_name = memory_service.store_name if memory_service else "—"
     memory_disabled_by_config = bool(
-        settings and settings.foundry.project_endpoint and not settings.memory.enabled
+        settings.foundry.project_endpoint and not settings.memory.enabled
     )
 
     project_memories: list = []
@@ -58,11 +59,7 @@ async def settings_page(request: Request) -> HTMLResponse:
 
     from curate_common import __version__  # noqa: PLC0415
 
-    cosmos = request.app.state.cosmos
-    storage = request.app.state.storage
-    start_time = request.app.state.start_time
-
-    runs_repo = AgentRunRepository(cosmos.database)
+    runs_repo = AgentRunRepository(runtime.cosmos.database)
     token_totals = await runs_repo.aggregate_token_usage()
     token_usage = TokenUsage(
         input_tokens=token_totals["input_tokens"],
@@ -72,10 +69,13 @@ async def settings_page(request: Request) -> HTMLResponse:
 
     started_at = time.monotonic()
     health_checks = await check_all(
-        cosmos.database,
+        runtime.cosmos.database,
         cosmos_config=settings.cosmos,
         foundry_config=settings.foundry,
-        storage_health=StorageHealthConfig(client=storage, config=settings.storage),
+        storage_health=StorageHealthConfig(
+            client=runtime.storage,
+            config=settings.storage,
+        ),
         servicebus_config=settings.servicebus,
         monitor_config=settings.monitor,
     )
@@ -89,10 +89,10 @@ async def settings_page(request: Request) -> HTMLResponse:
         environment=settings.app.env,
         python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         platform=platform.machine(),
-        uptime=_format_uptime(start_time),
+        uptime=_format_uptime(runtime.start_time),
     )
 
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "settings.html",
         {
             "request": request,
@@ -117,14 +117,14 @@ async def toggle_memory(
     enabled: Annotated[str, Form(...)],
 ) -> HTMLResponse:
     """Toggle memory on/off globally."""
-    memory_service = request.app.state.memory_service
+    runtime = get_runtime(request)
+    memory_service = runtime.memory_service
     if memory_service:
         memory_service.set_enabled(enabled=enabled == "true")
         logger.info("Memory toggled to %s", enabled)
 
-    templates = request.app.state.templates
     is_enabled = memory_service.enabled if memory_service else False
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "partials/memory_toggle.html",
         {"request": request, "memory_enabled": is_enabled},
     )
@@ -133,12 +133,12 @@ async def toggle_memory(
 @router.get("/settings/memory/project", response_class=HTMLResponse)
 async def list_project_memories(request: Request) -> HTMLResponse:
     """List project-wide memories (HTMX partial)."""
-    memory_service = request.app.state.memory_service
-    templates = request.app.state.templates
+    runtime = get_runtime(request)
+    memory_service = runtime.memory_service
     memories: list = []
     if memory_service and memory_service.enabled:
         memories = await memory_service.list_memories("project-editorial")
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "partials/memory_list.html",
         {"request": request, "memories": memories, "scope": "project"},
     )
@@ -147,13 +147,13 @@ async def list_project_memories(request: Request) -> HTMLResponse:
 @router.delete("/settings/memory/project", response_class=HTMLResponse)
 async def clear_project_memories(request: Request) -> HTMLResponse:
     """Clear all project-wide memories."""
-    memory_service = request.app.state.memory_service
+    runtime = get_runtime(request)
+    memory_service = runtime.memory_service
     if memory_service:
         await memory_service.clear_memories("project-editorial")
         logger.info("Project-wide memories cleared")
 
-    templates = request.app.state.templates
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "partials/memory_list.html",
         {"request": request, "memories": [], "scope": "project"},
     )
@@ -162,13 +162,13 @@ async def clear_project_memories(request: Request) -> HTMLResponse:
 @router.get("/settings/memory/personal", response_class=HTMLResponse)
 async def list_personal_memories(request: Request) -> HTMLResponse:
     """List the current user's personal memories (HTMX partial)."""
-    memory_service = request.app.state.memory_service
-    templates = request.app.state.templates
+    runtime = get_runtime(request)
+    memory_service = runtime.memory_service
     memories: list = []
     user_scope = _get_user_scope(request)
     if memory_service and memory_service.enabled and user_scope:
         memories = await memory_service.list_memories(user_scope)
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "partials/memory_list.html",
         {"request": request, "memories": memories, "scope": "personal"},
     )
@@ -177,14 +177,14 @@ async def list_personal_memories(request: Request) -> HTMLResponse:
 @router.delete("/settings/memory/personal", response_class=HTMLResponse)
 async def clear_personal_memories(request: Request) -> HTMLResponse:
     """Clear the current user's personal memories."""
-    memory_service = request.app.state.memory_service
+    runtime = get_runtime(request)
+    memory_service = runtime.memory_service
     user_scope = _get_user_scope(request)
     if memory_service and user_scope:
         await memory_service.clear_memories(user_scope)
         logger.info("Personal memories cleared for scope=%s", user_scope)
 
-    templates = request.app.state.templates
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "partials/memory_list.html",
         {"request": request, "memories": [], "scope": "personal"},
     )

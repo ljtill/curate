@@ -7,6 +7,8 @@ from fastapi import HTTPException
 
 from curate_web.routes.profile import profile
 
+_UNAUTHORIZED_STATUS = 401
+
 
 def _make_request(*, user: dict | None = None) -> MagicMock:
     """Create a mock request with app state."""
@@ -42,7 +44,7 @@ class TestProfilePage:
         request = _make_request()
         with pytest.raises(HTTPException) as exc_info:
             await profile(request)
-        assert exc_info.value.status_code == 401
+        assert exc_info.value.status_code == _UNAUTHORIZED_STATUS
 
     async def test_renders_with_local_dev_user(self) -> None:
         """Verify profile page works with the local dev mock user."""

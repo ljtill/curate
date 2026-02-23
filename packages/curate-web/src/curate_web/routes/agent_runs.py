@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse
 
 from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_web.auth.middleware import require_authenticated_user
+from curate_web.runtime import get_runtime
 
 router = APIRouter(
     prefix="/runs",
@@ -18,11 +19,10 @@ router = APIRouter(
 @router.get("/recent", response_class=HTMLResponse)
 async def recent_runs(request: Request) -> HTMLResponse:
     """Return recent agent runs as an HTML partial for the dashboard."""
-    templates = request.app.state.templates
-    cosmos = request.app.state.cosmos
-    runs_repo = AgentRunRepository(cosmos.database)
+    runtime = get_runtime(request)
+    runs_repo = AgentRunRepository(runtime.cosmos.database)
     runs = await runs_repo.list_recent(20)
-    return templates.TemplateResponse(
+    return runtime.templates.TemplateResponse(
         "partials/agent_run_item.html",
         {"request": request, "runs": runs},
     )

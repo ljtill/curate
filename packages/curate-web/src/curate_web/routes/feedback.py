@@ -11,6 +11,7 @@ from fastapi.responses import RedirectResponse
 import curate_web.services.feedback as feedback_svc
 from curate_common.database.repositories.feedback import FeedbackRepository
 from curate_web.auth.middleware import require_authenticated_user
+from curate_web.runtime import get_runtime
 
 router = APIRouter(
     tags=["feedback"], dependencies=[Depends(require_authenticated_user)]
@@ -28,8 +29,8 @@ async def submit_feedback(
     learn_from_feedback: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     """Submit editor feedback for a specific section of an edition."""
-    cosmos = request.app.state.cosmos
-    repo = FeedbackRepository(cosmos.database)
+    runtime = get_runtime(request)
+    repo = FeedbackRepository(runtime.cosmos.database)
     learn = learn_from_feedback == "true"
     await feedback_svc.submit_feedback(
         edition_id, section, comment, repo, learn_from_feedback=learn

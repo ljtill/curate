@@ -144,9 +144,7 @@ class TestFeedbackCtxLifecycle:
         """feedback_ctx is set before agent.run and reset after."""
         captured_ctx: list[dict[str, Any] | None] = []
 
-        async def capture_run(
-            _msg: str, /, **_kwargs: Any
-        ) -> MagicMock:
+        async def capture_run(_msg: str, /, **_kwargs: Any) -> MagicMock:
             captured_ctx.append(feedback_ctx.get())
             return MagicMock(text="done", usage_details=None)
 
@@ -178,9 +176,7 @@ class TestFeedbackCtxLifecycle:
         """feedback_ctx has skip_memory_capture=True when learn_from_feedback=False."""
         captured_ctx: list[dict[str, Any] | None] = []
 
-        async def capture_run(
-            _msg: str, /, **_kwargs: Any
-        ) -> MagicMock:
+        async def capture_run(_msg: str, /, **_kwargs: Any) -> MagicMock:
             captured_ctx.append(feedback_ctx.get())
             return MagicMock(text="done", usage_details=None)
 
@@ -201,9 +197,7 @@ class TestFeedbackCtxLifecycle:
         assert ctx is not None
         assert ctx["skip_memory_capture"] is True
 
-    async def test_ctx_reset_on_error(
-        self, orchestrator: PipelineOrchestrator
-    ) -> None:
+    async def test_ctx_reset_on_error(self, orchestrator: PipelineOrchestrator) -> None:
         """feedback_ctx is reset even if the orchestrator run fails."""
         orchestrator._agent.run = AsyncMock(  # noqa: SLF001
             side_effect=RuntimeError("boom")

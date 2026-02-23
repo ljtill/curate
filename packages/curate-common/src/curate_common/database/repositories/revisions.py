@@ -40,6 +40,6 @@ class RevisionRepository(BaseRepository[Revision]):
             " AND NOT IS_DEFINED(c.deleted_at)",
             parameters=[{"name": "@edition_id", "value": edition_id}],
         ):
-            if value is not None:
+            if isinstance(value, int | float | str):
                 current_max = int(value)
         return current_max + 1

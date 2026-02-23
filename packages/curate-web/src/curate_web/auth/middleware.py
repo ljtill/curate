@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException, Request, status
 
+from curate_web.runtime import WebRuntime
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
@@ -18,6 +20,9 @@ def get_user(request: Request) -> dict[str, Any] | None:
 
 def _is_development_request(request: Request) -> bool:
     """Return True when this request is running in the local dev environment."""
+    runtime = getattr(getattr(request.app, "state", None), "runtime", None)
+    if isinstance(runtime, WebRuntime):
+        return bool(getattr(runtime.settings.app, "is_development", False))
     settings = getattr(getattr(request.app, "state", None), "settings", None)
     app_settings = getattr(settings, "app", None)
     return getattr(app_settings, "is_development", False) is True
