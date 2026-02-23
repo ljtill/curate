@@ -89,3 +89,26 @@ For intermittent UI lock-up diagnostics in local development, run with verbose t
 LOG_LEVEL=DEBUG APP_SLOW_REQUEST_MS=400 APP_SLOW_REPOSITORY_MS=150 \
 uv run python -m curate_web.app
 ```
+
+## Tests
+
+```bash
+uv run pytest tests/ -v
+```
+
+## Linting, Formatting & Type Checking
+
+```bash
+uv run ruff check packages/ tests/
+uv run ruff format packages/ tests/
+uv run ty check packages/
+```
+
+## Manual Deployment
+
+```bash
+az deployment group create \
+  --resource-group <rg-name> \
+  --template-file infra/main.bicep \
+  --parameters infra/params/prod.bicepparam
+```

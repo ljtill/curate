@@ -88,20 +88,6 @@ uv run python -m curate_web.app
 uv run python -m curate_worker.app
 ```
 
-### Tests
-
-```bash
-uv run pytest tests/ -v
-```
-
-### Linting, Formatting & Type Checking
-
-```bash
-uv run ruff check packages/ tests/
-uv run ruff format packages/ tests/
-uv run ty check packages/
-```
-
 ## Pipelines
 
 GitHub Actions with five workflows. Check and Test run in parallel on push / PR to `main`; Build, Release, and Deploy chain sequentially via `workflow_run` triggers. All Azure-facing workflows authenticate using OIDC federated credentials.
@@ -113,12 +99,3 @@ GitHub Actions with five workflows. Check and Test run in parallel on push / PR 
 | **Build** | `build.yml` | Check + Test success on `main` | Docker build, push to ACR, Bicep validation |
 | **Release** | `release.yml` | Build success on `main` | Bicep infrastructure deployment |
 | **Deploy** | `deploy.yml` | Release success on `main` | Container App update |
-
-### Manual Deployment
-
-```bash
-az deployment group create \
-  --resource-group <rg-name> \
-  --template-file infra/main.bicep \
-  --parameters infra/params/prod.bicepparam
-```
