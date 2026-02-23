@@ -208,6 +208,7 @@
                 <button class="tab-btn active" data-tab="links" onclick="switchTab(event, 'links')">Links</button>
                 <button class="tab-btn" data-tab="pipeline" onclick="switchTab(event, 'pipeline')">Pipeline</button>
                 <button class="tab-btn" data-tab="feedback" onclick="switchTab(event, 'feedback')">Feedback</button>
+                <button class="tab-btn" data-tab="revisions" onclick="switchTab(event, 'revisions')">Revisions{% if revisions %} ({{ revisions | length }}){% endif %}</button>
             </div>
 
             <!-- Links tab -->
@@ -491,6 +492,56 @@
                 {% endfor %}
                 {% else %}
                 <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 1rem;">No feedback submitted yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Revisions tab -->
+            <div class="tab-panel" data-tab="revisions" style="padding: 1rem;">
+                <h3 style="font-size: 0.875rem; margin-bottom: 0.75rem;">Revision History</h3>
+                {% if revisions %}
+                {% set diffs_by_id = {} %}
+                {% for d in revision_diffs %}
+                    {% if diffs_by_id.update({d.revision_id: d.sections}) %}{% endif %}
+                {% endfor %}
+                {% for rev in revisions | reverse %}
+                <div style="margin-bottom: 1rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-weight: 600; font-size: 0.875rem;">#{{ rev.sequence }}</span>
+                            <span class="badge badge-{% if rev.source == 'draft' %}drafting{% elif rev.source == 'edit' %}in_review{% elif rev.source == 'revert' %}created{% elif rev.source == 'publish' %}published{% else %}created{% endif %}">{{ rev.source }}</span>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">{{ rev.created_at.strftime('%Y-%m-%d %H:%M:%S') if rev.created_at else '' }}</span>
+                    </div>
+                    {% if rev.summary %}
+                    <div style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 0.5rem;">{{ rev.summary }}</div>
+                    {% endif %}
+                    {% set sections = diffs_by_id.get(rev.id, {}) %}
+                    {% if sections %}
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.5rem;">
+                        {% for section, status in sections.items() %}
+                        {% if status != 'unchanged' %}
+                        <span style="font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px;
+                            {% if status == 'added' %}background: #dafbe1; color: #1a7f37;
+                            {% elif status == 'removed' %}background: #ffebe9; color: #cf222e;
+                            {% elif status == 'changed' %}background: #ddf4ff; color: #0969da;
+                            {% endif %}">{{ section | replace('_', ' ') | title }}: {{ status }}</span>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <details class="drill-detail">
+                        <summary>View content</summary>
+                        <pre class="drill-detail-content">{{ rev.content | tojson(indent=2) }}</pre>
+                    </details>
+                    {% if edition.status != 'published' and not loop.first %}
+                    <form method="post" action="/editions/{{ edition.id }}/revert/{{ rev.id }}" style="margin-top: 0.5rem;">
+                        <button type="submit" class="btn" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Revert to this</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.875rem;">No revisions yet. Content changes will appear here as the pipeline processes links and feedback.</p>
                 {% endif %}
             </div>
         </div>

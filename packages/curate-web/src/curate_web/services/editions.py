@@ -8,12 +8,14 @@ from typing import TYPE_CHECKING, Any
 
 from curate_common.models.edition import Edition
 from curate_web.services.agent_runs import group_runs_by_invocation
+from curate_web.services.revisions import compute_diffs
 
 if TYPE_CHECKING:
     from curate_common.database.repositories.agent_runs import AgentRunRepository
     from curate_common.database.repositories.editions import EditionRepository
     from curate_common.database.repositories.feedback import FeedbackRepository
     from curate_common.database.repositories.links import LinkRepository
+    from curate_common.database.repositories.revisions import RevisionRepository
     from curate_common.events import EventPublisher
     from curate_common.models.link import Link
 
@@ -88,6 +90,7 @@ async def get_workspace_data(
     links_repo: LinkRepository,
     agent_runs_repo: AgentRunRepository,
     feedback_repo: FeedbackRepository,
+    revisions_repo: RevisionRepository | None = None,
 ) -> dict[str, Any]:
     """Fetch all data needed for the edition workspace view."""
     started_at = time.monotonic()
@@ -100,9 +103,7 @@ async def get_workspace_data(
 
     # Group agent runs by trigger (link) ID, then by invocation.
     # Runs must be in chronological order for grouping (oldest first).
-    runs_chronological = sorted(
-        agent_runs, key=lambda r: r.started_at or r.created_at
-    )
+    runs_chronological = sorted(agent_runs, key=lambda r: r.started_at or r.created_at)
     runs_by_trigger: dict[str, list[Any]] = {}
     for run in runs_chronological:
         runs_by_trigger.setdefault(run.trigger_id, []).append(run)
@@ -121,15 +122,22 @@ async def get_workspace_data(
 
     unresolved_count = sum(1 for fb in feedback if not fb.resolved)
 
+    revisions = []
+    revision_diffs = []
+    if revisions_repo:
+        revisions = await revisions_repo.list_by_edition(edition_id)
+        revision_diffs = compute_diffs(revisions)
+
     logger.info(
         "Workspace data assembled — edition=%s exists=%s links=%d "
-        "unattached=%d runs=%d feedback=%d duration_ms=%.0f",
+        "unattached=%d runs=%d feedback=%d revisions=%d duration_ms=%.0f",
         edition_id,
         edition is not None,
         len(links),
         len(unattached_links),
         len(agent_runs),
         len(feedback),
+        len(revisions),
         (time.monotonic() - started_at) * 1000,
     )
 
@@ -143,6 +151,8 @@ async def get_workspace_data(
         "link_run_groups": link_run_groups,
         "feedback_run_groups": feedback_run_groups,
         "unresolved_count": unresolved_count,
+        "revisions": revisions,
+        "revision_diffs": revision_diffs,
     }
 
 

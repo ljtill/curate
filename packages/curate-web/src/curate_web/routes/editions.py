@@ -9,10 +9,12 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 import curate_web.services.editions as edition_svc
+import curate_web.services.revisions as revision_svc
 from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_common.database.repositories.editions import EditionRepository
 from curate_common.database.repositories.feedback import FeedbackRepository
 from curate_common.database.repositories.links import LinkRepository
+from curate_common.database.repositories.revisions import RevisionRepository
 from curate_web.auth.middleware import require_authenticated_user
 
 router = APIRouter(
@@ -49,9 +51,10 @@ async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
     links_repo = LinkRepository(cosmos.database)
     runs_repo = AgentRunRepository(cosmos.database)
     feedback_repo = FeedbackRepository(cosmos.database)
+    revisions_repo = RevisionRepository(cosmos.database)
 
     data = await edition_svc.get_workspace_data(
-        edition_id, editions_repo, links_repo, runs_repo, feedback_repo
+        edition_id, editions_repo, links_repo, runs_repo, feedback_repo, revisions_repo
     )
 
     return templates.TemplateResponse(
@@ -100,3 +103,18 @@ async def delete_edition(request: Request, edition_id: str) -> RedirectResponse:
     await edition_svc.delete_edition(edition_id, repo)
     logger.info("Edition deleted — edition=%s", edition_id)
     return RedirectResponse("/editions/", status_code=303)
+
+
+@router.post("/{edition_id}/revert/{revision_id}")
+async def revert_edition(
+    request: Request, edition_id: str, revision_id: str
+) -> RedirectResponse:
+    """Revert edition content to a previous revision (Git-style)."""
+    cosmos = request.app.state.cosmos
+    editions_repo = EditionRepository(cosmos.database)
+    revisions_repo = RevisionRepository(cosmos.database)
+    await revision_svc.revert_to_revision(
+        revision_id, edition_id, editions_repo, revisions_repo
+    )
+    logger.info("Edition reverted — edition=%s revision=%s", edition_id, revision_id)
+    return RedirectResponse(f"/editions/{edition_id}", status_code=303)
