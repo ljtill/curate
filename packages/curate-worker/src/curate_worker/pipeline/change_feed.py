@@ -10,7 +10,13 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Any
 
-from azure.core.exceptions import ResourceNotFoundError, ServiceResponseError
+from azure.core.exceptions import (
+    ResourceNotFoundError,
+    ServiceRequestError,
+    ServiceResponseError,
+)
+
+_CONNECTIVITY_ERRORS = (ServiceRequestError, ConnectionError, OSError)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -42,6 +48,7 @@ class ChangeFeedProcessor:
         self._handler_tasks: set[asyncio.Task] = set()
         self._handler_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_HANDLERS)
         self._metadata: ContainerProxy | None = None
+        self._connectivity_warned = False
 
     @property
     def running(self) -> bool:
@@ -105,6 +112,37 @@ class ChangeFeedProcessor:
         except Exception:  # noqa: BLE001
             logger.warning("Failed to save continuation token for %s", container_name)
 
+    async def _poll_feed_safely(
+        self,
+        container: ContainerProxy,
+        token: str | None,
+        handler: Callable[[dict[str, Any]], Awaitable[None]],
+        name: str,
+        consecutive_errors: int,
+    ) -> tuple[str | None, bool]:
+        """Poll a single feed, returning (token, had_error).
+
+        Connectivity errors are logged once; other errors use standard logging.
+        """
+        try:
+            token = await self.process_feed(container, token, handler)
+            await self._save_token(name, token)
+        except _CONNECTIVITY_ERRORS:
+            if not self._connectivity_warned:
+                logger.warning(
+                    "Cosmos DB unreachable — change feed polling paused, "
+                    "retrying with backoff"
+                )
+                self._connectivity_warned = True
+            return token, True
+        except Exception as exc:
+            if consecutive_errors == 0:
+                logger.exception("Error processing %s change feed", name)
+            else:
+                logger.warning("Error processing %s change feed: %s", name, exc)
+            return token, True
+        return token, False
+
     async def _poll_loop(self) -> None:
         """Continuously poll change feeds for links and feedback."""
         links_container: ContainerProxy = self._database.get_container_client("links")
@@ -118,39 +156,31 @@ class ChangeFeedProcessor:
         consecutive_errors = 0
 
         while self._running:
-            had_error = False
+            links_token, links_err = await self._poll_feed_safely(
+                links_container,
+                links_token,
+                self._orchestrator.handle_link_change,
+                "links",
+                consecutive_errors,
+            )
+            feedback_token, feedback_err = await self._poll_feed_safely(
+                feedback_container,
+                feedback_token,
+                self._orchestrator.handle_feedback_change,
+                "feedback",
+                consecutive_errors,
+            )
 
-            try:
-                links_token = await self.process_feed(
-                    links_container, links_token, self._orchestrator.handle_link_change
-                )
-                await self._save_token("links", links_token)
-            except Exception as exc:
-                had_error = True
-                if consecutive_errors == 0:
-                    logger.exception("Error processing links change feed")
-                else:
-                    logger.warning("Error processing links change feed: %s", exc)
-
-            try:
-                feedback_token = await self.process_feed(
-                    feedback_container,
-                    feedback_token,
-                    self._orchestrator.handle_feedback_change,
-                )
-                await self._save_token("feedback", feedback_token)
-            except Exception as exc:
-                had_error = True
-                if consecutive_errors == 0:
-                    logger.exception("Error processing feedback change feed")
-                else:
-                    logger.warning("Error processing feedback change feed: %s", exc)
-
-            if had_error:
+            if links_err or feedback_err:
                 consecutive_errors += 1
                 backoff = min(1.0 * (2**consecutive_errors), 30.0)
                 await asyncio.sleep(backoff)
             else:
+                if consecutive_errors > 0:
+                    logger.info(
+                        "Cosmos DB connection restored — change feed polling resumed"
+                    )
+                    self._connectivity_warned = False
                 consecutive_errors = 0
                 await asyncio.sleep(1.0)
 

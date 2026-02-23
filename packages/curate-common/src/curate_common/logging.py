@@ -70,6 +70,10 @@ def configure_logging(
     for name in _QUIET_LOGGERS:
         logging.getLogger(name).setLevel(logging.WARNING)
 
+    # The LocationCache logger emits noisy "Marking ... unavailable" warnings
+    # on every connectivity failure — our own code already logs this clearly.
+    logging.getLogger("azure.cosmos.LocationCache").setLevel(logging.ERROR)
+
     # Route uvicorn loggers through the root logger so file handler captures them
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
         uv_logger = logging.getLogger(name)

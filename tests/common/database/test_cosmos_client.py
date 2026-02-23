@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from azure.core.exceptions import ServiceRequestError
 
 from curate_common.config import CosmosConfig
 from curate_common.database.client import CosmosClient
@@ -80,3 +81,17 @@ class TestCosmosClient:
             await client.initialize()
 
             assert client.database == mock_db
+
+    async def test_initialize_raises_connection_error_on_unreachable(
+        self, client: CosmosClient
+    ) -> None:
+        """Verify initialize raises ConnectionError when Cosmos DB is unreachable."""
+        with patch("curate_common.database.client.AzureCosmosClient") as mock_azure_cls:
+            mock_azure = AsyncMock()
+            mock_azure.create_database_if_not_exists.side_effect = ServiceRequestError(
+                "Cannot connect to host"
+            )
+            mock_azure_cls.return_value = mock_azure
+
+            with pytest.raises(ConnectionError, match="Unable to reach Cosmos DB"):
+                await client.initialize()

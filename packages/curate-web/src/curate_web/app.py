@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import uvicorn
-from azure.core.exceptions import HttpResponseError
+from azure.core.exceptions import HttpResponseError, ServiceRequestError
 from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, Response
@@ -60,6 +60,7 @@ def _find_dir(name: str) -> Path:
 
 TEMPLATES_DIR = _find_dir("templates")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+_ERROR_503_PATH = TEMPLATES_DIR / "errors" / "503.html"
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 _REQUEST_ID_HEADER = "x-request-id"
 
@@ -122,7 +123,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         configure_azure_monitor(connection_string=settings.monitor.connection_string)
         logger.info("Azure Monitor OpenTelemetry configured")
 
-    cosmos = await init_database(settings)
+    try:
+        cosmos = await init_database(settings)
+    except ConnectionError as exc:
+        logger.error(str(exc))  # noqa: TRY400
+        raise SystemExit(1) from None
     app.state.cosmos = cosmos
     app.state.settings = settings
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -181,6 +186,18 @@ def create_app() -> FastAPI:
             content=f"<h1>Service Error</h1><p>{exc.message}</p>",
             status_code=502,
         )
+
+    @app.exception_handler(ServiceRequestError)
+    async def _service_unreachable_handler(
+        _request: Request, _exc: ServiceRequestError
+    ) -> HTMLResponse:
+        logger.warning("Backend service unreachable — is Docker running?")
+        content = (
+            _ERROR_503_PATH.read_text()
+            if _ERROR_503_PATH.exists()
+            else ("<h1>Service Unavailable</h1><p>Unable to reach the database.</p>")
+        )
+        return HTMLResponse(content=content, status_code=503)
 
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

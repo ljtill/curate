@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, ClassVar, cast
 
+from azure.core.exceptions import ServiceRequestError
 from azure.cosmos import PartitionKey
 from azure.cosmos.aio import CosmosClient as AzureCosmosClient
 from azure.cosmos.aio import DatabaseProxy
@@ -53,14 +54,21 @@ class CosmosClient:
             self._client = AzureCosmosClient(
                 self._config.endpoint, credential=_EMULATOR_KEY
             )
-        db = cast(
-            "DatabaseProxy",
-            await self._client.create_database_if_not_exists(self._config.database),
-        )
-        for name, partition_key in self._CONTAINERS:
-            await db.create_container_if_not_exists(
-                id=name, partition_key=PartitionKey(path=partition_key)
+        try:
+            db = cast(
+                "DatabaseProxy",
+                await self._client.create_database_if_not_exists(self._config.database),
             )
+            for name, partition_key in self._CONTAINERS:
+                await db.create_container_if_not_exists(
+                    id=name, partition_key=PartitionKey(path=partition_key)
+                )
+        except (ServiceRequestError, ConnectionError, OSError) as exc:
+            msg = (
+                f"Unable to reach Cosmos DB at {self._config.endpoint} — "
+                "ensure the backend services are running"
+            )
+            raise ConnectionError(msg) from exc
         self._database = db
         logger.info(
             "Cosmos DB initialized — endpoint=%s database=%s",

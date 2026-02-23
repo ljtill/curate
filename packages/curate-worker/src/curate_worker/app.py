@@ -31,7 +31,11 @@ async def run() -> None:
     if settings.app.is_development and not await check_emulators(settings):
         return
 
-    cosmos = await init_database(settings)
+    try:
+        cosmos = await init_database(settings)
+    except ConnectionError as exc:
+        logger.error(str(exc))  # noqa: TRY400
+        return
     chat_client = init_chat_client(settings)
     if chat_client is None:
         logger.error("Cannot start worker without a configured LLM provider")

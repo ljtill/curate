@@ -4,7 +4,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from azure.core.exceptions import ServiceResponseError
+from azure.core.exceptions import ServiceRequestError, ServiceResponseError
 
 from curate_worker.pipeline.change_feed import ChangeFeedProcessor
 
@@ -261,3 +261,65 @@ class TestChangeFeedProcessor:
 
         assert len(sleep_values) > 0
         assert sleep_values[0] > 1.0
+
+    async def test_poll_loop_connectivity_error_logs_once(
+        self, mock_database: MagicMock, mock_orchestrator: MagicMock
+    ) -> None:
+        """Verify connectivity errors log a single warning, not full tracebacks."""
+        processor = ChangeFeedProcessor(mock_database, mock_orchestrator)
+
+        iteration = 0
+
+        async def _connectivity_error(*_args: object, **_kwargs: object) -> str | None:
+            nonlocal iteration
+            iteration += 1
+            if iteration > 4:  # noqa: PLR2004
+                processor._running = False  # noqa: SLF001
+                return None
+            msg = "Cannot connect to host"
+            raise ServiceRequestError(msg)
+
+        with (
+            patch.object(processor, "process_feed", side_effect=_connectivity_error),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+            patch("curate_worker.pipeline.change_feed.logger") as mock_logger,
+        ):
+            processor._running = True  # noqa: SLF001
+            await processor._poll_loop()  # noqa: SLF001
+
+        warning_calls = [
+            c for c in mock_logger.warning.call_args_list if "unreachable" in str(c)
+        ]
+        assert len(warning_calls) == 1
+        mock_logger.exception.assert_not_called()
+
+    async def test_poll_loop_logs_connection_restored(
+        self, mock_database: MagicMock, mock_orchestrator: MagicMock
+    ) -> None:
+        """Verify recovery is logged when connection is restored after errors."""
+        processor = ChangeFeedProcessor(mock_database, mock_orchestrator)
+
+        call_count = 0
+
+        async def _error_then_recover(*_args: object, **_kwargs: object) -> str | None:
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 2:  # noqa: PLR2004
+                msg = "Cannot connect"
+                raise ServiceRequestError(msg)
+            if call_count >= 4:  # noqa: PLR2004
+                processor._running = False  # noqa: SLF001
+            return None
+
+        with (
+            patch.object(processor, "process_feed", side_effect=_error_then_recover),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+            patch("curate_worker.pipeline.change_feed.logger") as mock_logger,
+        ):
+            processor._running = True  # noqa: SLF001
+            await processor._poll_loop()  # noqa: SLF001
+
+        restored_calls = [
+            c for c in mock_logger.info.call_args_list if "restored" in str(c)
+        ]
+        assert len(restored_calls) == 1
