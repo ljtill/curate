@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "partials/link_progress.html" import render_link_progress %}
 {% block title %}Links{% endblock %}
 {% block content %}
 <h1>Links</h1>
@@ -27,7 +26,6 @@
                 <th>URL</th>
                 <th>Title</th>
                 <th>Status</th>
-                <th>Agent Progress</th>
                 <th>Submitted</th>
             </tr>
         </thead>
@@ -55,10 +53,6 @@
                                     onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline';">Cancel</button>
                         </span>
                     </span>
-                </td>
-                <td>
-                    {% set groups = link_run_groups.get(link.id, []) %}
-                    {{ render_link_progress(groups) }}
                 </td>
                 <td style="color: var(--text-muted);">{{ link.created_at.strftime('%Y-%m-%d %H:%M') if link.created_at else '—' }}</td>
             </tr>
