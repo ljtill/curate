@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from agent_framework import Agent, tool
 
+from curate_common.models.revision import Revision, RevisionSource
 from curate_worker.agents.middleware import TokenTrackingMiddleware
 from curate_worker.agents.prompts import load_prompt
 
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
 
     from curate_common.database.repositories.editions import EditionRepository
     from curate_common.database.repositories.feedback import FeedbackRepository
+    from curate_common.database.repositories.revisions import RevisionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +32,13 @@ class EditAgent:
         editions_repo: EditionRepository,
         feedback_repo: FeedbackRepository,
         *,
+        revisions_repo: RevisionRepository | None = None,
         context_providers: list | None = None,
     ) -> None:
         """Initialize the edit agent with LLM client and repositories."""
         self._editions_repo = editions_repo
         self._feedback_repo = feedback_repo
+        self._revisions_repo = revisions_repo
         middleware = [
             TokenTrackingMiddleware(),
         ]
@@ -101,13 +105,27 @@ class EditAgent:
             logger.warning("save_edit: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
         try:
-            edition.content = (
-                json.loads(content) if isinstance(content, str) else content
-            )
+            parsed = json.loads(content) if isinstance(content, str) else content
+            for key in ("title", "issue_number"):
+                if key in edition.content:
+                    parsed[key] = edition.content[key]
+            edition.content = parsed
         except (json.JSONDecodeError, TypeError):
             logger.warning("save_edit: invalid content JSON — edition=%s", edition_id)
             return json.dumps({"error": "Invalid JSON content"})
         await self._editions_repo.update(edition, edition_id)
+
+        if self._revisions_repo:
+            seq = await self._revisions_repo.next_sequence(edition_id)
+            revision = Revision(
+                edition_id=edition_id,
+                sequence=seq,
+                source=RevisionSource.EDIT,
+                content=edition.content,
+                summary="Refined content from editor feedback",
+            )
+            await self._revisions_repo.create(revision)
+
         logger.debug("Edit saved — edition=%s", edition_id)
         return json.dumps({"status": "edited", "edition_id": edition_id})
 

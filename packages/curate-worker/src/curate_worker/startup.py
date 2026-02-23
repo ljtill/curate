@@ -9,6 +9,7 @@ from curate_common.database.client import CosmosClient
 from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_common.database.repositories.feedback import FeedbackRepository
 from curate_common.database.repositories.links import LinkRepository
+from curate_common.database.repositories.revisions import RevisionRepository
 from curate_common.storage.blob import BlobStorageClient
 from curate_common.storage.renderer import StaticSiteRenderer
 from curate_worker.agents.llm import create_chat_client
@@ -134,6 +135,7 @@ async def init_pipeline(
         render_fn=render_fn,
         upload_fn=upload_fn,
         context_providers=context_providers,
+        revisions_repo=RevisionRepository(cosmos.database),
     )
 
     agent_runs_repo = AgentRunRepository(cosmos.database)

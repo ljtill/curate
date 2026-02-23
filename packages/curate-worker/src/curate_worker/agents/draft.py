@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Annotated
 from agent_framework import Agent, tool
 
 from curate_common.models.link import Link, LinkStatus
+from curate_common.models.revision import Revision, RevisionSource
 from curate_worker.agents.middleware import TokenTrackingMiddleware
 from curate_worker.agents.prompts import load_prompt
 
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 
     from curate_common.database.repositories.editions import EditionRepository
     from curate_common.database.repositories.links import LinkRepository
+    from curate_common.database.repositories.revisions import RevisionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +33,13 @@ class DraftAgent:
         links_repo: LinkRepository,
         editions_repo: EditionRepository,
         *,
+        revisions_repo: RevisionRepository | None = None,
         context_providers: list | None = None,
     ) -> None:
         """Initialize the draft agent with LLM client and repositories."""
         self._links_repo = links_repo
         self._editions_repo = editions_repo
+        self._revisions_repo = revisions_repo
         self._draft_saved = False
         middleware = [
             TokenTrackingMiddleware(),
@@ -116,10 +120,25 @@ class DraftAgent:
         if not edition:
             logger.warning("save_draft: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
+        for key in ("title", "issue_number"):
+            if key in edition.content:
+                parsed_content[key] = edition.content[key]
         edition.content = parsed_content
         if link_id not in edition.link_ids:
             edition.link_ids.append(link_id)
         await self._editions_repo.update(edition, edition_id)
+
+        if self._revisions_repo:
+            seq = await self._revisions_repo.next_sequence(edition_id)
+            revision = Revision(
+                edition_id=edition_id,
+                sequence=seq,
+                source=RevisionSource.DRAFT,
+                trigger_id=link_id,
+                content=parsed_content,
+                summary=f"Drafted content from link {link_id}",
+            )
+            await self._revisions_repo.create(revision)
 
         link = await self._links_repo.get(link_id, link_id)
         if link:

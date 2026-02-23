@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Annotated
 from agent_framework import Agent, tool
 
 from curate_common.models.edition import EditionStatus
+from curate_common.models.revision import Revision, RevisionSource
 from curate_worker.agents.middleware import TokenTrackingMiddleware
 from curate_worker.agents.prompts import load_prompt
 
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
     from agent_framework import BaseChatClient
 
     from curate_common.database.repositories.editions import EditionRepository
+    from curate_common.database.repositories.revisions import RevisionRepository
     from curate_common.models.edition import Edition
 
 logger = logging.getLogger(__name__)
@@ -34,9 +36,12 @@ class PublishAgent:
         editions_repo: EditionRepository,
         render_fn: Callable[[Edition], Awaitable[str]] | None = None,
         upload_fn: Callable[[str, str], Awaitable[None]] | None = None,
+        *,
+        revisions_repo: RevisionRepository | None = None,
     ) -> None:
         """Initialize the publish agent with LLM client and rendering hooks."""
         self._editions_repo = editions_repo
+        self._revisions_repo = revisions_repo
         self._render_fn = render_fn
         self._upload_fn = upload_fn
         middleware = [
@@ -109,6 +114,19 @@ class PublishAgent:
         edition.status = EditionStatus.PUBLISHED
         edition.published_at = datetime.now(UTC)
         await self._editions_repo.update(edition, edition_id)
+
+        if self._revisions_repo:
+            seq = await self._revisions_repo.next_sequence(edition_id)
+            revision = Revision(
+                edition_id=edition_id,
+                sequence=seq,
+                source=RevisionSource.PUBLISH,
+                trigger_id=edition_id,
+                content=edition.content,
+                summary="Content snapshot at publish",
+            )
+            await self._revisions_repo.create(revision)
+
         logger.debug("Edition published — edition=%s", edition_id)
         return json.dumps({"status": "published", "edition_id": edition_id})
 
