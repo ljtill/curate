@@ -39,9 +39,9 @@ services:
 
   sqledge:
     image: mcr.microsoft.com/azure-sql-edge:latest
-    env_file: .env.emulators
     environment:
       ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
     networks:
       emulators:
         aliases:
@@ -56,9 +56,9 @@ services:
       - "5300:5300"
     volumes:
       - ./servicebus-config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
-    env_file: .env.emulators
     environment:
       ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
       SQL_SERVER: sqledge
     networks:
       emulators:

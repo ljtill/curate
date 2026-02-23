@@ -234,7 +234,7 @@ Execution logs, decisions, and state per pipeline stage.
 
 - **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Container Apps Web, Container Apps Worker, Container Registry, Cosmos DB, Service Bus, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics, Managed Identity). Separate parameter files for dev and prod environments.
 - **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build two container images, deploy infrastructure, deploy both container apps).
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` and `.env.emulators` files; deployed environments use Azure App Configuration with managed identity.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
 
 ---
 

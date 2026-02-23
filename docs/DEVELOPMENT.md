@@ -17,13 +17,11 @@ This guide covers setting up the application for local development, including fu
 uv sync --all-groups --prerelease=allow
 
 # Start the emulators (Cosmos DB, Azurite, Service Bus)
-cp .env.emulators.example .env.emulators
-# Edit .env.emulators — set MSSQL_SA_PASSWORD for the Service Bus emulator's SQL Edge backend
 docker compose up -d
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your credentials (see below for local vs cloud options)
+# Edit .env — set MSSQL_SA_PASSWORD and optionally configure cloud credentials
 
 # Run the web dashboard (with hot reload)
 uv run python -m curate_web.app
@@ -46,7 +44,7 @@ The project uses three local emulators via Docker Compose:
 | Azurite | `mcr.microsoft.com/azure-storage/azurite` | 10000–10002 | Blob storage for static site |
 | Service Bus | `mcr.microsoft.com/azure-messaging/servicebus-emulator` | 5672 | Event bridge between web and worker |
 
-The Service Bus emulator requires an Azure SQL Edge container as its backend. Both are configured in `docker-compose.yml` and use credentials from `.env.emulators`. The emulator is pre-configured with a `pipeline-events` topic and `web-consumer` subscription via `servicebus-config.json`.
+The Service Bus emulator requires an Azure SQL Edge container as its backend. Both are configured in `docker-compose.yml` and use `MSSQL_SA_PASSWORD` from `.env`. The emulator is pre-configured with a `pipeline-events` topic and `web-consumer` subscription via `servicebus-config.json`.
 
 ## Fully Local Development (Foundry Local)
 

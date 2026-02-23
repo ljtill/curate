@@ -55,7 +55,7 @@ This is an event-driven editorial pipeline for a newsletter, split into three pa
 
 **LLM provider**: Controlled by `FOUNDRY_PROVIDER` env var — `cloud` uses Microsoft Foundry, `local` uses Foundry Local for on-device inference (no Azure credentials needed). See `config.py` `FoundryConfig` for all related settings.
 
-**Local emulators**: `docker compose up -d` starts the Cosmos DB emulator (ports 8081/1234), Azurite storage emulator (ports 10000–10002), and Azure Service Bus emulator (ports 5672/5300) with SQL Edge backend. Emulator credentials are loaded from `.env.emulators`.
+**Local emulators**: `docker compose up -d` starts the Cosmos DB emulator (ports 8081/1234), Azurite storage emulator (ports 10000–10002), and Azure Service Bus emulator (ports 5672/5300) with SQL Edge backend. All configuration is in `.env`.
 
 ## Key Conventions
 
