@@ -70,6 +70,7 @@ async def associate_link(
     request: Request,
     link_id: str,
     edition_id: Annotated[str, Form(...)],
+    next: Annotated[str | None, Form()] = None,  # noqa: A002
 ) -> RedirectResponse:
     """Associate a store link with an edition."""
     cosmos = request.app.state.cosmos
@@ -79,13 +80,15 @@ async def associate_link(
     link = await link_svc.associate_link(link_id, edition_id, links_repo, editions_repo)
     if link:
         logger.info("Link associated — link=%s edition=%s", link_id, edition_id)
-    return RedirectResponse("/store/", status_code=303)
+    redirect_url = next or "/store/"
+    return RedirectResponse(redirect_url, status_code=303)
 
 
 @router.post("/{link_id}/disassociate")
 async def disassociate_link(
     request: Request,
     link_id: str,
+    next: Annotated[str | None, Form()] = None,  # noqa: A002
 ) -> RedirectResponse:
     """Remove a link's association with its edition."""
     cosmos = request.app.state.cosmos
@@ -95,7 +98,8 @@ async def disassociate_link(
     link = await link_svc.disassociate_link(link_id, links_repo, editions_repo)
     if link:
         logger.info("Link disassociated — link=%s", link_id)
-    return RedirectResponse("/store/", status_code=303)
+    redirect_url = next or "/store/"
+    return RedirectResponse(redirect_url, status_code=303)
 
 
 @router.post("/{link_id}/retry")

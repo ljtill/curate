@@ -125,7 +125,7 @@
                 {% if links %}
                 <table>
                     <thead>
-                        <tr><th>URL</th><th>Title</th><th>Status</th></tr>
+                        <tr><th>URL</th><th>Title</th><th>Status</th><th></th></tr>
                     </thead>
                     <tbody>
                         {% for link in links %}
@@ -133,29 +133,45 @@
                             <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis);">{{ link.url | truncate(30) }}</a></td>
                             <td>{{ link.title or '—' }}</td>
                             <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+                            <td style="text-align: right;">
+                                {% if edition.status != 'published' %}
+                                <form method="post" action="/store/{{ link.id }}/disassociate" style="display: inline;">
+                                    <input type="hidden" name="next" value="/editions/{{ edition.id }}">
+                                    <button type="submit" class="btn btn-danger" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Remove</button>
+                                </form>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 {% else %}
-                <p style="color: var(--text-muted); font-size: 0.875rem;">No links attached yet. Browse the <a href="/store" style="color: var(--accent-emphasis);">store</a> to add links.</p>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">No links attached yet. Add links from the store below{% if not unattached_links %}, or <a href="/store" style="color: var(--accent-emphasis);">submit new links</a> first{% endif %}.</p>
                 {% endif %}
 
                 {% if unattached_links %}
-                <h3 style="font-size: 0.875rem; margin: 1.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">Available Links</h3>
+                <h3 style="font-size: 0.875rem; margin: 1.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">Available in Store</h3>
                 <table>
                     <thead>
-                        <tr><th>URL</th><th>Status</th></tr>
+                        <tr><th>URL</th><th></th></tr>
                     </thead>
                     <tbody>
                         {% for link in unattached_links %}
                         <tr>
                             <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis);">{{ link.url | truncate(40) }}</a></td>
-                            <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+                            <td style="text-align: right;">
+                                <form method="post" action="/store/{{ link.id }}/associate" style="display: inline;">
+                                    <input type="hidden" name="edition_id" value="{{ edition.id }}">
+                                    <input type="hidden" name="next" value="/editions/{{ edition.id }}">
+                                    <button type="submit" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Add</button>
+                                </form>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                {% elif not links %}
+                <p style="color: var(--text-muted); font-size: 0.8125rem; margin-top: 0.75rem;"><a href="/store" style="color: var(--accent-emphasis);">Go to Store →</a></p>
                 {% endif %}
             </div>
 
