@@ -1,4 +1,4 @@
-"""Dashboard route — pipeline overview."""
+"""Dashboard route — edition hub overview."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from curate_common.database.repositories.agent_runs import AgentRunRepository
+from curate_common.database.repositories.editions import EditionRepository
 from curate_web.auth.middleware import require_authenticated_user
 from curate_web.services.dashboard import get_dashboard_data
 
@@ -19,8 +20,9 @@ async def dashboard(request: Request) -> HTMLResponse:
     """Render the dashboard overview page."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
+    editions_repo = EditionRepository(cosmos.database)
     runs_repo = AgentRunRepository(cosmos.database)
-    data = await get_dashboard_data(runs_repo)
+    data = await get_dashboard_data(editions_repo, runs_repo)
     return templates.TemplateResponse(
         "dashboard.html",
         {"request": request, **data},

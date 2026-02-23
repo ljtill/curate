@@ -26,7 +26,6 @@ from curate_common.database.repositories.editions import EditionRepository
 from curate_common.health import check_emulators
 from curate_common.logging import configure_logging
 from curate_web.routes.agent_runs import router as agent_runs_router
-from curate_web.routes.agents import router as agents_router
 from curate_web.routes.auth import router as auth_router
 from curate_web.routes.dashboard import router as dashboard_router
 from curate_web.routes.editions import router as editions_router
@@ -209,7 +208,6 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router)
     app.include_router(events_router)
     app.include_router(agent_runs_router)
-    app.include_router(agents_router)
     app.include_router(status_router)
     app.include_router(settings_router)
 

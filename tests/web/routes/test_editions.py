@@ -79,45 +79,39 @@ async def test_delete_edition_not_found() -> None:
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
-async def test_list_editions_renders_template() -> None:
-    """GET /editions/ fetches all editions and renders the list template."""
+async def test_list_editions_redirects_to_dashboard() -> None:
+    """GET /editions/ redirects to dashboard."""
     request = _make_request()
-    editions = [Edition(id="ed-1", content={"title": "Issue #1", "sections": []})]
 
-    with patch("curate_web.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.list_all.return_value = editions
+    response = await list_editions(request)
 
-        await list_editions(request)
-
-        repo.list_all.assert_called_once()
-        request.app.state.templates.TemplateResponse.assert_called_once_with(
-            "editions.html",
-            {"request": request, "editions": editions},
-        )
+    assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
 async def test_edition_detail_renders_template() -> None:
-    """GET /editions/{id} fetches the edition with links and renders detail template."""
+    """GET /editions/{id} fetches workspace data and renders workspace template."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Issue #1", "sections": []})
 
     with patch(
-        "curate_web.routes.editions.edition_svc.get_edition_detail",
+        "curate_web.routes.editions.edition_svc.get_workspace_data",
         new_callable=AsyncMock,
-    ) as mock_detail:
-        mock_detail.return_value = {
+    ) as mock_workspace:
+        mock_workspace.return_value = {
             "edition": edition,
             "links": [],
+            "unattached_links": [],
             "agent_runs": [],
+            "feedback": [],
             "links_by_id": {},
         }
 
         await edition_detail(request, edition_id="ed-1")
 
-        mock_detail.assert_called_once()
+        mock_workspace.assert_called_once()
         request.app.state.templates.TemplateResponse.assert_called_once()
+        call_args = request.app.state.templates.TemplateResponse.call_args
+        assert call_args[0][0] == "workspace.html"
 
 
 async def test_publish_edition_calls_orchestrator() -> None:

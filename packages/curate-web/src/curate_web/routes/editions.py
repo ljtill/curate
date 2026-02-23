@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 import curate_web.services.editions as edition_svc
 from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_common.database.repositories.editions import EditionRepository
+from curate_common.database.repositories.feedback import FeedbackRepository
 from curate_common.database.repositories.links import LinkRepository
 from curate_web.auth.middleware import require_authenticated_user
 
@@ -24,16 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_class=HTMLResponse)
-async def list_editions(request: Request) -> HTMLResponse:
-    """Render the editions list page."""
-    templates = request.app.state.templates
-    cosmos = request.app.state.cosmos
-    repo = EditionRepository(cosmos.database)
-    editions = await edition_svc.list_editions(repo)
-    return templates.TemplateResponse(
-        "editions.html",
-        {"request": request, "editions": editions},
-    )
+async def list_editions(_request: Request) -> RedirectResponse:
+    """Redirect editions list to dashboard."""
+    return RedirectResponse("/", status_code=303)
 
 
 @router.post("/")
@@ -48,20 +42,21 @@ async def create_edition(request: Request) -> RedirectResponse:
 
 @router.get("/{edition_id}", response_class=HTMLResponse)
 async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
-    """Render the edition detail page."""
+    """Render the edition workspace page."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     editions_repo = EditionRepository(cosmos.database)
     links_repo = LinkRepository(cosmos.database)
     runs_repo = AgentRunRepository(cosmos.database)
+    feedback_repo = FeedbackRepository(cosmos.database)
 
-    detail = await edition_svc.get_edition_detail(
-        edition_id, editions_repo, links_repo, runs_repo
+    data = await edition_svc.get_workspace_data(
+        edition_id, editions_repo, links_repo, runs_repo, feedback_repo
     )
 
     return templates.TemplateResponse(
-        "edition_detail.html",
-        {"request": request, **detail},
+        "workspace.html",
+        {"request": request, **data},
     )
 
 

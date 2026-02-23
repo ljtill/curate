@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% from "partials/agent_activity.html" import render_activity_list %}
+{% block title %}Workspace{% endblock %}
+{% block content %}
+{% if edition %}
+<style>
+    .workspace { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .workspace-left { flex: 0 0 60%; min-width: 0; }
+    .workspace-right { flex: 0 0 calc(40% - 1.5rem); min-width: 0; }
+    .tab-bar { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+    .tab-btn {
+        background: none; border: none; border-bottom: 2px solid transparent;
+        padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500;
+        color: var(--text-muted); cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent-emphasis); border-bottom-color: var(--accent-emphasis); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    @media (max-width: 900px) {
+        .workspace { flex-direction: column; }
+        .workspace-left, .workspace-right { flex: 1 1 100%; }
+    }
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+    {% include "partials/edition_title.html" %}
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span class="badge badge-{{ edition.status }}">{{ edition.status }}</span>
+        {% if edition.status != 'published' %}
+        <a href="/editions/{{ edition.id }}/preview" target="_blank" class="btn">Preview</a>
+        <form method="post" action="/editions/{{ edition.id }}/publish" style="display: inline;">
+            <button type="submit" class="btn">Approve &amp; Publish</button>
+        </form>
+        {% endif %}
+        <span class="delete-inline">
+            <button type="button" class="btn btn-danger"
+                    onclick="this.style.display='none'; this.nextElementSibling.style.display='inline';">Delete</button>
+            <span style="display: none;">
+                <span style="color: var(--text-muted); margin-right: 0.25rem;">Delete this edition?</span>
+                <form method="post" action="/editions/{{ edition.id }}/delete" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Confirm</button>
+                </form>
+                <button type="button" class="btn" style="margin-left: 0.15rem;"
+                        onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline';">Cancel</button>
+            </span>
+        </span>
+    </div>
+</div>
+
+<div class="workspace">
+    <!-- Left panel: Content preview -->
+    <div class="workspace-left">
+        <div class="card">
+            <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Content</h2>
+            {% set has_content = edition.content.get('editors_note') or edition.content.get('signals') or edition.content.get('deep_dive') or edition.content.get('toolkit') or edition.content.get('one_more_thing') %}
+            {% if has_content %}
+                {% if edition.content.get('editors_note') %}
+                <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                    <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Editor's Note</h3>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">{{ edition.content.editors_note }}</div>
+                </div>
+                {% endif %}
+
+                {% if edition.content.get('signals') %}
+                <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                    <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Signals ({{ edition.content.signals | length }})</h3>
+                    {% for signal in edition.content.signals %}
+                    <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border-radius: 6px;">
+                        <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">{{ signal.get('headline', '') }}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">{{ signal.get('body', '') }}</div>
+                        {% if signal.get('url') %}
+                        <a href="{{ signal.url }}" target="_blank" style="font-size: 0.8rem; color: var(--accent-emphasis);">{{ signal.get('domain', signal.url) }}</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if edition.content.get('deep_dive') %}
+                <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                    <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Deep Dive: {{ edition.content.deep_dive.get('title', '') }}</h3>
+                    {% for para in edition.content.deep_dive.get('paragraphs', []) %}
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">{{ para }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if edition.content.get('toolkit') %}
+                <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                    <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Toolkit ({{ edition.content.toolkit | length }})</h3>
+                    {% for tool in edition.content.toolkit %}
+                    <div style="margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; background: var(--surface); border-radius: 6px;">
+                        <div style="font-weight: 600; font-size: 0.9rem;">{{ tool.get('name', '') }}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">{{ tool.get('description', '') }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if edition.content.get('one_more_thing') %}
+                <div>
+                    <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">One More Thing</h3>
+                    <div style="color: var(--text-muted); font-size: 0.9rem; font-style: italic;">{{ edition.content.one_more_thing }}</div>
+                </div>
+                {% endif %}
+            {% else %}
+                <p style="color: var(--text-muted);">No content yet. Submit links and let the agents draft content.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right panel: Tabbed interface -->
+    <div class="workspace-right">
+        <div class="card" style="padding: 0;">
+            <div class="tab-bar">
+                <button class="tab-btn active" data-tab="links" onclick="switchTab(event, 'links')">Links</button>
+                <button class="tab-btn" data-tab="agents" onclick="switchTab(event, 'agents')">Agents</button>
+                <button class="tab-btn" data-tab="feedback" onclick="switchTab(event, 'feedback')">Feedback</button>
+            </div>
+
+            <!-- Links tab -->
+            <div class="tab-panel active" data-tab="links" style="padding: 1rem;">
+                <h3 style="font-size: 0.875rem; margin-bottom: 0.75rem;">Attached Links</h3>
+                {% if links %}
+                <table>
+                    <thead>
+                        <tr><th>URL</th><th>Title</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for link in links %}
+                        <tr id="link-{{ link.id }}">
+                            <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis);">{{ link.url | truncate(30) }}</a></td>
+                            <td>{{ link.title or '—' }}</td>
+                            <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.875rem;">No links attached yet.</p>
+                {% endif %}
+
+                {% if unattached_links %}
+                <h3 style="font-size: 0.875rem; margin: 1.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">Available Links</h3>
+                <table>
+                    <thead>
+                        <tr><th>URL</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for link in unattached_links %}
+                        <tr>
+                            <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis);">{{ link.url | truncate(40) }}</a></td>
+                            <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+
+            <!-- Agents tab -->
+            <div class="tab-panel" data-tab="agents" style="padding: 1rem;">
+                <h3 style="font-size: 0.875rem; margin-bottom: 0.75rem;">Agent Activity</h3>
+                {{ render_activity_list(agent_runs, links_by_id) }}
+            </div>
+
+            <!-- Feedback tab -->
+            <div class="tab-panel" data-tab="feedback" style="padding: 1rem;">
+                <h3 style="font-size: 0.875rem; margin-bottom: 0.75rem;">Submit Feedback</h3>
+                <form method="post" action="/editions/{{ edition.id }}/feedback">
+                    <input type="text" name="section" placeholder="Section name (e.g., intro, tools)" required>
+                    <textarea name="comment" placeholder="Your feedback..." rows="3" required style="resize: vertical;"></textarea>
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                        <button type="submit" class="btn">Submit Feedback</button>
+                        <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;">
+                            <input type="checkbox" name="learn_from_feedback" value="true" checked style="cursor: pointer;">
+                            Learn from this feedback
+                        </label>
+                    </div>
+                </form>
+
+                {% if feedback %}
+                <h3 style="font-size: 0.875rem; margin: 1.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">Feedback History</h3>
+                {% for fb in feedback %}
+                <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <span style="font-weight: 600; font-size: 0.8125rem;">{{ fb.section }}</span>
+                        <span class="badge {% if fb.resolved %}badge-completed{% else %}badge-created{% endif %}">{{ 'resolved' if fb.resolved else 'open' }}</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.85rem;">{{ fb.comment }}</div>
+                    <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem;">{{ fb.created_at.strftime('%Y-%m-%d %H:%M') if fb.created_at else '' }}</div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(event, tabName) {
+    document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(panel) { panel.classList.remove('active'); });
+    event.currentTarget.classList.add('active');
+    document.querySelector('.tab-panel[data-tab="' + tabName + '"]').classList.add('active');
+}
+</script>
+
+{% else %}
+<div class="card">
+    <p style="color: var(--text-muted);">Edition not found.</p>
+</div>
+{% endif %}
+{% endblock %}
