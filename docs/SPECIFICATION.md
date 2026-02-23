@@ -31,7 +31,7 @@
   - **Azure Storage Account** — generated newsletter static assets
   - **Azure Static Web Apps** — public newsletter site
   - **Azure App Configuration** — runtime configuration
-  - **Azure Application Insights** — application monitoring and telemetry (backed by Log Analytics workspace)
+  - **Azure Application Insights** — application monitoring and telemetry (backed by Log Analytics workspace), instrumented via `azure-monitor-opentelemetry`
   - **Azure Managed Identity** — passwordless authentication between Azure services
 - **Auth**: Microsoft Entra ID for the editorial dashboard
 
@@ -42,6 +42,7 @@
 - **Package layout**: `packages/` — uv workspace monorepo with three packages: `curate-common` (shared library), `curate-web` (FastAPI dashboard), and `curate-worker` (agent pipeline). Each package has its own `pyproject.toml` and `src/` layout.
 - **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge between worker and web for real-time SSE updates.
 - **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. [Microsoft Foundry Local](https://github.com/microsoft/foundry-local) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
+- **Agent memory**: [Microsoft Foundry Memory](https://learn.microsoft.com/en-us/azure/ai-foundry/) provides long-term memory for agents via project-level and personal memory stores. Context providers inject relevant memories into Draft and Edit agents. Memory is toggled and managed through the Settings view in the editorial dashboard.
 
 ---
 
@@ -60,7 +61,8 @@ uv add agent-framework-core --prerelease=allow
 | Abstraction              | Usage in this project                                                                                          |
 |--------------------------|----------------------------------------------------------------------------------------------------------------|
 | `Agent`                  | Each pipeline stage (Fetch, Review, Draft, Edit, Publish) is an `Agent` instance with stage-specific instructions and tools |
-| `AzureOpenAIChatClient`  | LLM provider integration with Microsoft Foundry, authenticated via managed identity             |
+| `AzureOpenAIResponsesClient` | LLM provider integration with Microsoft Foundry (cloud), authenticated via managed identity |
+| `OpenAIChatClient`       | LLM provider for Foundry Local (on-device inference, `FOUNDRY_PROVIDER=local`)                  |
 | `tool`                   | Decorator for typed Python functions registered on agents for structured operations (Cosmos DB reads/writes, HTTP fetches, HTML rendering) |
 | `ChatOptions`            | Per-invocation LLM configuration (temperature, response format) passed to agent `run()` calls                  |
 | `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) |
@@ -112,11 +114,12 @@ FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft En
 
 **Views:**
 
-- **Dashboard** — overview of pipeline status, current edition, recent activity. Polls `/runs/recent` for live agent activity via HTMX.
-- **Links** — submit new links, view agent processing status per link (`submitted` → `fetching` → `reviewed` → `drafted`). HTMX updates status in-place.
+- **Dashboard** — overview of pipeline status, current edition, recent activity. Includes recent agent runs via `/runs/recent`.
+- **Links** — submit new links, view agent processing status per link (`submitted` → `fetching` → `reviewed` → `drafted`), retry failed links, delete links. HTMX updates status in-place.
 - **Editions** — list of all editions with status (`created` → `drafting` → `in_review` → `published`).
 - **Edition Detail** — review agent-generated content, per-section structured feedback interface for comments back to agents (bidirectional), inline title editing, newsletter preview, publish and delete actions.
 - **Agents** — read-only view of the agent pipeline topology showing each stage's configuration, registered tools, middleware, system prompt preview, and recent run history.
+- **Settings** — agent memory management: toggle memory on/off, view and clear project-level and personal memory stores via Foundry Memory integration.
 - **Status** — dependency health checks (Cosmos DB, Foundry, Storage) with latency metrics, probed on page load.
 
 **Edition model:** Single active edition — all submitted links feed into the current draft. The editor creates a new edition when ready to start the next one.
@@ -157,7 +160,7 @@ Submitted URLs with metadata, agent processing status, and extracted content.
 | `content`          | Extracted/parsed content (populated by Fetch agent)      |
 | `review`           | Agent review output — relevance, insights, category      |
 | `edition_id`       | Associated edition (partition key)                       |
-| `submitted_at`     | Submission timestamp                                     |
+| `created_at`       | Creation timestamp                                       |
 | `updated_at`       | Last update timestamp                                    |
 | `deleted_at`       | Soft-delete timestamp (absent if active)                 |
 
@@ -206,7 +209,9 @@ Structured per-section editor comments, linked to editions.
 | `section`          | Target section identifier                                |
 | `comment`          | Editor feedback text                                     |
 | `resolved`         | Whether the feedback has been addressed by agents        |
+| `learn_from_feedback` | Whether agents should learn from this feedback (default: true) |
 | `created_at`       | Submission timestamp                                     |
+| `updated_at`       | Last update timestamp                                    |
 | `deleted_at`       | Soft-delete timestamp (absent if active)                 |
 
 #### Agent Runs
@@ -226,6 +231,8 @@ Execution logs, decisions, and state per pipeline stage.
 | `usage`            | Token usage metrics (input, output, total tokens)        |
 | `started_at`       | Start timestamp                                          |
 | `completed_at`     | Completion timestamp                                     |
+| `created_at`       | Creation timestamp                                       |
+| `updated_at`       | Last update timestamp                                    |
 | `deleted_at`       | Soft-delete timestamp (absent if active)                 |
 
 ---
