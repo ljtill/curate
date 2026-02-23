@@ -4,7 +4,7 @@ An event-driven, agent-powered editorial pipeline that transforms curated links 
 
 The system orchestrates five specialized agents — **Fetch**, **Review**, **Draft**, **Edit**, and **Publish** — coordinated by a pipeline orchestrator. An editor submits links through a private dashboard; the Cosmos DB change feed triggers the agent pipeline, which fetches and parses content, evaluates relevance, composes structured newsletter sections, refines tone and coherence, and renders the final edition as a static site. The dashboard provides real-time progress via SSE and supports per-section editorial feedback that agents incorporate in subsequent iterations.
 
-Built on [Microsoft Agent Framework](https://github.com/microsoft/agent-framework), [FastAPI](https://fastapi.tiangolo.com/), [HTMX](https://htmx.org/), and [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/). See [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) for the full project specification — architecture, data model, component design, and tech stack. For visual architecture diagrams, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For future ideas, see [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Built on [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/), [FastAPI](https://fastapi.tiangolo.com/), [HTMX](https://htmx.org/), and [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/). See [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) for the full project specification — architecture, data model, component design, and tech stack. For visual architecture diagrams, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For future ideas, see [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Agentic Loop
 
