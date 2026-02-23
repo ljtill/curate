@@ -32,6 +32,7 @@ def require_authenticated_user(request: Request) -> dict[str, Any]:
         local_user = {
             "name": "Local Developer",
             "preferred_username": "local@localhost",
+            "oid": "00000000-0000-0000-0000-000000000000",
         }
         request.session["user"] = local_user
         return local_user

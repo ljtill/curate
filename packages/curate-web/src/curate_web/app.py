@@ -32,6 +32,7 @@ from curate_web.routes.editions import router as editions_router
 from curate_web.routes.events import router as events_router
 from curate_web.routes.feedback import router as feedback_router
 from curate_web.routes.links import router as store_router
+from curate_web.routes.profile import router as profile_router
 from curate_web.routes.settings import router as settings_router
 from curate_web.startup import (
     init_database,
@@ -208,6 +209,7 @@ def create_app() -> FastAPI:
     app.include_router(events_router)
     app.include_router(agent_runs_router)
     app.include_router(settings_router)
+    app.include_router(profile_router)
 
     return app
 

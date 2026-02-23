@@ -327,6 +327,31 @@
             color: var(--text-muted);
             padding: 0.125rem 0;
         }
+        .user-avatar {
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 50%;
+            background: var(--accent-emphasis);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .user-avatar:hover { opacity: 0.85; }
+        .profile-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.875rem;
+        }
+        .profile-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -336,7 +361,10 @@
         <a href="/store">Store</a>
         <a href="/settings">Settings</a>
         <button class="theme-toggle" id="theme-toggle" type="button" title="Toggle theme" aria-label="Toggle theme" style="margin-left: auto;"></button>
-        <a href="/auth/logout">Logout</a>
+        {% set _user = request.session.get("user", {}) %}
+        {% if _user %}
+        <a href="/profile" class="user-avatar" title="{{ _user.get('name', 'Profile') }}">{{ _user.get("name", "?")[0] | upper }}</a>
+        {% endif %}
     </nav>
     <main>
         {% if request.app.state.processor is not none %}
