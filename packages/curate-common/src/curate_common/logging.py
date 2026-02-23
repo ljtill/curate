@@ -3,9 +3,33 @@
 from __future__ import annotations
 
 import logging
+import sys
 from pathlib import Path
 
 _LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
+_LOG_DATE_FORMAT = "%H:%M:%S"
+
+# ANSI colour codes keyed by log-level number
+_LEVEL_COLOURS: dict[int, str] = {
+    logging.DEBUG: "\033[36m",  # cyan
+    logging.INFO: "\033[32m",  # green
+    logging.WARNING: "\033[33m",  # yellow
+    logging.ERROR: "\033[31m",  # red
+    logging.CRITICAL: "\033[1;31m",  # bold red
+}
+_RESET = "\033[0m"
+
+
+class _ColourFormatter(logging.Formatter):
+    """Formatter that applies ANSI colour to the level name on TTY streams."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        msg = super().format(record)
+        colour = _LEVEL_COLOURS.get(record.levelno)
+        if colour:
+            coloured = f"{colour}{record.levelname}{_RESET}"
+            msg = msg.replace(record.levelname, coloured, 1)
+        return msg
 
 
 class _FeedRangeFilter(logging.Filter):
@@ -49,7 +73,12 @@ def configure_logging(
     if not root_logger.handlers:
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(level)
-        stream_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+        # Use colour formatter only when writing to a real terminal
+        if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+            stream_handler.setFormatter(_ColourFormatter(_LOG_FORMAT, _LOG_DATE_FORMAT))
+        else:
+            fmt = logging.Formatter(_LOG_FORMAT, _LOG_DATE_FORMAT)
+            stream_handler.setFormatter(fmt)
         root_logger.addHandler(stream_handler)
 
     if log_file:
@@ -64,7 +93,7 @@ def configure_logging(
         if not has_file_handler:
             file_handler = logging.FileHandler(log_path, mode="w")
             file_handler.setLevel(level)
-            file_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+            file_handler.setFormatter(logging.Formatter(_LOG_FORMAT, _LOG_DATE_FORMAT))
             root_logger.addHandler(file_handler)
 
     for name in _QUIET_LOGGERS:
