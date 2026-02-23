@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "partials/agent_activity.html" import render_activity_list %}
+{% from "partials/link_progress.html" import render_link_progress %}
 {% block title %}Workspace{% endblock %}
 {% block content %}
 {% if edition %}
@@ -21,6 +22,37 @@
         .workspace { flex-direction: column; }
         .workspace-left, .workspace-right { flex: 1 1 100%; }
     }
+    .pipeline-phase { margin-bottom: 1rem; }
+    .pipeline-phase-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.5rem 0; font-size: 0.8125rem;
+    }
+    .pipeline-phase-icon { font-size: 0.75rem; }
+    .pipeline-phase-active .pipeline-phase-icon { color: var(--accent-emphasis); }
+    .pipeline-phase-title { font-weight: 600; }
+    .pipeline-phase-status { color: var(--text-muted); margin-left: auto; font-size: 0.75rem; }
+    .pipeline-phase-body {
+        margin-left: 1rem; padding-left: 0.75rem;
+        border-left: 2px solid var(--border);
+    }
+    .pipeline-phase-active .pipeline-phase-body { border-left-color: var(--accent-emphasis); }
+    .pipeline-link-row {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.375rem 0; border-bottom: 1px solid var(--border);
+        font-size: 0.8125rem;
+    }
+    .pipeline-link-row:last-child { border-bottom: none; }
+    .pipeline-link-url {
+        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        color: var(--text-muted); flex-shrink: 1;
+    }
+    .pipeline-link-steps { margin-left: auto; flex-shrink: 0; }
+    .pipeline-feedback-row {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.375rem 0; border-bottom: 1px solid var(--border);
+        font-size: 0.8125rem;
+    }
+    .pipeline-feedback-row:last-child { border-bottom: none; }
 </style>
 
 <div class="workspace">
@@ -113,7 +145,7 @@
         <div class="card" style="padding: 0;">
             <div class="tab-bar">
                 <button class="tab-btn active" data-tab="links" onclick="switchTab(event, 'links')">Links</button>
-                <button class="tab-btn" data-tab="agents" onclick="switchTab(event, 'agents')">Agents</button>
+                <button class="tab-btn" data-tab="pipeline" onclick="switchTab(event, 'pipeline')">Pipeline</button>
                 <button class="tab-btn" data-tab="feedback" onclick="switchTab(event, 'feedback')">Feedback</button>
             </div>
 
@@ -127,6 +159,7 @@
                             <th>URL</th>
                             <th>Title</th>
                             <th>Status</th>
+                            <th>Progress</th>
                             <th style="width: 5rem;"></th>
                         </tr>
                     </thead>
@@ -138,6 +171,11 @@
                             </td>
                             <td>{{ link.title or '—' }}</td>
                             <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+                            <td>
+                                <div id="link-progress-{{ link.id }}">
+                                    {{ render_link_progress(link_run_groups.get(link.id, [])) }}
+                                </div>
+                            </td>
                             <td style="text-align: right; white-space: nowrap;">
                                 {% if edition.status != 'published' %}
                                 <form method="post" action="/store/{{ link.id }}/disassociate" style="display: inline;">
@@ -185,14 +223,70 @@
                 {% endif %}
             </div>
 
-            <!-- Agents tab -->
-            <div class="tab-panel" data-tab="agents" style="padding: 1rem;">
-                <h3 style="font-size: 0.875rem; margin-bottom: 0.75rem;">Agent Activity</h3>
-                {% if agent_runs %}
-                {{ render_activity_list(agent_runs, links_by_id) }}
-                {% else %}
-                <p style="color: var(--text-muted); font-size: 0.875rem;">No agent activity yet. Add links to start the pipeline.</p>
-                {% endif %}
+            <!-- Pipeline tab -->
+            <div class="tab-panel" data-tab="pipeline" style="padding: 1rem;">
+                {% set content_active = links | selectattr('status', 'ne', 'drafted') | selectattr('status', 'ne', 'failed') | list | length > 0 %}
+                {% set has_content = edition.content.get('editors_note') or edition.content.get('signals') or edition.content.get('deep_dive') %}
+                {% set review_active = has_content and unresolved_count > 0 %}
+                {% set publish_active = edition.status == 'published' %}
+
+                <div class="pipeline-phase {{ 'pipeline-phase-active' if content_active }}" id="phase-content">
+                    <div class="pipeline-phase-header">
+                        <span class="pipeline-phase-icon">{{ '●' if content_active else '○' }}</span>
+                        <span class="pipeline-phase-title">Content Pipeline</span>
+                        <span class="pipeline-phase-status">
+                            {% set processing = links | selectattr('status', 'ne', 'drafted') | selectattr('status', 'ne', 'failed') | list | length %}
+                            {% if processing > 0 %}Processing {{ processing }} of {{ links | length }} links{% elif links %}All links processed{% else %}No links{% endif %}
+                        </span>
+                    </div>
+                    <div class="pipeline-phase-body">
+                        {% for link in links %}
+                        <div class="pipeline-link-row" id="pipeline-link-{{ link.id }}">
+                            <div class="pipeline-link-url">{{ link.url | truncate(35) }}</div>
+                            <div class="pipeline-link-steps" id="link-progress-{{ link.id }}">
+                                {{ render_link_progress(link_run_groups.get(link.id, [])) }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if not links %}
+                        <p style="color: var(--text-muted); font-size: 0.8125rem; padding: 0.375rem 0;">No links attached yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pipeline-phase {{ 'pipeline-phase-active' if review_active }}" id="phase-review">
+                    <div class="pipeline-phase-header">
+                        <span class="pipeline-phase-icon">{{ '●' if review_active else '○' }}</span>
+                        <span class="pipeline-phase-title">Editorial Review</span>
+                        <span class="pipeline-phase-status">
+                            {% if unresolved_count > 0 %}{{ unresolved_count }} unresolved{% else %}No feedback{% endif %}
+                        </span>
+                    </div>
+                    <div class="pipeline-phase-body">
+                        {% for fb in feedback %}
+                        <div class="pipeline-feedback-row">
+                            <span class="badge {% if fb.resolved %}badge-completed{% else %}badge-created{% endif %}">
+                                {{ 'resolved' if fb.resolved else 'open' }}
+                            </span>
+                            <span style="font-weight: 500;">{{ fb.section }}</span>
+                            <span style="color: var(--text-muted);">{{ fb.comment | truncate(60) }}</span>
+                        </div>
+                        {% endfor %}
+                        {% if not feedback %}
+                        <p style="color: var(--text-muted); font-size: 0.8125rem; padding: 0.375rem 0;">No feedback submitted yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pipeline-phase {{ 'pipeline-phase-active' if publish_active }}" id="phase-publish">
+                    <div class="pipeline-phase-header">
+                        <span class="pipeline-phase-icon">{{ '●' if publish_active else '○' }}</span>
+                        <span class="pipeline-phase-title">Publish</span>
+                        <span class="pipeline-phase-status">
+                            {% if edition.status == 'published' %}Published{% else %}Not started{% endif %}
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <!-- Feedback tab -->

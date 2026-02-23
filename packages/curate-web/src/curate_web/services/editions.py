@@ -7,6 +7,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from curate_common.models.edition import Edition
+from curate_web.services.agent_runs import group_runs_by_invocation
 
 if TYPE_CHECKING:
     from curate_common.database.repositories.agent_runs import AgentRunRepository
@@ -97,6 +98,18 @@ async def get_workspace_data(
     feedback = await feedback_repo.get_by_edition(edition_id)
     links_by_id = {link.id: link for link in links}
 
+    # Group agent runs by trigger (link) ID, then by invocation
+    runs_by_trigger: dict[str, list[Any]] = {}
+    for run in agent_runs:
+        runs_by_trigger.setdefault(run.trigger_id, []).append(run)
+
+    link_run_groups = {
+        link.id: group_runs_by_invocation(runs_by_trigger.get(link.id, []))
+        for link in links
+    }
+
+    unresolved_count = sum(1 for fb in feedback if not fb.resolved)
+
     logger.info(
         "Workspace data assembled — edition=%s exists=%s links=%d "
         "unattached=%d runs=%d feedback=%d duration_ms=%.0f",
@@ -116,6 +129,8 @@ async def get_workspace_data(
         "agent_runs": agent_runs,
         "feedback": feedback,
         "links_by_id": links_by_id,
+        "link_run_groups": link_run_groups,
+        "unresolved_count": unresolved_count,
     }
 
 
