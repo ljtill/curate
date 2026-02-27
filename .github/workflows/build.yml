@@ -28,7 +28,7 @@ jobs:
         run: az bicep build --file infra/main.bicep
 
       - name: Upload Bicep templates
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bicep-templates
           path: infra/
